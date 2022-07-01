@@ -9,7 +9,6 @@ type (
 		Url        string   // 小说网址
 		Name       string   // 小说书名
 		IsVip      bool     // 是否上架
-		IsGet      bool     // 是否可以获取
 		Writer     string   // 作者昵称
 		HitNum     string   // 小说点击
 		WordNum    string   // 小说字数
@@ -22,15 +21,18 @@ type (
 		Introduce  string   // 小说简述
 		Status     string   // 小说状态
 		TagList    []string // 标签列表
+		IsGet      bool     // 是否可以获取
 	}
 
 	Chapter struct {
+		BookUrl string    // 本书网址
 		Url     string    // 章节网址
 		Time    time.Time // 更新时间
 		Title   string    // 章节名称
 		WordNum int       // 章节字数
 		LastUrl string    // 上章网址
 		NextUrl string    // 下章网址
+		IsGet   bool      // 是否可以获取
 	}
 
 	Compare struct {

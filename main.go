@@ -68,7 +68,7 @@ func (f LogFormat) Format(entry *log.Entry) ([]byte, error) {
 	buf.WriteString(colorReset)
 
 	return buf.Bytes(), nil
-} //颜色代码
+} // 颜色代码
 
 func init() {
 	config := kitten.LoadConfig()

@@ -1,8 +1,6 @@
 package kitten
 
 type (
-	BotAPI uint64
-
 	KittenConfig struct {
 		NickName      []string        // 昵称
 		SuperUsers    []int64         // 管理员账号

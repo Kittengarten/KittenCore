@@ -37,17 +37,20 @@ func init() {
 		var novel Novel
 		novel.Init(ctx.State["args"].(string))
 		report := novel.Update()
-
 		ctx.SendGroupMessage(ctx.Event.GroupID, report)
-	}) //测试小说报更功能
+	}) // 测试小说报更功能
 
 	engine.OnCommand("更新预览").Handle(func(ctx *zero.Ctx) {
 		var novel Novel
 		novel.Init(ctx.State["args"].(string))
 		report := novel.Preview
-
-		ctx.SendGroupMessage(ctx.Event.GroupID, report)
-	}) //预览小说更新
+		if report == "" {
+			ctx.SendGroupMessage(ctx.Event.GroupID, "不存在的喵！")
+			log.Info("更新预览不存在的喵！")
+		} else {
+			ctx.SendGroupMessage(ctx.Event.GroupID, report)
+		}
+	}) // 预览小说更新
 
 	engine.OnCommand("小说").Handle(func(ctx *zero.Ctx) {
 		var novel Novel
@@ -64,7 +67,7 @@ func init() {
 				ctx.SendGroupMessage(ctx.Event.GroupID, args)
 			}
 		}
-	}) //小说信息功能
+	}) // 小说信息功能
 }
 
 func sfacgTrack() {
@@ -99,16 +102,14 @@ func sfacgTrack() {
 	for {
 		for idx := 0; idx < len(config); idx++ {
 
-			chapterUrl, chk := api.FindChapterUrl(config[idx].BookId)
-
-			if !chk {
+			chapterUrl := api.FindChapterUrl(config[idx].BookId)
+			if chapterUrl == "" {
 				continue
 			}
 			if config[idx].RecordUrl == chapterUrl &&
 				config[idx].Updatetime == api.FindChapterUpdateTime(config[idx].BookId) {
 				continue
 			}
-
 			novel.Init(config[idx].BookId)
 			config[idx].RecordUrl = novel.NewChapter.Url
 			config[idx].Updatetime = novel.NewChapter.Time.Format("2006年01月02日 15时04分05秒")
@@ -120,5 +121,5 @@ func sfacgTrack() {
 			}
 		}
 		time.Sleep(5 * time.Second)
-	} //报更
+	} // 报更
 }

@@ -14,20 +14,20 @@ func LoadConfig() (config Config) {
 	var sf SFAPI
 	yaml.Unmarshal(kitten.FileRead("sfacg/config.yaml"), &config)
 	for idx := range config {
-		chapterUrl, chk := sf.FindChapterUrl(config[idx].BookId)
-		if !chk {
+		chapterUrl := sf.FindChapterUrl(config[idx].BookId)
+		if chapterUrl == "" {
 			log.Warn(chapterUrl)
 		}
 		config[idx].RecordUrl = chapterUrl
 		config[idx].Updatetime = sf.FindChapterUpdateTime(config[idx].BookId)
 	}
 	return config
-} //加载配置
+} // 加载配置
 
 func IsInt(str string) bool {
 	match, _ := regexp.MatchString("^[0-9]+$", str)
 	return match
-} //判断字符串是否为整数（可用于判断是书号还是搜索关键词）
+} // 判断字符串是否为整数（可用于判断是书号还是搜索关键词）
 
 func GetMidText(pre string, suf string, str string) string {
 	n := strings.Index(str, pre)
@@ -42,4 +42,4 @@ func GetMidText(pre string, suf string, str string) string {
 		m = len(str)
 	}
 	return string([]byte(str)[:m])
-} //获取中间字符串
+} // 获取中间字符串

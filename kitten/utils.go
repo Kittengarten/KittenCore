@@ -13,7 +13,7 @@ import (
 func Atoi(str string) int {
 	num, _ := strconv.Atoi(str)
 	return num
-} //字符串转换为数字
+} // 字符串转换为数字
 
 func FileRead(path string) []byte {
 	res, err := os.Open(path)
@@ -24,7 +24,7 @@ func FileRead(path string) []byte {
 	}
 	data, _ := ioutil.ReadAll(res)
 	return data
-} //YAML文件读取
+} // YAML 文件读取
 
 func LoadConfig() (config KittenConfig) {
 	err := yaml.Unmarshal(FileRead("config.yaml"), &config)
@@ -33,7 +33,7 @@ func LoadConfig() (config KittenConfig) {
 		return
 	}
 	return config
-} //加载配置
+} // 加载配置
 
 func Check(err interface{}) bool {
 	if err != nil {
@@ -41,4 +41,4 @@ func Check(err interface{}) bool {
 	} else {
 		return true
 	}
-} //处理错误
+} // 处理错误
