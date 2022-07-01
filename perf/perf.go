@@ -31,7 +31,6 @@ func init() {
 
 	engine.OnCommand("查看").Handle(func(ctx *zero.Ctx) {
 		who := ctx.State["args"].(string)
-		log.Warn(who)
 		var str string
 		switch who {
 		case config.NickName[0]:
