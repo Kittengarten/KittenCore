@@ -10,6 +10,8 @@ import (
 
 	ctrl "github.com/FloatTech/zbpctrl"
 	zero "github.com/wdvxdr1123/ZeroBot"
+
+	log "github.com/sirupsen/logrus"
 )
 
 var api SFAPI
@@ -20,7 +22,10 @@ const (
 
 func init() {
 	config := kitten.LoadConfig()
-	help := "发送\n" + config.CommandPrefix + "小说 []，可获取服务器运行状况"
+	help := "发送\n" + config.CommandPrefix +
+		"小说 [搜索关键词]|[书号]，可获取信息\n" +
+		"更新测试 [书号]，可测试报更功能\n" +
+		"更新预览 [书号]，可预览更新内容\n"
 	engine := control.Register(replyServiceName, &ctrl.Options[*zero.Ctx]{
 		DisableOnDefault: false,
 		Help:             help,
@@ -63,6 +68,15 @@ func init() {
 }
 
 func sfacgTrack() {
+	defer func() {
+		if err := recover(); !kitten.Check(err) {
+			log.Error("有Bug喵！")
+			log.Error(UsingUrl)
+			log.Error(UsingObject)
+			log.Error(err)
+		}
+	}() // 处理panic，防止程序崩溃
+
 	var bot *zero.Ctx
 	var novel Novel
 	config := LoadConfig()

@@ -30,8 +30,8 @@ func init() {
 	}) // 注册插件
 
 	engine.OnCommand("查看").Handle(func(ctx *zero.Ctx) {
-		config := kitten.LoadConfig()
 		who := ctx.State["args"].(string)
+		log.Warn(who)
 		var str string
 		switch who {
 		case config.NickName[0]:

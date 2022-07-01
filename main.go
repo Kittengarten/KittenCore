@@ -4,9 +4,10 @@ import (
 	"bytes"
 	"io"
 	"kitten/kitten"
-	"kitten/sfacg"
 	"os"
 	"strings"
+
+	_ "kitten/perf"
 
 	log "github.com/sirupsen/logrus"
 
@@ -83,15 +84,6 @@ func init() {
 }
 
 func main() {
-	defer func() {
-		if err := recover(); !kitten.Check(err) {
-			log.Error("有Bug喵！")
-			log.Error(sfacg.UsingUrl)
-			log.Error(sfacg.UsingObject)
-			log.Error(err)
-		}
-	}() // 处理panic，防止程序崩溃
-
 	config := kitten.LoadConfig()
 
 	zero.Run(zero.Config{
