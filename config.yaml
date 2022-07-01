@@ -1,0 +1,13 @@
+nickname:  # 昵称，首个显示在日志中
+  - "喵喵"   
+  - "幼喵园"
+superusers:       # 管理员账号
+  - 1262287032
+  - 2942514750
+commandprefix: "/"           # 指令前缀
+websocket:                 # WebSocket 配置
+  url: "ws://localhost:6700" # WebSocket 链接
+  accesstoken: "Iluyf Meow"  # WebSocket 密钥
+log:                         # 日志
+  level: "trace"             # 日志等级
+  path: "log.txt"       # 日志路径
