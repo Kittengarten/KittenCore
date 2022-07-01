@@ -3,16 +3,17 @@ package main
 import (
 	"bytes"
 	"io"
-	"kitten/kitten"
 	"os"
 	"strings"
 
+	"kitten/kitten"
 	_ "kitten/perf"
-
-	log "github.com/sirupsen/logrus"
+	_ "kitten/sfacg"
 
 	zero "github.com/wdvxdr1123/ZeroBot"
 	"github.com/wdvxdr1123/ZeroBot/driver"
+
+	log "github.com/sirupsen/logrus"
 )
 
 const (
