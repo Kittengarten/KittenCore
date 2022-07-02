@@ -85,19 +85,21 @@ func init() {
 }
 
 func main() {
-	config := kitten.LoadConfig()
-
-	zero.Run(zero.Config{
-		NickName:      config.NickName,
-		CommandPrefix: config.CommandPrefix,
-		SuperUsers:    config.SuperUsers,
-		Driver: []zero.Driver{
-			&driver.WSClient{
-				// OneBot 正向WS 默认使用 6700 端口
-				Url:         config.WebSocket.Url,
-				AccessToken: config.WebSocket.AccessToken,
+	for {
+		config := kitten.LoadConfig()
+		log.Info("已经载入配置了喵！")
+		zero.Run(zero.Config{
+			NickName:      config.NickName,
+			CommandPrefix: config.CommandPrefix,
+			SuperUsers:    config.SuperUsers,
+			Driver: []zero.Driver{
+				&driver.WSClient{
+					// OneBot 正向WS 默认使用 6700 端口
+					Url:         config.WebSocket.Url,
+					AccessToken: config.WebSocket.AccessToken,
+				},
 			},
-		},
-	})
-	select {} // 阻塞进程，防止程序退出
+		})
+		select {} // 阻塞进程，防止程序退出
+	}
 }

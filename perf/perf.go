@@ -35,7 +35,7 @@ func init() {
 		switch who {
 		case config.NickName[0]:
 			str = "CPU使用率：" + Decimal(GetCpuPercent()) +
-				"%，内存使用：" + Decimal(GetMemPercent()) +
+				"%，内存使用：" + DecimalInt(GetMemPercent()) +
 				"%（" + GetMemUsed() + "），系统盘使用：" + Decimal(GetDiskPercent()) + "%（" + GetDiskUsed() + "），体温：" + GetCPUTemperature() + "℃" //查看性能页
 		}
 		ctx.Send(str)
