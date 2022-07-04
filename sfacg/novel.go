@@ -12,14 +12,10 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-var UsingUrl string
-var UsingObject interface{}
-
 func (nv *Novel) Init(bookId string) {
 	nv.Id = bookId
 	nv.Url = "https://book.sfacg.com/Novel/" + bookId // 生成链接
-	UsingUrl = nv.Url
-	nv.NewChapter.BookUrl = nv.Url // 用于向章节传入本书链接
+	nv.NewChapter.BookUrl = nv.Url                    // 用于向章节传入本书链接
 	req, err := http.Get(nv.Url)
 	if !kitten.Check(err) {
 		log.Warn("书号" + bookId + "获取网页失败了喵！")
@@ -38,7 +34,6 @@ func (nv *Novel) Init(bookId string) {
 			nv.HeadUrl, _ = doc.Find("div.author-mask").Find("img").Attr("src") // 获取头像链接
 
 			textRow := doc.Find("div.text-row").Find("span") // 获取详细数字
-			UsingObject = textRow                            // Debug用
 			nv.Type = textRow.Eq(0).Text()[9:]               // 获取类型
 			nv.HitNum = textRow.Eq(2).Text()[9:]             // 获取点击
 			nv.WordNum = textRow.Eq(1).Text()
@@ -49,7 +44,6 @@ func (nv *Novel) Init(bookId string) {
 					loc) // 防止章节炸了导致获取不到更新时间
 
 			WordNumInfo := nv.WordNum
-			UsingObject = WordNumInfo                       // Debug用
 			nv.WordNum = nv.WordNum[9 : len(nv.WordNum)-14] // 获取字数
 			nv.Status = WordNumInfo[len(WordNumInfo)-11:]   //获取状态
 
@@ -81,8 +75,7 @@ func (nv *Novel) Init(bookId string) {
 
 func (cp *Chapter) Init(url string) {
 	loc, _ := time.LoadLocation("Local")
-	cp.Url = url      // 生成链接
-	UsingUrl = cp.Url // Debug用
+	cp.Url = url // 生成链接
 	req, err := http.Get(cp.Url)
 	if !kitten.Check(err) {
 		cp.IsGet = false
@@ -97,8 +90,7 @@ func (cp *Chapter) Init(url string) {
 				cp.IsGet = false // 防止奇怪的用户对不存在的书号进行更新测试，导致程序报错
 			} else {
 				cp.IsGet = true
-				desc := doc.Find("div.article-desc").Find("span")
-				UsingObject = desc                                                                  // Debug用
+				desc := doc.Find("div.article-desc").Find("span")                                   // Debug用
 				cp.WordNum = kitten.Atoi(desc.Eq(2).Text()[9:])                                     // 获取新章节字数
 				cp.Time, _ = time.ParseInLocation("2006/1/2 15:04:05", desc.Eq(1).Text()[15:], loc) // 获取更新时间
 				cp.Title = doc.Find("h1.article-title").Text()                                      // 获取新章节标题

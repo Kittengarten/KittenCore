@@ -31,18 +31,17 @@ func init() {
 		Help:             help,
 	}) // 注册插件
 
+	log.Debug(replyServiceName + "正在启动喵……")
 	go sfacgTrack()
 
 	engine.OnCommand("更新测试").Handle(func(ctx *zero.Ctx) {
-		var novel Novel
-		novel.Init(ctx.State["args"].(string))
+		novel := getNovel(ctx)
 		report := novel.Update()
 		ctx.SendGroupMessage(ctx.Event.GroupID, report)
 	}) // 测试小说报更功能
 
 	engine.OnCommand("更新预览").Handle(func(ctx *zero.Ctx) {
-		var novel Novel
-		novel.Init(ctx.State["args"].(string))
+		novel := getNovel(ctx)
 		report := novel.Preview
 		if report == "" {
 			ctx.SendGroupMessage(ctx.Event.GroupID, "不存在的喵！")
@@ -50,42 +49,36 @@ func init() {
 		} else {
 			ctx.SendGroupMessage(ctx.Event.GroupID, report)
 		}
-	}) // 预览小说更新
+
+	}) // 预览小说更新功能
 
 	engine.OnCommand("小说").Handle(func(ctx *zero.Ctx) {
-		var novel Novel
-		args := ctx.State["args"].(string)
-		if IsInt(args) {
-			novel.Init(args)
-			ctx.SendGroupMessage(ctx.Event.GroupID, novel.Information())
-		} else {
-			args, chk := api.FindBookID(args)
-			if chk {
-				novel.Init(args)
-				ctx.SendGroupMessage(ctx.Event.GroupID, novel.Information())
-			} else {
-				ctx.SendGroupMessage(ctx.Event.GroupID, args)
-			}
-		}
+		novel := getNovel(ctx)
+		ctx.SendGroupMessage(ctx.Event.GroupID, novel.Information())
 	}) // 小说信息功能
 }
 
-func sfacgTrack() {
-	defer func() {
-		if err := recover(); !kitten.Check(err) {
-			log.Error("有Bug喵！")
-			log.Error(UsingUrl)
-			log.Error(UsingObject)
-			log.Error(err)
+func getNovel(ctx *zero.Ctx) (nv Novel) {
+	ag := ctx.State["args"].(string)
+	if !IsInt(ag) {
+		var chk bool
+		ag, chk = api.FindBookID(ag)
+		if !chk {
+			ctx.SendGroupMessage(ctx.Event.GroupID, ag)
+			return
 		}
-	}() // 处理panic，防止程序崩溃
+	}
+	nv.Init(ag)
+	return nv
+} // 获取小说（如果传入值不为书号，则先获取书号）
 
+func sfacgTrack() {
 	var bot *zero.Ctx
 	var novel Novel
 	config := LoadConfig()
 	name := kitten.LoadConfig().NickName[0]
 	line := "======================[" + name + "]======================"
-	var content = strings.Join([]string{
+	content := strings.Join([]string{
 		line,
 		"* OneBot + ZeroBot + Golang",
 		fmt.Sprintf("一共有%d本小说", len(config)),
@@ -105,11 +98,11 @@ func sfacgTrack() {
 			chapterUrl := api.FindChapterUrl(config[idx].BookId)
 			if chapterUrl == "" {
 				continue
-			}
+			} // 防止误报
 			if config[idx].RecordUrl == chapterUrl &&
 				config[idx].Updatetime == api.FindChapterUpdateTime(config[idx].BookId) {
 				continue
-			}
+			} // 更新判定
 			novel.Init(config[idx].BookId)
 			config[idx].RecordUrl = novel.NewChapter.Url
 			config[idx].Updatetime = novel.NewChapter.Time.Format("2006年01月02日 15时04分05秒")
