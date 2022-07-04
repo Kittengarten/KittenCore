@@ -211,3 +211,7 @@
 - id: 52
   string: "星睿！"
   chance: 1
+
+- id: 53
+  string: "别在这理发店"
+  chance: 5

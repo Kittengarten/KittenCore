@@ -63,11 +63,12 @@ func (nv *Novel) Init(bookId string) {
 			nv.Preview = strings.Replace(nv.Preview, "\r", "", -1)
 			nv.Preview = strings.Replace(nv.Preview, "　", "", -1) // 获取预览
 
-			nvNewChapterUrl, err := doc.Find("div.chapter-info").Find("h3").Find("a").Attr("href")
-
+			nvNewChapterUrl, _ := doc.Find("div.chapter-info").Find("h3").Find("a").Attr("href")
 			nv.IsVip = strings.Contains(nvNewChapterUrl, "vip")
-			if nvNewChapterUrl == "" || !kitten.Check(err) {
+
+			if nvNewChapterUrl == "" {
 				nv.NewChapter.IsGet = false // 防止更新章节炸了跳转到网站首页引起程序报错
+				log.Warn(nv.Url + "获取更新链接失败了喵！")
 			} else {
 				nvNewChapterUrl = "https://book.sfacg.com" + nvNewChapterUrl
 				nv.NewChapter.Init(nvNewChapterUrl) // 获取新章节链接
@@ -153,6 +154,7 @@ func (nv *Novel) makeCompare() Compare {
 		}
 	} else {
 		cm.Times = 0
+		cm.TimeGap = 1
 	} // 防止无限得不到更新章节循环
 	return cm
 }
@@ -209,7 +211,7 @@ func (nv *Novel) Update() string {
 
 	timeGap := cm.TimeGap.String()
 	if cm.TimeGap == 0 {
-		log.Error("更新异常喵！")
+		log.Warning("更新异常喵！")
 		return "更新异常喵！"
 	} else {
 		timeGap = strings.Replace(timeGap, "h", "小时", 1)

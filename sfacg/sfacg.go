@@ -104,15 +104,13 @@ func sfacgTrack() {
 	var report string
 	for {
 		for idx := 0; idx < len(config); idx++ {
-
 			chapterUrl := api.FindChapterUrl(config[idx].BookId)
-			if chapterUrl == "" {
+			chapterUpdateTime := api.FindChapterUpdateTime(config[idx].BookId)
+			if chapterUrl == "" ||
+				config[idx].RecordUrl == chapterUrl ||
+				config[idx].Updatetime == chapterUpdateTime {
 				continue
-			} // 防止误报
-			if config[idx].RecordUrl == chapterUrl &&
-				config[idx].Updatetime == api.FindChapterUpdateTime(config[idx].BookId) {
-				continue
-			} // 更新判定
+			} // 更新判定，并防止误报
 			novel.Init(config[idx].BookId)
 			config[idx].RecordUrl = novel.NewChapter.Url
 			config[idx].Updatetime = novel.NewChapter.Time.Format("2006年01月02日 15时04分05秒")
