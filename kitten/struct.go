@@ -18,4 +18,9 @@ type (
 		Level string // 日志等级
 		Path  string // 日志路径
 	}
+
+	Choice interface {
+		GetInformation() string // 该项目的信息
+		GetChance() int         // 该项目的权重
+	}
 )

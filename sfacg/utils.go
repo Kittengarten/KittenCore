@@ -10,6 +10,7 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
+// 加载配置
 func LoadConfig() (config Config) {
 	var sf SFAPI
 	yaml.Unmarshal(kitten.FileRead("sfacg/config.yaml"), &config)
@@ -22,13 +23,15 @@ func LoadConfig() (config Config) {
 		config[idx].Updatetime = sf.FindChapterUpdateTime(config[idx].BookId)
 	}
 	return config
-} // 加载配置
+}
 
+// 判断字符串是否为整数（可用于判断是书号还是搜索关键词）
 func IsInt(str string) bool {
 	match, _ := regexp.MatchString("^[0-9]+$", str)
 	return match
-} // 判断字符串是否为整数（可用于判断是书号还是搜索关键词）
+}
 
+// 获取中间字符串
 func GetMidText(pre string, suf string, str string) string {
 	n := strings.Index(str, pre)
 	if n == -1 {
@@ -42,4 +45,4 @@ func GetMidText(pre string, suf string, str string) string {
 		m = len(str)
 	}
 	return string([]byte(str)[:m])
-} // 获取中间字符串
+}

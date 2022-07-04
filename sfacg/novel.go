@@ -12,6 +12,7 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
+// 小说网页信息获取
 func (nv *Novel) Init(bookId string) {
 	nv.Id = bookId
 	nv.Url = "https://book.sfacg.com/Novel/" + bookId // 生成链接
@@ -24,7 +25,8 @@ func (nv *Novel) Init(bookId string) {
 		defer req.Body.Close()
 		doc, _ := goquery.NewDocumentFromReader(req.Body) // 获取小说网页
 		if strings.EqualFold(doc.Find("title").Text(), "出错了") ||
-			strings.EqualFold(doc.Find("title").Text(), "糟糕,页面找不到了") {
+			strings.EqualFold(doc.Find("title").Text(), "糟糕,页面找不到了") ||
+			len(doc.Find("title").Text()) < 43 { // 防止网页炸了导致问题
 			log.Info("书号" + bookId + "没有喵。")
 			nv.IsGet = false
 		} else {
@@ -52,7 +54,7 @@ func (nv *Novel) Init(bookId string) {
 			//	nv.TagList[i] = selection.Text()
 			//}) //获取标签(暂时不能用)
 
-			nv.CoverUrl, _ = doc.Find("div.figure").Find("img").Eq(0).Attr("src")  // 获取封面链接
+			// nv.CoverUrl, _ = doc.Find("div.figure").Find("img").Eq(0).Attr("src")  // 获取封面链接（暂时不需要，注释掉）
 			nv.Collection = doc.Find("#BasicOperation").Find("a").Eq(2).Text()[7:] // 获取收藏
 
 			nv.Preview = doc.Find("div.chapter-info").Find("p").Text()
@@ -61,9 +63,10 @@ func (nv *Novel) Init(bookId string) {
 			nv.Preview = strings.Replace(nv.Preview, "\r", "", -1)
 			nv.Preview = strings.Replace(nv.Preview, "　", "", -1) // 获取预览
 
-			nvNewChapterUrl, _ := doc.Find("div.chapter-info").Find("h3").Find("a").Attr("href")
+			nvNewChapterUrl, err := doc.Find("div.chapter-info").Find("h3").Find("a").Attr("href")
+
 			nv.IsVip = strings.Contains(nvNewChapterUrl, "vip")
-			if nvNewChapterUrl == "" {
+			if nvNewChapterUrl == "" || !kitten.Check(err) {
 				nv.NewChapter.IsGet = false // 防止更新章节炸了跳转到网站首页引起程序报错
 			} else {
 				nvNewChapterUrl = "https://book.sfacg.com" + nvNewChapterUrl
@@ -71,8 +74,9 @@ func (nv *Novel) Init(bookId string) {
 			}
 		}
 	}
-} // 小说网页信息获取
+}
 
+// 新章节信息获取
 func (cp *Chapter) Init(url string) {
 	loc, _ := time.LoadLocation("Local")
 	cp.Url = url // 生成链接
@@ -105,8 +109,9 @@ func (cp *Chapter) Init(url string) {
 			log.Warn(url + "更新异常喵！")
 		} // 防止章节炸了导致获取新章节跳转引发panic
 	}
-} // 新章节信息获取
+}
 
+// 新章节链接获取
 func (sf *SFAPI) FindChapterUrl(bookid string) string {
 	req, err := http.Get("http://book.sfacg.com/Novel/" + bookid)
 	if !kitten.Check(err) {
@@ -121,14 +126,16 @@ func (sf *SFAPI) FindChapterUrl(bookid string) string {
 	result = GetMidText("<a href=\"", "\" class=", result)
 
 	return "https://book.sfacg.com" + result
-} // 新章节链接获取
+}
 
+// 新章节更新时间获取
 func (sf *SFAPI) FindChapterUpdateTime(bookid string) string {
 	var nv Novel
 	nv.Init(bookid)
 	return nv.NewChapter.Time.Format("2006年01月02日 15时04分05秒")
-} // 新章节更新时间获取
+}
 
+// 与上次更新比较
 func (nv *Novel) makeCompare() Compare {
 	var cm Compare
 	var this, last Chapter
@@ -148,8 +155,9 @@ func (nv *Novel) makeCompare() Compare {
 		cm.Times = 0
 	} // 防止无限得不到更新章节循环
 	return cm
-} // 与上次更新比较
+}
 
+// 小说信息
 func (nv *Novel) Information() string {
 	//	var tags string //暂时不能用
 	//	for _, v := range nv.TagList {
@@ -172,8 +180,9 @@ func (nv *Novel) Information() string {
 	} else {
 		return "书号" + nv.Id + "打不开喵！"
 	}
-} // 小说信息
+}
 
+// 搜索
 func (sf *SFAPI) FindBookID(keyword string) (string, bool) {
 	searchUrl := "http://s.sfacg.com/?Key=" + keyword + "&S=1&SS=0"
 	req, err := http.Get(searchUrl)
@@ -190,8 +199,9 @@ func (sf *SFAPI) FindBookID(keyword string) (string, bool) {
 		return "关键词【" + keyword + "】找不到小说喵！", false
 	}
 	return href[29:], true
-} // 搜索
+}
 
+// 更新信息
 func (nv *Novel) Update() string {
 	var cm = nv.makeCompare()
 
@@ -199,6 +209,7 @@ func (nv *Novel) Update() string {
 
 	timeGap := cm.TimeGap.String()
 	if cm.TimeGap == 0 {
+		log.Error("更新异常喵！")
 		return "更新异常喵！"
 	} else {
 		timeGap = strings.Replace(timeGap, "h", "小时", 1)
@@ -213,4 +224,4 @@ func (nv *Novel) Update() string {
 			fmt.Sprintf("，当日第%d更", cm.Times)
 		return str
 	}
-} // 更新信息
+}

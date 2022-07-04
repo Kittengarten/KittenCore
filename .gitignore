@@ -1,2 +1,5 @@
 kitten.ps1
 log.txt
+log/
+data/
+.vscode/

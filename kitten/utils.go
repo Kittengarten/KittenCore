@@ -2,6 +2,7 @@ package kitten
 
 import (
 	"io/ioutil"
+	"math/rand"
 	"os"
 	"strconv"
 
@@ -10,11 +11,13 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
+// 字符串转换为数字
 func Atoi(str string) int {
 	num, _ := strconv.Atoi(str)
 	return num
-} // 字符串转换为数字
+}
 
+// YAML 文件读取
 func FileRead(path string) []byte {
 	res, err := os.Open(path)
 	if !Check(err) {
@@ -24,8 +27,9 @@ func FileRead(path string) []byte {
 	}
 	data, _ := ioutil.ReadAll(res)
 	return data
-} // YAML 文件读取
+}
 
+// 加载配置
 func LoadConfig() (config KittenConfig) {
 	err := yaml.Unmarshal(FileRead("config.yaml"), &config)
 	if !Check(err) {
@@ -33,12 +37,29 @@ func LoadConfig() (config KittenConfig) {
 		return
 	}
 	return config
-} // 加载配置
+}
 
+// 处理错误
 func Check(err interface{}) bool {
 	if err != nil {
 		return false
 	} else {
 		return true
 	}
-} // 处理错误
+}
+
+// 按权重抽取一个项目的idx
+func Choose(choices []Choice) int {
+	choiceAll := 0
+	for idx := range choices {
+		choiceAll += choices[idx].GetChance()
+	}
+	choiceNum := rand.Intn(choiceAll)
+	for idx := range choices {
+		choiceNum -= choices[idx].GetChance()
+		if choiceNum < 0 {
+			return idx
+		}
+	}
+	return len(choices) - 1
+}

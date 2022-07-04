@@ -3,9 +3,12 @@ package main
 import (
 	"bytes"
 	"io"
+	"math/rand"
 	"os"
 	"strings"
+	"time"
 
+	_ "kitten/abuse"
 	"kitten/kitten"
 	_ "kitten/perf"
 	_ "kitten/sfacg"
@@ -27,6 +30,7 @@ const (
 	colorReset     = "\x1b[0m"
 ) // 颜色代码常量
 
+// 获取日志等级对应色彩代码
 func getLogLevelColorCode(level log.Level) string {
 	switch level {
 	case log.PanicLevel:
@@ -47,10 +51,11 @@ func getLogLevelColorCode(level log.Level) string {
 	default:
 		return colorCodeInfo
 	}
-} // 获取日志等级对应色彩代码
+}
 
 type LogFormat struct{}
 
+// 颜色代码
 func (f LogFormat) Format(entry *log.Entry) ([]byte, error) {
 	buf := new(bytes.Buffer)
 
@@ -68,7 +73,7 @@ func (f LogFormat) Format(entry *log.Entry) ([]byte, error) {
 	buf.WriteString(colorReset)
 
 	return buf.Bytes(), nil
-} // 颜色代码
+}
 
 func init() {
 	config := kitten.LoadConfig()
@@ -85,21 +90,28 @@ func init() {
 }
 
 func main() {
-	for {
-		config := kitten.LoadConfig()
-		log.Info("已经载入配置了喵！")
-		zero.Run(zero.Config{
-			NickName:      config.NickName,
-			CommandPrefix: config.CommandPrefix,
-			SuperUsers:    config.SuperUsers,
-			Driver: []zero.Driver{
-				&driver.WSClient{
-					// OneBot 正向WS 默认使用 6700 端口
-					Url:         config.WebSocket.Url,
-					AccessToken: config.WebSocket.AccessToken,
-				},
+	// 处理panic，防止程序崩溃
+	defer func() {
+		if err := recover(); !kitten.Check(err) {
+			log.Error("main函数有Bug喵！")
+			log.Error(err)
+		}
+	}()
+
+	config := kitten.LoadConfig()
+	log.Info("已经载入配置了喵！")
+	rand.Seed(time.Now().UnixNano()) // 全局重置随机数种子，插件无须再次使用
+	zero.Run(zero.Config{
+		NickName:      config.NickName,
+		CommandPrefix: config.CommandPrefix,
+		SuperUsers:    config.SuperUsers,
+		Driver: []zero.Driver{
+			&driver.WSClient{
+				// OneBot 正向WS 默认使用 6700 端口
+				Url:         config.WebSocket.Url,
+				AccessToken: config.WebSocket.AccessToken,
 			},
-		})
-		select {} // 阻塞进程，防止程序退出
-	}
+		},
+	})
+	select {} // 阻塞进程，防止程序退出
 }
