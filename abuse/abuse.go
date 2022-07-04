@@ -25,7 +25,8 @@ var abuseConfig []Response
 func init() {
 	go Load()
 	config := kitten.LoadConfig()
-	help := "发送\n" + config.CommandPrefix + "骂我或" + config.CommandPrefix + "挨骂" + "\n在线挨骂，如果担心被冒犯到，请勿使用，否则后果自负"
+	help := "发送\n" + config.CommandPrefix + "骂我或" + config.CommandPrefix + "挨骂" +
+		"\n在线挨骂，如果担心被冒犯到，请勿使用，否则后果自负"
 	// 注册插件
 	engine := control.Register(replyServiceName, &ctrl.Options[*zero.Ctx]{
 		DisableOnDefault:  false,
