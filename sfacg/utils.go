@@ -20,7 +20,7 @@ func LoadConfig() (config Config) {
 			log.Warn(chapterUrl)
 		}
 		config[idx].RecordUrl = chapterUrl
-		config[idx].Updatetime = sf.FindChapterUpdateTime(config[idx].BookId)
+		config[idx].UpdateTime = sf.FindChapterUpdateTime(config[idx].BookId)
 	}
 	return config
 }

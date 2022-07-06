@@ -103,21 +103,24 @@ func sfacgTrack() {
 
 	var report string
 	for {
-		for idx := 0; idx < len(config); idx++ {
+		for idx := range config {
 			chapterUrl := api.FindChapterUrl(config[idx].BookId)
 			chapterUpdateTime := api.FindChapterUpdateTime(config[idx].BookId)
+			novel.Init(config[idx].BookId)
 			if chapterUrl == "" ||
-				config[idx].RecordUrl == chapterUrl ||
-				config[idx].Updatetime == chapterUpdateTime {
+				chapterUrl == config[idx].RecordUrl ||
+				chapterUpdateTime == config[idx].UpdateTime ||
+				!novel.IsGet {
 				continue
 			} // 更新判定，并防止误报
-			novel.Init(config[idx].BookId)
 			config[idx].RecordUrl = novel.NewChapter.Url
-			config[idx].Updatetime = novel.NewChapter.Time.Format("2006年01月02日 15时04分05秒")
-			if novel.Update() == "更新异常喵！" {
+			config[idx].UpdateTime = novel.NewChapter.Time.Format("2006年01月02日 15时04分05秒")
+
+			report = novel.Update()
+			if report == "更新异常喵！" {
+				log.Warn(novel.NewChapter.BookUrl + report)
 				continue
 			} // 防止更新异常信息发到群里
-			report = novel.Update()
 			for _, groupID := range config[idx].GroupID {
 				bot.SendGroupMessage(groupID, report)
 			}

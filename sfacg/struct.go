@@ -44,7 +44,6 @@ type (
 		BookId     string  // 报更书号
 		GroupID    []int64 // 书友群号
 		RecordUrl  string  // 更新记录
-		Updatetime string  // 更新时间
-
+		UpdateTime string  // 更新时间
 	}
 )
