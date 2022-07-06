@@ -74,7 +74,7 @@ func LoadConfig() (config []Response) {
 // 加载配置
 func Load() {
 	yaml.Unmarshal(kitten.FileRead("abuse/config.yaml"), &abuseConfig)
-	var values [1000]kitten.Choice // 如果条数过多，需要扩增
+	values := make([]kitten.Choice, len(abuseConfig))
 	for idx, value := range abuseConfig {
 		values[idx] = value
 	}
