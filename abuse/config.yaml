@@ -215,3 +215,7 @@
 - id: 53
   string: "别在这理发店"
   chance: 5
+
+- id: 54
+  image: "bug.jpg"
+  chance: 1

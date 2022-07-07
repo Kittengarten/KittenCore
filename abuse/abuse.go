@@ -30,7 +30,7 @@ func init() {
 	// 注册插件
 	engine := control.Register(replyServiceName, &ctrl.Options[*zero.Ctx]{
 		DisableOnDefault:  false,
-		PrivateDataFolder: "image",
+		PrivateDataFolder: "abuse/image",
 		Help:              help,
 	})
 
