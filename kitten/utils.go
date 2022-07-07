@@ -17,16 +17,28 @@ func Atoi(str string) int {
 	return num
 }
 
-// YAML 文件读取
+// 文件读取
 func FileRead(path string) []byte {
 	res, err := os.Open(path)
 	if !Check(err) {
-		log.Warn("打开文件" + path + "失败了喵！")
+		log.Warn("读取文件" + path + "失败了喵！")
 	} else {
 		defer res.Close()
 	}
 	data, _ := ioutil.ReadAll(res)
 	return data
+}
+
+// 文件写入
+func FileWrite(path string, data []byte) (err error) {
+	res, err := os.Open(path)
+	if !Check(err) {
+		log.Warn("写入文件" + path + "失败了喵！")
+	} else {
+		defer res.Close()
+	}
+	err = ioutil.WriteFile(path, data, 0666)
+	return err
 }
 
 // 加载配置
