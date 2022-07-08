@@ -213,7 +213,7 @@ func AutoExit(path string, config Config) {
 				log.Info("定时退出" + path + "成功喵！")
 			}
 		}
-		log.Info("下次定时退出时间为：" + nextTime.Format("2006-01-02 15:04:05"))
+		log.Info("下次定时退出" + path + "时间为：" + nextTime.Format("2006-01-02 15:04:05"))
 		time.Sleep(time.Until(nextTime))
 	}
 }
