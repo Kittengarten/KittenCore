@@ -197,7 +197,7 @@ func AutoExit(path string, config Config) {
 		limitTime, _ := time.ParseDuration(strconv.Itoa(limitTimeHours) + "h")
 		nextTime := time.Now().Add(limitTime)
 		if len(data) > 0 {
-			if time.Since(data[0].Time).Hours() > float64(config.MaxTime) {
+			if time.Since(data[0].Time).Hours() > float64(limitTimeHours) {
 				if len(data) > 1 {
 					nextTime = data[1].Time.Add(limitTime)
 				}
