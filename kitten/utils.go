@@ -61,13 +61,16 @@ func Check(err interface{}) bool {
 	}
 }
 
-// 按权重抽取一个项目的idx
+// 按权重抽取一个项目的idx，有可能返回-1（这种情况代表项目列表为空，需要处理以免报错）
 func Choose(choices []Choice) int {
 	choiceAll := 0
+	choiceNum := 0
 	for idx := range choices {
 		choiceAll += choices[idx].GetChance()
 	}
-	choiceNum := rand.Intn(choiceAll)
+	if choiceAll > 0 {
+		choiceNum = rand.Intn(choiceAll)
+	}
 	for idx := range choices {
 		choiceNum -= choices[idx].GetChance()
 		if choiceNum < 0 {
