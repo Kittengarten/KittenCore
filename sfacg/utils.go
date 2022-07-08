@@ -6,23 +6,12 @@ import (
 	"strings"
 
 	"gopkg.in/yaml.v3"
-
-	log "github.com/sirupsen/logrus"
 )
 
 // 加载配置
-func LoadConfig() (config Config) {
-	var sf SFAPI
-	yaml.Unmarshal(kitten.FileRead("sfacg/config.yaml"), &config)
-	for idx := range config {
-		chapterUrl := sf.FindChapterUrl(config[idx].BookId)
-		if chapterUrl == "" {
-			log.Warn(chapterUrl)
-		}
-		config[idx].RecordUrl = chapterUrl
-		config[idx].UpdateTime = sf.FindChapterUpdateTime(config[idx].BookId)
-	}
-	return config
+func LoadConfig() (cf Config) {
+	yaml.Unmarshal(kitten.FileRead("sfacg/config.yaml"), &cf)
+	return cf
 }
 
 // 判断字符串是否为整数（可用于判断是书号还是搜索关键词）

@@ -2,7 +2,6 @@ package sfacg
 
 import (
 	"fmt"
-	"io/ioutil"
 	"kitten/kitten"
 	"net/http"
 	"strings"
@@ -49,12 +48,12 @@ func (nv *Novel) Init(bookId string) {
 			nv.WordNum = nv.WordNum[9 : len(nv.WordNum)-14] // 获取字数
 			nv.Status = WordNumInfo[len(WordNumInfo)-11:]   //获取状态
 
-			nv.Introduce = doc.Find("p.introduce").Text() // 获取简述
-			//  doc.Find("ul.tag-list > span#text").Each(func(i int, selection *goquery.Selection) {
-			//	nv.TagList[i] = selection.Text()
-			//}) //获取标签(暂时不能用)
+			// nv.Introduce = doc.Find("p.introduce").Text() // 获取简述
+			// doc.Find("ul.tag-list > span#text").Each(func(i int, selection *goquery.Selection) {
+			// 	nv.TagList[i] = selection.Text()
+			// }) // 获取标签(暂时不能用)
 
-			// nv.CoverUrl, _ = doc.Find("div.figure").Find("img").Eq(0).Attr("src")  // 获取封面链接（暂时不需要，注释掉）
+			nv.CoverUrl, _ = doc.Find("div.figure").Find("img").Eq(0).Attr("src")  // 获取封面
 			nv.Collection = doc.Find("#BasicOperation").Find("a").Eq(2).Text()[7:] // 获取收藏
 
 			nv.Preview = doc.Find("div.chapter-info").Find("p").Text()
@@ -112,25 +111,8 @@ func (cp *Chapter) Init(url string) {
 	}
 }
 
-// 新章节链接获取
-func (sf *SFAPI) FindChapterUrl(bookid string) string {
-	req, err := http.Get("http://book.sfacg.com/Novel/" + bookid)
-	if !kitten.Check(err) {
-		log.Warn("获取章节链接失败了喵！")
-		return ""
-	}
-	defer req.Body.Close()
-	body, _ := ioutil.ReadAll(req.Body)
-
-	result := string(body)
-	result = GetMidText("<h3 class=\"chapter-title\">", "</h3>", result)
-	result = GetMidText("<a href=\"", "\" class=", result)
-
-	return "https://book.sfacg.com" + result
-}
-
 // 新章节更新时间获取
-func (sf *SFAPI) FindChapterUpdateTime(bookid string) string {
+func FindChapterUpdateTime(bookid string) string {
 	var nv Novel
 	nv.Init(bookid)
 	return nv.NewChapter.Time.Format("2006年01月02日 15时04分05秒")
@@ -183,7 +165,7 @@ func (nv *Novel) Information() string {
 }
 
 // 搜索
-func (sf *SFAPI) FindBookID(keyword string) (string, bool) {
+func FindBookID(keyword string) (string, bool) {
 	searchUrl := "http://s.sfacg.com/?Key=" + keyword + "&S=1&SS=0"
 	req, err := http.Get(searchUrl)
 	if !kitten.Check(err) {

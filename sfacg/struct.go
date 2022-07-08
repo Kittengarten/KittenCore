@@ -3,7 +3,6 @@ package sfacg
 import "time"
 
 type (
-	SFAPI uint8
 	Novel struct {
 		Id         string   // 小说书号
 		Url        string   // 小说网址
@@ -41,10 +40,10 @@ type (
 	}
 
 	Config []struct {
-		BookName   string  // 报更书名
-		BookId     string  // 报更书号
-		GroupID    []int64 // 书友群号
-		RecordUrl  string  // 上次更新链接
-		UpdateTime string  // 上次更新时间
+		BookId     string  `yaml:"bookid"`     // 报更书号
+		BookName   string  `yaml:"bookname"`   // 报更书名
+		GroupID    []int64 `yaml:"groupid"`    // 书友群号
+		RecordUrl  string  `yaml:"recordurl"`  // 上次更新链接
+		UpdateTime string  `yaml:"updatetime"` // 上次更新时间
 	}
 )

@@ -20,6 +20,7 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
+// 颜色代码常量
 const (
 	colorCodePanic = "\x1b[1;31m" // color.Style{color.Bold, color.Red}.String()
 	colorCodeFatal = "\x1b[1;31m" // color.Style{color.Bold, color.Red}.String()
@@ -29,7 +30,7 @@ const (
 	colorCodeDebug = "\x1b[32m"   // color.Style{color.Green}.String()
 	colorCodeTrace = "\x1b[36m"   // color.Style{color.Cyan}.String()
 	colorReset     = "\x1b[0m"
-) // 颜色代码常量
+)
 
 // 获取日志等级对应色彩代码
 func getLogLevelColorCode(level log.Level) string {
@@ -87,7 +88,6 @@ func init() {
 		log.Warn("写入日志失败了喵！")
 	}
 	log.SetLevel(log.TraceLevel) // 设置最低日志等级
-
 }
 
 func main() {

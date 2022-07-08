@@ -3,6 +3,7 @@ package kitten
 type (
 	KittenConfig struct {
 		NickName      []string        // 昵称
+		SelfId        int64           // Bot自身ID
 		SuperUsers    []int64         // 管理员账号
 		CommandPrefix string          // 指令前缀
 		WebSocket     WebSocketConfig // WebSocket 配置
