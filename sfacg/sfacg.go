@@ -109,10 +109,9 @@ func sfacgTrack() {
 			chapterUrl := novel.NewChapter.Url
 
 			// 更新判定，并防止误报
-			if chapterUrl == "" ||
-				chapterUrl == data[idx].RecordUrl ||
-				!novel.IsGet {
-				// log.Debug(id + "没有更新。")   // Debug用
+			if chapterUrl == data[idx].RecordUrl ||
+				!novel.IsGet ||
+				!novel.NewChapter.IsGet {
 				continue
 			}
 
