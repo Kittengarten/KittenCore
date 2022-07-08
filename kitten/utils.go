@@ -5,6 +5,7 @@ import (
 	"math/rand"
 	"os"
 	"strconv"
+	"time"
 
 	"gopkg.in/yaml.v3"
 
@@ -74,4 +75,15 @@ func Choose(choices []Choice) int {
 		}
 	}
 	return len(choices) - 1
+}
+
+// 判断两个时间是否是同一天
+func IsSameDate(t1 time.Time, t2 time.Time) bool {
+	year1, month1, day1 := t1.Date()
+	year2, month2, day2 := t2.Date()
+	if year1 == year2 && month1 == month2 && day1 == day2 {
+		return true
+	} else {
+		return false
+	}
 }

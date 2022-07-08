@@ -145,11 +145,9 @@ func (nv *Novel) makeCompare() Compare {
 		last.Init(this.LastUrl)
 		cm.TimeGap = this.Time.Sub(last.Time)
 		cm.Times = 1
-		timeGap := cm.TimeGap
-		for timeGap.Hours() < 10 {
+		for kitten.IsSameDate(last.Time, this.Time) {
 			this = last
 			last.Init(this.LastUrl)
-			timeGap = this.Time.Sub(last.Time)
 			cm.Times++
 		}
 	} else {

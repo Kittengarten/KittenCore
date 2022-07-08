@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/FloatTech/zbputils/control"
+	"gopkg.in/yaml.v3"
 
 	ctrl "github.com/FloatTech/zbpctrl"
 	zero "github.com/wdvxdr1123/ZeroBot"
@@ -17,7 +18,8 @@ import (
 var api SFAPI
 
 const (
-	replyServiceName = "Kitten_SFACGBP" // 插件名
+	replyServiceName = "Kitten_SFACGBP"    // 插件名
+	path             = "sfacg/config.yaml" // 配置文件路径
 )
 
 func init() {
@@ -101,30 +103,55 @@ func sfacgTrack() {
 		return false
 	})
 
+	// 报更
 	var report string
 	for {
+		data := LoadConfig()
+		dataNew := data
+		updateError := false
+		update := false
 		for idx := range config {
-			chapterUrl := api.FindChapterUrl(config[idx].BookId)
-			chapterUpdateTime := api.FindChapterUpdateTime(config[idx].BookId)
-			novel.Init(config[idx].BookId)
+			id := data[idx].BookId
+			chapterUrl := api.FindChapterUrl(id)
+			chapterUpdateTime := api.FindChapterUpdateTime(id)
+			novel.Init(id)
+
+			// 更新判定，并防止误报
 			if chapterUrl == "" ||
-				chapterUrl == config[idx].RecordUrl ||
-				chapterUpdateTime == config[idx].UpdateTime ||
+				chapterUrl == data[idx].RecordUrl ||
+				chapterUpdateTime == data[idx].UpdateTime ||
 				!novel.IsGet {
 				continue
-			} // 更新判定，并防止误报
-			config[idx].RecordUrl = novel.NewChapter.Url
-			config[idx].UpdateTime = novel.NewChapter.Time.Format("2006年01月02日 15时04分05秒")
+			}
 
 			report = novel.Update()
+
+			// 防止更新异常信息发到群里
 			if report == "更新异常喵！" {
+				updateError = true
 				log.Warn(novel.NewChapter.BookUrl + report)
-				continue
-			} // 防止更新异常信息发到群里
-			for _, groupID := range config[idx].GroupID {
-				bot.SendGroupMessage(groupID, report)
+			} else {
+				for _, groupID := range data[idx].GroupID {
+					bot.SendGroupMessage(groupID, report)
+				}
+				update = true
+				dataNew[idx].BookName = novel.Name
+				dataNew[idx].RecordUrl = novel.NewChapter.Url
+				dataNew[idx].UpdateTime = novel.NewChapter.Time.Format("2006年01月02日 15时04分05秒")
 			}
 		}
-		time.Sleep(5 * time.Second)
-	} // 报更
+
+		// 将本轮获取到的更新链接和更新时间记录至文件，如果没有获取到，或者报更出错，则不写入
+		if !updateError && update {
+			updateConfig, err1 := yaml.Marshal(dataNew)
+			err2 := kitten.FileWrite(path, updateConfig)
+			if !kitten.Check(err1) || !kitten.Check(err2) {
+				log.Warn("定时记录" + path + "失败喵！")
+			} else {
+				log.Info("定时记录" + path + "成功喵！")
+			}
+
+		}
+		time.Sleep(5 * time.Second) // 每 5 秒检测一次
+	}
 }
