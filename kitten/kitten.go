@@ -2,6 +2,7 @@ package kitten
 
 import (
 	"fmt"
+	"math/rand"
 	"time"
 
 	zero "github.com/wdvxdr1123/ZeroBot"
@@ -10,6 +11,7 @@ import (
 )
 
 var poke = rate.NewManager[int64](time.Minute*5, 9) // 戳一戳
+const randMax = 100                                 // 随机数上限（不包含）
 
 func init() {
 	zero.On("notice/notify/poke", zero.OnlyToMe).SetBlock(false).
@@ -24,7 +26,7 @@ func init() {
 				ctx.SendChain(message.At(ctx.Event.UserID), message.Text(fmt.Sprintf("请不要拍%s >_<", nickname)))
 			case poke.Load(ctx.Event.GroupID).Acquire():
 				// 5分钟共8块命令牌 一次消耗1块命令牌
-				ctx.SendChain(message.At(ctx.Event.UserID), message.Text(fmt.Sprintf("喂(#`O′) 拍%s干嘛！（好感-1）", nickname)))
+				ctx.SendChain(message.At(ctx.Event.UserID), message.Text(fmt.Sprintf("喂(#`O′) 拍%s干嘛！（好感-%d）", nickname, rand.Intn(randMax)+1)))
 			default:
 				// 频繁触发，不回复
 			}
