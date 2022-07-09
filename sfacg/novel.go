@@ -48,7 +48,7 @@ func (nv *Novel) Init(bookId string) {
 			nv.WordNum = nv.WordNum[9 : len(nv.WordNum)-14] // 获取字数
 			nv.Status = WordNumInfo[len(WordNumInfo)-11:]   //获取状态
 
-			// nv.Introduce = doc.Find("p.introduce").Text() // 获取简述
+			nv.Introduce = doc.Find("p.introduce").Text() // 获取简述
 			// doc.Find("ul.tag-list > span#text").Each(func(i int, selection *goquery.Selection) {
 			// 	nv.TagList[i] = selection.Text()
 			// }) // 获取标签(暂时不能用)
