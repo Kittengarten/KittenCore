@@ -3,6 +3,8 @@ package perf
 import (
 	"fmt"
 	"kitten/kitten"
+	"strings"
+
 	"os"
 	"time"
 
@@ -18,13 +20,17 @@ import (
 )
 
 const (
-	replyServiceName = "Kitten_PerformanceBP" // 插件名
+	replyServiceName = "Kitten_PerformanceBP"                                             // 插件名
+	filePath         = "C:\\Program Files (x86)\\MSI Afterburner\\HardwareMonitoring.hml" // 温度配置文件路径
 )
 
 func init() {
-	config := kitten.LoadConfig()
+	config := zero.BotConfig
+	kittenConfig := kitten.LoadConfig()
 	// 注册插件
-	help := "发送\n" + config.CommandPrefix + "查看" + config.NickName[0] + "，可获取服务器运行状况"
+	help := strings.Join([]string{"发送",
+		fmt.Sprintf("%s查看%s，可获取服务器运行状况", config.CommandPrefix, kittenConfig.NickName[0]),
+	}, "\n")
 	engine := control.Register(replyServiceName, &ctrl.Options[*zero.Ctx]{
 		DisableOnDefault: false,
 		Help:             help,
@@ -35,12 +41,13 @@ func init() {
 		who := ctx.State["args"].(string)
 		var str string
 		switch who {
-		case config.NickName[0]:
+		case kittenConfig.NickName[0]:
 			// 查看性能页
-			str = "CPU使用率：" + Decimal(GetCpuPercent()) +
-				"%，内存使用：" + DecimalInt(GetMemPercent()) + "%（" + GetMemUsed() +
-				"），系统盘使用：" + Decimal(GetDiskPercent()) + "%（" + GetDiskUsed() +
-				"），体温：" + GetCPUTemperature() + "℃"
+			str = strings.Join([]string{fmt.Sprintf("CPU使用率：%s%%", Decimal(GetCpuPercent())),
+				fmt.Sprintf("内存使用：%s%%（%s）", DecimalInt(GetMemPercent()), GetMemUsed()),
+				fmt.Sprintf("系统盘使用：%s%%（%s）", Decimal(GetDiskPercent()), GetDiskUsed()),
+				fmt.Sprintf("体温：%s℃", GetCPUTemperature()),
+			}, "\n")
 		}
 		ctx.Send(str)
 	})
@@ -114,7 +121,6 @@ func DecimalInt(value float64) string {
 
 // 获取CPU温度
 func GetCPUTemperature() string {
-	filePath := "C:\\Program Files (x86)\\MSI Afterburner\\HardwareMonitoring.hml"
 	os.Remove(filePath)
 	time.Sleep(1 * time.Second)
 	file, err := os.ReadFile(filePath)

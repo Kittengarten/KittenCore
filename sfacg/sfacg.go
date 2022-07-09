@@ -21,15 +21,24 @@ const (
 	path             = "sfacg/config.yaml" // 配置文件路径
 )
 
-var config kitten.KittenConfig
+var (
+	kittenConfig = kitten.LoadConfig()
+)
 
 func init() {
 	// 注册插件
-	config = kitten.LoadConfig()
-	help := "发送\n" + config.CommandPrefix +
-		"小说 [搜索关键词]|[书号]，可获取信息\n" +
-		"更新测试 [书号]，可测试报更功能\n" +
-		"更新预览 [书号]，可预览更新内容\n"
+	const (
+		ag                   = "参数"
+		commandNovel         = "小说"
+		commandUpdateTest    = "更新测试"
+		commandUpdatePreview = "更新预览"
+	)
+
+	help := strings.Join([]string{"发送",
+		fmt.Sprintf("%s%s %s，可获取信息", kittenConfig.CommandPrefix, commandNovel, ag),
+		fmt.Sprintf("%s%s %s，可测试报更功能", kittenConfig.CommandPrefix, commandUpdateTest, ag),
+		fmt.Sprintf("%s%s %s，可预览更新内容", kittenConfig.CommandPrefix, commandUpdatePreview, ag),
+	}, "\n")
 	engine := control.Register(replyServiceName, &ctrl.Options[*zero.Ctx]{
 		DisableOnDefault: false,
 		Help:             help,
@@ -123,9 +132,10 @@ func sfacgTrack() {
 				log.Warn(novel.NewChapter.BookUrl + report)
 			} else {
 				for _, groupID := range data[idx].GroupID {
-					zero.GetBot(config.SelfId).SendGroupMessage(groupID, message.Image(novel.CoverUrl))
-					zero.GetBot(config.SelfId).SendGroupMessage(groupID, message.Image(novel.HeadUrl))
-					zero.GetBot(config.SelfId).SendGroupMessage(groupID, report)
+					selfId := kitten.LoadConfig().SelfId
+					zero.GetBot(selfId).SendGroupMessage(groupID, message.Image(novel.CoverUrl))
+					zero.GetBot(selfId).SendGroupMessage(groupID, message.Image(novel.HeadUrl))
+					zero.GetBot(selfId).SendGroupMessage(groupID, report)
 				}
 				update = true
 				dataNew[idx].BookName = novel.Name
@@ -139,9 +149,9 @@ func sfacgTrack() {
 			updateConfig, err1 := yaml.Marshal(dataNew)
 			err2 := kitten.FileWrite(path, updateConfig)
 			if !kitten.Check(err1) || !kitten.Check(err2) {
-				log.Warn("记录" + path + "失败喵！")
+				log.Warn(fmt.Sprintf("记录%s失败喵！", path))
 			} else {
-				log.Info("记录" + path + "成功喵！")
+				log.Info(fmt.Sprintf("记录%s成功喵！", path))
 			}
 		}
 		time.Sleep(5 * time.Second) // 每 5 秒检测一次

@@ -1,6 +1,7 @@
 package kitten
 
 import (
+	"fmt"
 	"io/ioutil"
 	"math/rand"
 	"os"
@@ -22,7 +23,7 @@ func Atoi(str string) int {
 func FileRead(path string) []byte {
 	res, err := os.Open(path)
 	if !Check(err) {
-		log.Warn("读取文件" + path + "失败了喵！")
+		log.Warn(fmt.Sprintf("读取文件%s失败了喵！", path))
 	} else {
 		defer res.Close()
 	}
@@ -34,7 +35,7 @@ func FileRead(path string) []byte {
 func FileWrite(path string, data []byte) (err error) {
 	res, err := os.Open(path)
 	if !Check(err) {
-		log.Warn("写入文件" + path + "失败了喵！")
+		log.Warn(fmt.Sprintf("写入文件%s失败了喵！", path))
 	} else {
 		defer res.Close()
 	}
@@ -44,9 +45,10 @@ func FileWrite(path string, data []byte) (err error) {
 
 // 加载配置
 func LoadConfig() (config KittenConfig) {
-	err := yaml.Unmarshal(FileRead("config.yaml"), &config)
+	const path = "config.yaml"
+	err := yaml.Unmarshal(FileRead(path), &config)
 	if !Check(err) {
-		log.Fatal("打开配置文件失败了喵！", err)
+		log.Fatal(fmt.Sprintf("打开%s失败了喵！", path), err)
 		return
 	}
 	return config

@@ -49,7 +49,6 @@ func getLogLevelColorCode(level log.Level) string {
 		return colorCodeDebug
 	case log.TraceLevel:
 		return colorCodeTrace
-
 	default:
 		return colorCodeInfo
 	}

@@ -1,8 +1,11 @@
 package abuse
 
 import (
+	"fmt"
 	"io/ioutil"
 	"kitten/kitten"
+	"strings"
+
 	"os"
 
 	ctrl "github.com/FloatTech/zbpctrl"
@@ -19,14 +22,18 @@ const (
 	replyServiceName = "Kitten_AbuseBP" // 插件名
 )
 
-var abuseResponses []kitten.Choice
-var abuseConfig []Response
+var (
+	abuseResponses []kitten.Choice
+	abuseConfig    []Response
+)
 
 func init() {
 	go Load()
 	config := kitten.LoadConfig()
-	help := "发送\n" + config.CommandPrefix + "骂我或" + config.CommandPrefix + "挨骂" +
-		"\n在线挨骂，如果担心被冒犯到，请勿使用，否则后果自负"
+	help := strings.Join([]string{"发送",
+		fmt.Sprintf("%s骂我或%s挨骂", config.CommandPrefix, config.CommandPrefix),
+		"在线挨骂，如果担心被冒犯到，请勿使用，否则后果自负",
+	}, "\n")
 	// 注册插件
 	engine := control.Register(replyServiceName, &ctrl.Options[*zero.Ctx]{
 		DisableOnDefault:  false,
@@ -54,10 +61,10 @@ func init() {
 
 // 加载图片路径
 func LoadImagePath() string {
-	path := "abuse/path.txt"
+	const path = "abuse/path.txt"
 	res, err := os.Open(path)
 	if !kitten.Check(err) {
-		log.Warn("打开文件" + path + "失败了喵！")
+		log.Warn(fmt.Sprintf("打开文件%s失败了喵！", path))
 	} else {
 		defer res.Close()
 	}

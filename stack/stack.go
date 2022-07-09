@@ -1,8 +1,10 @@
 package stack
 
 import (
+	"fmt"
 	"kitten/kitten"
 	"strconv"
+	"strings"
 	"time"
 
 	ctrl "github.com/FloatTech/zbpctrl"
@@ -20,17 +22,22 @@ const (
 	replyServiceName = "Kitten_StackBP" // 插件名
 )
 
+var (
+	kittenConfig = kitten.LoadConfig()
+)
+
 func init() {
 	go AutoExit("stack/data.yaml", LoadConfig())
 	go AutoExit("stack/exit.yaml", LoadConfig())
 
 	stackConfig := LoadConfig()
-	config := kitten.LoadConfig()
-	help := "发送\n" + config.CommandPrefix + "叠猫猫 [参数]" +
-		"\n参数可选：加入|退出|查看" +
-		"\n最多可以叠" + strconv.Itoa(stackConfig.MaxStack) + "只猫猫哦" +
-		"\n在叠猫猫队列中超过" + strconv.Itoa(stackConfig.MaxTime) + "小时后，会自动退出" +
-		"\n主动退出叠猫猫，需要" + strconv.Itoa(stackConfig.GapTime) + "小时后，才能再次加入"
+	help := strings.Join([]string{"发送",
+		fmt.Sprintf("%s叠猫猫 [参数]", kittenConfig.CommandPrefix),
+		"参数可选：加入|退出|查看",
+		fmt.Sprintf("最多可以叠%d只猫猫哦", stackConfig.MaxStack),
+		fmt.Sprintf("在叠猫猫队列中超过%d小时后，会自动退出", stackConfig.MaxTime),
+		fmt.Sprintf("主动退出叠猫猫，需要%d小时后，才能再次加入", stackConfig.GapTime),
+	}, "\n")
 	// 注册插件
 	engine := control.Register(replyServiceName, &ctrl.Options[*zero.Ctx]{
 		DisableOnDefault: false,
@@ -74,7 +81,7 @@ func In(data Data, dataExit Data, stackConfig Config, ctx *zero.Ctx) {
 
 	for _, meow := range dataExit {
 		if id == meow.Id {
-			report = "退出叠猫猫不足" + strconv.Itoa(stackConfig.GapTime) + "小时，不能加入喵！"
+			report = fmt.Sprintf("退出叠猫猫不足%d小时，不能加入喵！", stackConfig.GapTime)
 			permit = false
 			log.Info(strconv.FormatInt(id, 10) + report)
 		}
@@ -106,7 +113,7 @@ func In(data Data, dataExit Data, stackConfig Config, ctx *zero.Ctx) {
 				report = "叠猫猫失败了喵！"
 				log.Warn(strconv.FormatInt(id, 10) + report)
 			} else {
-				report = "叠猫猫成功，目前处于队列中第" + strconv.Itoa(len(data)) + "位喵～"
+				report = fmt.Sprintf("叠猫猫成功，目前处于队列中第%d位喵～", len(data))
 				log.Info(strconv.FormatInt(id, 10) + report)
 			}
 		}
@@ -162,16 +169,23 @@ func Exit(data Data, dataExit Data, ctx *zero.Ctx) {
 
 // 查看叠猫猫
 func View(data Data, ctx *zero.Ctx) {
-	reports := "【叠猫猫队列】"
-	for idx := len(data) - 1; idx >= 0; idx-- {
-		// data.yaml以时间正序存储，但以时间倒序查看
-		report := "\n" + data[idx].Name + "（" + strconv.FormatInt(data[idx].Id, 10) + "）"
-		reports += report
-	}
-	if reports == "【叠猫猫队列】" {
-		reports += "\n暂时没有猫猫哦"
+	const report = "【叠猫猫队列】"
+	dataString := Reverse(data)                                              // 反序查看
+	reports := fmt.Sprintf("%s\n%s", report, strings.Join(dataString, "\n")) // 生成播报
+	if len(data) <= 0 {
+		reports = fmt.Sprintf("%s暂时没有猫猫哦", reports)
 	}
 	ctx.SendGroupMessage(ctx.Event.GroupID, reports)
+}
+
+// 叠猫猫队列反序并写为字符串数组
+func Reverse(data Data) []string {
+	var dataStringReverse []string
+	for idx := len(data) - 1; idx >= 0; idx-- {
+		dataStringReverse = append(dataStringReverse,
+			fmt.Sprintf("%s（%d）", data[idx].Name, data[idx].Id))
+	}
+	return dataStringReverse
 }
 
 // 自动退出队列
@@ -208,12 +222,12 @@ func AutoExit(path string, config Config) {
 			stackData, err1 := yaml.Marshal(dataNew)
 			err2 := kitten.FileWrite(path, stackData)
 			if !kitten.Check(err1) || !kitten.Check(err2) {
-				log.Warn("定时退出" + path + "失败喵！")
+				log.Warn(fmt.Sprintf("定时退出%s失败喵！", path))
 			} else {
-				log.Info("定时退出" + path + "成功喵！")
+				log.Info(fmt.Sprintf("定时退出%s成功喵！", path))
 			}
 		}
-		log.Info("下次定时退出" + path + "时间为：" + nextTime.Format("2006-01-02 15:04:05"))
+		log.Info(fmt.Sprintf("下次定时退出%s时间为：%s", path, nextTime.Format("2006-01-02 15:04:05")))
 		time.Sleep(time.Until(nextTime))
 	}
 }

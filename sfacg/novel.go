@@ -18,7 +18,7 @@ func (nv *Novel) Init(bookId string) {
 	nv.NewChapter.BookUrl = nv.Url                    // 用于向章节传入本书链接
 	req, err := http.Get(nv.Url)
 	if !kitten.Check(err) {
-		log.Warn("书号" + bookId + "获取网页失败了喵！")
+		log.Warn(fmt.Sprintf("书号%s获取网页失败了喵！", bookId))
 		nv.IsGet = false
 	} else {
 		defer req.Body.Close()
@@ -26,7 +26,7 @@ func (nv *Novel) Init(bookId string) {
 		if strings.EqualFold(doc.Find("title").Text(), "出错了") ||
 			strings.EqualFold(doc.Find("title").Text(), "糟糕,页面找不到了") ||
 			len(doc.Find("title").Text()) < 43 { // 防止网页炸了导致问题
-			log.Info("书号" + bookId + "没有喵。")
+			log.Info(fmt.Sprintf("书号%s没有喵！", bookId))
 			nv.IsGet = false
 		} else {
 			nv.IsGet = true
@@ -67,7 +67,7 @@ func (nv *Novel) Init(bookId string) {
 
 			if nvNewChapterUrl == "" {
 				nv.NewChapter.IsGet = false // 防止更新章节炸了跳转到网站首页引起程序报错
-				log.Warn(nv.Url + "获取更新链接失败了喵！")
+				log.Warn(fmt.Sprintf("%s获取更新链接失败了喵！", nv.Url))
 			} else {
 				nvNewChapterUrl = "https://book.sfacg.com" + nvNewChapterUrl
 				nv.NewChapter.Init(nvNewChapterUrl) // 获取新章节链接
@@ -83,14 +83,14 @@ func (cp *Chapter) Init(url string) {
 	req, err := http.Get(cp.Url)
 	if !kitten.Check(err) {
 		cp.IsGet = false
-		log.Warn(url + "获取更新网页失败了喵！")
+		log.Warn(fmt.Sprintf("%s获取更新网页失败了喵！", url))
 	} else {
 		defer req.Body.Close()
 		doc, _ := goquery.NewDocumentFromReader(req.Body) // 获取新章节网页
 		if cp.Url != cp.BookUrl {
 			if strings.EqualFold(doc.Find("title").Text(), "出错了") ||
 				strings.EqualFold(doc.Find("title").Text(), "糟糕,页面找不到了") {
-				log.Info("章节" + cp.Url + "没有喵。")
+				log.Info(fmt.Sprintf("章节%s没有喵！", cp.Url))
 				cp.IsGet = false // 防止奇怪的用户对不存在的书号进行更新测试，导致程序报错
 			} else {
 				cp.IsGet = true
@@ -106,7 +106,7 @@ func (cp *Chapter) Init(url string) {
 			}
 		} else {
 			cp.IsGet = false
-			log.Warn(url + "更新异常喵！")
+			log.Warn(fmt.Sprintf("%s更新异常喵！", url))
 		} // 防止章节炸了导致获取新章节跳转引发panic
 	}
 }
@@ -147,20 +147,19 @@ func (nv *Novel) Information() string {
 	//		tags += v
 	//		tags += "]"
 	//	}
-	var str = "书名：" + nv.Name +
-		"，书号：" + nv.Id +
-		"，作者：" + nv.Writer +
-		"，【" + nv.Type +
-		"】" +
-		"，收藏：" + nv.Collection +
-		"，总字数：" + nv.WordNum + nv.Status +
-		"，点击：" + nv.HitNum +
-		"，更新：" + nv.NewChapter.Time.Format("2006年01月02日 15时04分05秒") +
-		"\n\n" + nv.Introduce
+	str := strings.Join([]string{"书名：" + nv.Name,
+		"书号：" + nv.Id,
+		"作者：" + nv.Writer,
+		fmt.Sprintf("【%s】", nv.Type),
+		"收藏：" + nv.Collection,
+		"总字数：" + nv.WordNum + nv.Status,
+		"点击：" + nv.HitNum,
+		"更新：" + nv.NewChapter.Time.Format("2006年01月02日 15时04分05秒"),
+	}, "，") + "\n\n" + nv.Introduce
 	if nv.IsGet {
 		return str
 	} else {
-		return "书号" + nv.Id + "打不开喵！"
+		return fmt.Sprintf("书号%s打不开喵！", nv.Id)
 	}
 }
 
@@ -178,7 +177,7 @@ func FindBookID(keyword string) (string, bool) {
 	href, haveResult := doc.Find("#SearchResultList1___ResultList_LinkInfo_0").Attr("href")
 	if !haveResult {
 		log.Info(keyword + "搜索无结果喵。")
-		return "关键词【" + keyword + "】找不到小说喵！", false
+		return fmt.Sprintf("关键词【%s】找不到小说喵！", keyword), false
 	}
 	return href[29:], true
 }
@@ -200,10 +199,11 @@ func (nv *Novel) Update() string {
 
 		chapterName := nv.NewChapter.Title
 
-		var str = fmt.Sprintf("《%s》更新了喵～", nv.Name) +
-			chapterName + "，更新字数：" + wordNum +
-			"，间隔时间：" + timeGap +
-			fmt.Sprintf("，当日第%d更", cm.Times)
+		str := strings.Join([]string{fmt.Sprintf("《%s》更新了喵～", nv.Name) + chapterName,
+			"更新字数：" + wordNum,
+			"间隔时间：" + timeGap,
+			fmt.Sprintf("当日第%d更", cm.Times),
+		}, "，")
 		return str
 	}
 }
