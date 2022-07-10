@@ -19,18 +19,18 @@ import (
 )
 
 const (
-	replyServiceName = "Kitten_StackBP" // 插件名
+	replyServiceName = "叠猫猫" // 插件名
 )
 
 var (
 	kittenConfig = kitten.LoadConfig()
+	stackConfig  = LoadConfig()
 )
 
 func init() {
-	go AutoExit("stack/data.yaml", LoadConfig())
-	go AutoExit("stack/exit.yaml", LoadConfig())
+	go AutoExit("stack/data.yaml", stackConfig)
+	go AutoExit("stack/exit.yaml", stackConfig)
 
-	stackConfig := LoadConfig()
 	help := strings.Join([]string{"发送",
 		fmt.Sprintf("%s叠猫猫 [参数]", kittenConfig.CommandPrefix),
 		"参数可选：加入|退出|查看",
@@ -216,6 +216,8 @@ func AutoExit(path string, config Config) {
 					nextTime = data[1].Time.Add(limitTime)
 				}
 				dataNew = data[1:]
+			} else {
+				nextTime = data[0].Time.Add(limitTime)
 			}
 		}
 		if len(dataNew) != len(data) {

@@ -40,9 +40,7 @@ func (nv *Novel) Init(bookId string) {
 			nv.WordNum = textRow.Eq(1).Text()
 			loc, _ := time.LoadLocation("Local")
 			nv.NewChapter.Time, _ =
-				time.ParseInLocation("2006/1/2 15:04:05",
-					textRow.Eq(3).Text()[9:],
-					loc) // 防止章节炸了导致获取不到更新时间
+				time.ParseInLocation("2006/1/2 15:04:05", textRow.Eq(3).Text()[9:], loc) // 防止章节炸了导致获取不到更新时间
 
 			WordNumInfo := nv.WordNum
 			nv.WordNum = nv.WordNum[9 : len(nv.WordNum)-14] // 获取字数

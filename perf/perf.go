@@ -20,7 +20,7 @@ import (
 )
 
 const (
-	replyServiceName = "Kitten_PerformanceBP"                                             // 插件名
+	replyServiceName = "查看"                                                               // 插件名
 	filePath         = "C:\\Program Files (x86)\\MSI Afterburner\\HardwareMonitoring.hml" // 温度配置文件路径
 )
 

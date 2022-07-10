@@ -19,7 +19,7 @@ import (
 )
 
 const (
-	replyServiceName = "Kitten_AbuseBP" // 插件名
+	replyServiceName = "挨骂" // 插件名
 )
 
 var (

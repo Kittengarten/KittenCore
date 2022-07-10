@@ -17,7 +17,7 @@ import (
 )
 
 const (
-	replyServiceName = "Kitten_SFACGBP"    // 插件名
+	replyServiceName = "SFACG报更"           // 插件名
 	path             = "sfacg/config.yaml" // 配置文件路径
 )
 
@@ -110,8 +110,7 @@ func sfacgTrack() {
 	for {
 		data := LoadConfig()
 		dataNew := data
-		updateError := false
-		update := false
+		var updateError, update bool
 		for idx := range data {
 			id := data[idx].BookId
 			novel.Init(id)
@@ -136,8 +135,8 @@ func sfacgTrack() {
 					zero.GetBot(selfId).SendGroupMessage(groupID, message.Image(novel.CoverUrl))
 					zero.GetBot(selfId).SendGroupMessage(groupID, message.Image(novel.HeadUrl))
 					zero.GetBot(selfId).SendGroupMessage(groupID, report)
+					update = true
 				}
-				update = true
 				dataNew[idx].BookName = novel.Name
 				dataNew[idx].RecordUrl = novel.NewChapter.Url
 				dataNew[idx].UpdateTime = novel.NewChapter.Time.Format("2006年01月02日 15时04分05秒")
@@ -155,5 +154,6 @@ func sfacgTrack() {
 			}
 		}
 		time.Sleep(5 * time.Second) // 每 5 秒检测一次
+		log.Trace("报更持续运行中……")
 	}
 }
