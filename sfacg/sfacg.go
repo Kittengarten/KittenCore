@@ -2,9 +2,10 @@ package sfacg
 
 import (
 	"fmt"
-	"kitten/kitten"
 	"strings"
 	"time"
+
+	"github.com/Kittengarten/KittenCore/kitten"
 
 	"github.com/FloatTech/zbputils/control"
 	"gopkg.in/yaml.v3"

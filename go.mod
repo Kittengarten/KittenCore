@@ -1,4 +1,4 @@
-module kitten
+module github.com/Kittengarten/KittenCore
 
 go 1.18
 

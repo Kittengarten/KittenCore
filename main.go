@@ -8,11 +8,11 @@ import (
 	"strings"
 	"time"
 
-	_ "kitten/abuse"
-	"kitten/kitten"
-	_ "kitten/perf"
-	_ "kitten/sfacg"
-	_ "kitten/stack"
+	_ "github.com/Kittengarten/KittenCore/abuse"
+	"github.com/Kittengarten/KittenCore/kitten"
+	_ "github.com/Kittengarten/KittenCore/perf"
+	_ "github.com/Kittengarten/KittenCore/sfacg"
+	_ "github.com/Kittengarten/KittenCore/stack"
 
 	zero "github.com/wdvxdr1123/ZeroBot"
 	"github.com/wdvxdr1123/ZeroBot/driver"

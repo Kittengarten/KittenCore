@@ -2,10 +2,11 @@ package sfacg
 
 import (
 	"fmt"
-	"kitten/kitten"
 	"net/http"
 	"strings"
 	"time"
+
+	"github.com/Kittengarten/KittenCore/kitten"
 
 	"github.com/PuerkitoBio/goquery"
 	log "github.com/sirupsen/logrus"

@@ -3,8 +3,9 @@ package abuse
 import (
 	"fmt"
 	"io/ioutil"
-	"kitten/kitten"
 	"strings"
+
+	"github.com/Kittengarten/KittenCore/kitten"
 
 	"os"
 

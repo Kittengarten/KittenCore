@@ -2,8 +2,9 @@ package perf
 
 import (
 	"fmt"
-	"kitten/kitten"
 	"strings"
+
+	"github.com/Kittengarten/KittenCore/kitten"
 
 	"os"
 	"time"
