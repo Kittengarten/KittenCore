@@ -1,9 +1,10 @@
 package sfacg
 
 import (
-	"kitten/kitten"
 	"regexp"
 	"strings"
+
+	"github.com/Kittengarten/KittenCore/kitten"
 
 	"gopkg.in/yaml.v3"
 )
