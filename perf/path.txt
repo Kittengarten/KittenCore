@@ -1,1 +1,1 @@
-/home/ubuntu/Go-CQHTTP/数据/perf/image/
+file:///home/ubuntu/Go-CQHTTP/数据/perf/image/
