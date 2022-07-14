@@ -16,15 +16,8 @@ import (
 	_ "github.com/Kittengarten/KittenCore/sfacg"
 	_ "github.com/Kittengarten/KittenCore/stack"
 
-	_ "github.com/FloatTech/ZeroBot-Plugin/plugin/danbooru"
-	_ "github.com/FloatTech/ZeroBot-Plugin/plugin/epidemic"
-	_ "github.com/FloatTech/ZeroBot-Plugin/plugin/lolicon"
 	_ "github.com/FloatTech/ZeroBot-Plugin/plugin/music"
 	_ "github.com/FloatTech/ZeroBot-Plugin/plugin/qqwife"
-	_ "github.com/FloatTech/ZeroBot-Plugin/plugin/runcode"
-	_ "github.com/FloatTech/ZeroBot-Plugin/plugin/saucenao"
-	_ "github.com/FloatTech/ZeroBot-Plugin/plugin/tracemoe"
-	_ "github.com/FloatTech/ZeroBot-Plugin/plugin/translation"
 
 	zero "github.com/wdvxdr1123/ZeroBot"
 	"github.com/wdvxdr1123/ZeroBot/driver"
