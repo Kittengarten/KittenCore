@@ -13,7 +13,7 @@ import (
 
 var (
 	poke     = rate.NewManager[int64](time.Minute*5, 9) // 戳一戳
-	nickname = zero.BotConfig.NickName[0]               // 昵称
+	nickname = LoadConfig().NickName[0]                 // 昵称
 )
 
 const randMax = 100 // 随机数上限（不包含）
