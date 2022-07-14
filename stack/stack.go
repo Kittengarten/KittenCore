@@ -147,8 +147,6 @@ func exit(data Data, dataExit Data, ctx *zero.Ctx) {
 		report = "没有加入叠猫猫，不能退出喵！"
 		permit = false
 		log.Warn(strconv.FormatInt(id, 10) + report)
-		messageToSend := message.Text(report)
-		ctx.SendChain(message.At(id), messageToSend)
 	} else {
 		stackData, err1 := yaml.Marshal(dataNew)
 		err2 := kitten.FileWrite("stack/data.yaml", stackData)
@@ -156,13 +154,9 @@ func exit(data Data, dataExit Data, ctx *zero.Ctx) {
 			report = "退出叠猫猫失败喵！"
 			permit = false
 			log.Warn(strconv.FormatInt(id, 10) + report)
-			messageToSend := message.Text(report)
-			ctx.SendChain(message.At(id), messageToSend)
 		} else {
 			report = "退出叠猫猫成功喵！"
 			log.Info(strconv.FormatInt(id, 10) + report)
-			messageToSend := message.Text(report)
-			ctx.SendChain(message.At(id), messageToSend)
 
 			// 记录至退出日志
 			var meowExit Kitten
@@ -172,11 +166,11 @@ func exit(data Data, dataExit Data, ctx *zero.Ctx) {
 			exitData, err1 := yaml.Marshal(dataExit)
 			err2 := kitten.FileWrite("stack/exit.yaml", exitData)
 			if !kitten.Check(err1) || !kitten.Check(err2) {
-				report = "记录至退出日志失败了喵！"
-				log.Warn(strconv.FormatInt(meowExit.Id, 10) + report)
+				lg := "记录至退出日志失败了喵！"
+				log.Warn(strconv.FormatInt(meowExit.Id, 10) + lg)
 			} else {
-				report = "记录至退出日志成功喵！"
-				log.Info(strconv.FormatInt(meowExit.Id, 10) + report)
+				lg := "记录至退出日志成功喵！"
+				log.Info(strconv.FormatInt(meowExit.Id, 10) + lg)
 			}
 		}
 		if permit {

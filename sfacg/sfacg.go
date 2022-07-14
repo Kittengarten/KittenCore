@@ -37,9 +37,9 @@ func init() {
 	)
 
 	help := strings.Join([]string{"发送",
-		fmt.Sprintf("%s%s %s，可获取信息", kittenConfig.CommandPrefix, commandNovel, ag),
-		fmt.Sprintf("%s%s %s，可测试报更功能", kittenConfig.CommandPrefix, commandUpdateTest, ag),
-		fmt.Sprintf("%s%s %s，可预览更新内容", kittenConfig.CommandPrefix, commandUpdatePreview, ag),
+		fmt.Sprintf("%s%s [%s]，可获取信息", kittenConfig.CommandPrefix, commandNovel, ag),
+		fmt.Sprintf("%s%s [%s]，可测试报更功能", kittenConfig.CommandPrefix, commandUpdateTest, ag),
+		fmt.Sprintf("%s%s [%s]，可预览更新内容", kittenConfig.CommandPrefix, commandUpdatePreview, ag),
 	}, "\n")
 	engine := control.Register(ReplyServiceName, &ctrl.Options[*zero.Ctx]{
 		DisableOnDefault: false,
