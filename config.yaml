@@ -7,7 +7,7 @@ superusers:    # 管理员账号
   - 2942514750
 commandprefix: "/"           # 指令前缀
 websocket:                   # WebSocket 配置
-  url: "ws://localhost:6700" # WebSocket 链接
+  url: "ws://mc.iluyf.com:6700" # WebSocket 链接
   accesstoken: "Iluyf Meow"  # WebSocket 密钥
 log:              # 日志
   level: "trace"  # 日志等级

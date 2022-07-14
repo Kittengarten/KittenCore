@@ -13,7 +13,7 @@ import (
 )
 
 // 小说网页信息获取
-func (nv *Novel) Init(bookId string) {
+func (nv *Novel) init(bookId string) {
 	nv.Id = bookId
 	nv.Url = "https://book.sfacg.com/Novel/" + bookId // 生成链接
 	nv.NewChapter.BookUrl = nv.Url                    // 用于向章节传入本书链接
@@ -69,14 +69,14 @@ func (nv *Novel) Init(bookId string) {
 				log.Warn(fmt.Sprintf("%s获取更新链接失败了喵！", nv.Url))
 			} else {
 				nvNewChapterUrl = "https://book.sfacg.com" + nvNewChapterUrl
-				nv.NewChapter.Init(nvNewChapterUrl) // 获取新章节链接
+				nv.NewChapter.init(nvNewChapterUrl) // 获取新章节链接
 			}
 		}
 	}
 }
 
 // 新章节信息获取
-func (cp *Chapter) Init(url string) {
+func (cp *Chapter) init(url string) {
 	loc, _ := time.LoadLocation("Local")
 	cp.Url = url // 生成链接
 	req, err := http.Get(cp.Url)
@@ -110,25 +110,18 @@ func (cp *Chapter) Init(url string) {
 	}
 }
 
-// 新章节更新时间获取
-func FindChapterUpdateTime(bookid string) string {
-	var nv Novel
-	nv.Init(bookid)
-	return nv.NewChapter.Time.Format("2006年01月02日 15时04分05秒")
-}
-
 // 与上次更新比较
 func (nv *Novel) makeCompare() Compare {
 	var cm Compare
 	var this, last Chapter
 	this = nv.NewChapter
 	if this.IsGet {
-		last.Init(this.LastUrl)
+		last.init(this.LastUrl)
 		cm.TimeGap = this.Time.Sub(last.Time)
 		cm.Times = 1
 		for kitten.IsSameDate(last.Time, this.Time) {
 			this = last
-			last.Init(this.LastUrl)
+			last.init(this.LastUrl)
 			cm.Times++
 		}
 	} else {
@@ -139,7 +132,7 @@ func (nv *Novel) makeCompare() Compare {
 }
 
 // 小说信息
-func (nv *Novel) Information() string {
+func (nv *Novel) information() string {
 	//	var tags string //暂时不能用
 	//	for _, v := range nv.TagList {
 	//		tags += "["
@@ -163,7 +156,7 @@ func (nv *Novel) Information() string {
 }
 
 // 搜索
-func FindBookID(keyword string) (string, bool) {
+func findBookID(keyword string) (string, bool) {
 	searchUrl := "http://s.sfacg.com/?Key=" + keyword + "&S=1&SS=0"
 	req, err := http.Get(searchUrl)
 	if !kitten.Check(err) {
@@ -182,7 +175,7 @@ func FindBookID(keyword string) (string, bool) {
 }
 
 // 更新信息
-func (nv *Novel) Update() string {
+func (nv *Novel) update() string {
 	var cm = nv.makeCompare()
 
 	wordNum := fmt.Sprintf("%d字", nv.NewChapter.WordNum)

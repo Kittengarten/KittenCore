@@ -6,11 +6,13 @@ import (
 	"math/rand"
 	"os"
 	"strconv"
+	"strings"
 	"time"
 
 	"gopkg.in/yaml.v3"
 
 	log "github.com/sirupsen/logrus"
+	"github.com/wdvxdr1123/ZeroBot/message"
 )
 
 // 字符串转换为数字
@@ -54,6 +56,35 @@ func LoadConfig() (config KittenConfig) {
 	return config
 }
 
+// （私有）判断路径是否文件夹
+func isDir(path string) bool {
+	s, err := os.Stat(path)
+	if !Check(err) {
+		return Check(err)
+	}
+	return s.IsDir()
+}
+
+// （私有）加载图片路径
+func loadImagePath(path string) string {
+	res, err := os.Open(path)
+	if !Check(err) {
+		log.Warn(fmt.Sprintf("打开文件%s失败了喵！", path))
+	} else {
+		defer res.Close()
+	}
+	data, _ := ioutil.ReadAll(res)
+	return string(data)
+}
+
+// 加载图片，path 参数可以是保存路径的文件，也可以是路径本身（绝对路径）
+func GetImage(path, name string) message.MessageSegment {
+	if isDir(path) {
+		return message.Image(path + name)
+	}
+	return message.Image(loadImagePath(path) + name)
+}
+
 // 处理错误
 func Check(err interface{}) bool {
 	if err != nil {
@@ -91,4 +122,20 @@ func IsSameDate(t1 time.Time, t2 time.Time) bool {
 	} else {
 		return false
 	}
+}
+
+// 获取中间字符串
+func GetMidText(pre string, suf string, str string) string {
+	n := strings.Index(str, pre)
+	if n == -1 {
+		n = 0
+	} else {
+		n = n + len(pre)
+	}
+	str = string([]byte(str)[n:])
+	m := strings.Index(str, suf)
+	if m == -1 {
+		m = len(str)
+	}
+	return string([]byte(str)[:m])
 }

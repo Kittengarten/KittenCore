@@ -1,13 +1,12 @@
+// 在线挨骂，如果担心被冒犯到，请勿使用，否则后果自负
 package abuse
 
 import (
 	"fmt"
-	"io/ioutil"
+	"math/rand"
 	"strings"
 
 	"github.com/Kittengarten/KittenCore/kitten"
-
-	"os"
 
 	ctrl "github.com/FloatTech/zbpctrl"
 	"github.com/FloatTech/zbputils/control"
@@ -20,7 +19,9 @@ import (
 )
 
 const (
-	replyServiceName = "挨骂" // 插件名
+	ReplyServiceName = "挨骂"             // 插件名
+	imagePath        = "abuse/path.txt" // 保存图片路径的文件
+	randMax          = 100              // 随机数上限（不包含）
 )
 
 var (
@@ -29,17 +30,16 @@ var (
 )
 
 func init() {
-	go Load()
+	go load()
 	config := kitten.LoadConfig()
 	help := strings.Join([]string{"发送",
 		fmt.Sprintf("%s骂我或%s挨骂", config.CommandPrefix, config.CommandPrefix),
 		"在线挨骂，如果担心被冒犯到，请勿使用，否则后果自负",
 	}, "\n")
 	// 注册插件
-	engine := control.Register(replyServiceName, &ctrl.Options[*zero.Ctx]{
-		DisableOnDefault:  false,
-		PrivateDataFolder: "abuse/image",
-		Help:              help,
+	engine := control.Register(ReplyServiceName, &ctrl.Options[*zero.Ctx]{
+		DisableOnDefault: false,
+		Help:             help,
 	})
 
 	command := []string{"骂我", "挨骂"}
@@ -49,9 +49,9 @@ func init() {
 		if abuseConfig[idx].String == "" {
 			if abuseConfig[idx].Image == "" {
 				log.Warn("获取不到abuse信息喵！")
-				messageToSend = message.Text("喵喵不想理你（好感-1）")
+				messageToSend = message.Text(fmt.Sprintf("喵喵不想理你（好感-%d）", rand.Intn(randMax)+1))
 			} else {
-				messageToSend = message.Image(LoadImagePath() + abuseConfig[idx].GetInformation())
+				messageToSend = kitten.GetImage(imagePath, abuseConfig[idx].GetInformation())
 			}
 		} else {
 			messageToSend = message.Text(abuseConfig[idx].GetInformation())
@@ -60,31 +60,18 @@ func init() {
 	})
 }
 
-// 加载图片路径
-func LoadImagePath() string {
-	const path = "abuse/path.txt"
-	res, err := os.Open(path)
-	if !kitten.Check(err) {
-		log.Warn(fmt.Sprintf("打开文件%s失败了喵！", path))
-	} else {
-		defer res.Close()
-	}
-	data, _ := ioutil.ReadAll(res)
-	return string(data)
-}
-
 // 加载配置
-func LoadConfig() (config []Response) {
+func loadConfig() (config []Response) {
 	yaml.Unmarshal(kitten.FileRead("abuse/config.yaml"), &config)
 	return config
 }
 
 // 加载配置
-func Load() {
+func load() {
 	yaml.Unmarshal(kitten.FileRead("abuse/config.yaml"), &abuseConfig)
 	values := make([]kitten.Choice, len(abuseConfig))
 	for idx, value := range abuseConfig {
 		values[idx] = value
 	}
-	abuseResponses = values[:len(LoadConfig())]
+	abuseResponses = values[:len(loadConfig())]
 }

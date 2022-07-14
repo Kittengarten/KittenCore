@@ -1,13 +1,14 @@
+// 查看服务器运行状况
 package perf
 
 import (
 	"fmt"
+	"os"
+	"strconv"
 	"strings"
+	"time"
 
 	"github.com/Kittengarten/KittenCore/kitten"
-
-	"os"
-	"time"
 
 	"github.com/shirou/gopsutil/v3/cpu"
 	"github.com/shirou/gopsutil/v3/disk"
@@ -16,13 +17,24 @@ import (
 	ctrl "github.com/FloatTech/zbpctrl"
 	"github.com/FloatTech/zbputils/control"
 	zero "github.com/wdvxdr1123/ZeroBot"
+	"github.com/wdvxdr1123/ZeroBot/message"
 
 	log "github.com/sirupsen/logrus"
 )
 
 const (
-	replyServiceName = "查看"                                                               // 插件名
+	_ = 1 << (10 * iota)
+	KiB
+	MiB
+	GiB
+	TiB
+	PiB
+	EiB
+	ZiB
+	YiB
+	ReplyServiceName = "查看"                                                               // 插件名
 	filePath         = "C:\\Program Files (x86)\\MSI Afterburner\\HardwareMonitoring.hml" // 温度配置文件路径
+	imagePath        = "perf/path.txt"                                                    // 保存图片路径的文件
 )
 
 func init() {
@@ -32,7 +44,7 @@ func init() {
 	help := strings.Join([]string{"发送",
 		fmt.Sprintf("%s查看%s，可获取服务器运行状况", config.CommandPrefix, kittenConfig.NickName[0]),
 	}, "\n")
-	engine := control.Register(replyServiceName, &ctrl.Options[*zero.Ctx]{
+	engine := control.Register(ReplyServiceName, &ctrl.Options[*zero.Ctx]{
 		DisableOnDefault: false,
 		Help:             help,
 	})
@@ -41,21 +53,29 @@ func init() {
 	engine.OnCommand("查看").Handle(func(ctx *zero.Ctx) {
 		who := ctx.State["args"].(string)
 		var str string
+		var report message.Message
 		switch who {
 		case kittenConfig.NickName[0]:
+			cpu := getCpuPercent()
+			mem := getMemPercent()
+			t := getCPUTemperature()
 			// 查看性能页
-			str = strings.Join([]string{fmt.Sprintf("CPU使用率：%s%%", Decimal(GetCpuPercent())),
-				fmt.Sprintf("内存使用：%s%%（%s）", DecimalInt(GetMemPercent()), GetMemUsed()),
-				fmt.Sprintf("系统盘使用：%s%%（%s）", Decimal(GetDiskPercent()), GetDiskUsed()),
-				fmt.Sprintf("体温：%s℃", GetCPUTemperature()),
+			str = strings.Join([]string{fmt.Sprintf("CPU使用率：%.2f%%", getCpuPercent()),
+				fmt.Sprintf("内存使用：%.0f%%（%s）", getMemPercent(), getMemUsed()),
+				fmt.Sprintf("系统盘使用：%.2f%%（%s）", getDiskPercent(), getDiskUsed()),
+				fmt.Sprintf("体温：%s℃", getCPUTemperature()),
 			}, "\n")
+			report = make(message.Message, 2)
+			perf := getPerf(cpu, mem, t)
+			report[0] = kitten.GetImage(imagePath, strconv.Itoa(perf)+".png")
+			report[1] = message.Text(str)
 		}
-		ctx.Send(str)
+		ctx.Send(report)
 	})
 }
 
 // CPU使用率%
-func GetCpuPercent() float64 {
+func getCpuPercent() float64 {
 	percent, err := cpu.Percent(time.Second, false)
 	if !kitten.Check(err) {
 		log.Warn("获取CPU使用率失败了喵！")
@@ -64,7 +84,7 @@ func GetCpuPercent() float64 {
 }
 
 // 内存使用调用
-func GetMem() *mem.VirtualMemoryStat {
+func getMem() *mem.VirtualMemoryStat {
 	memInfo, err := mem.VirtualMemory()
 	if !kitten.Check(err) {
 		log.Warn("获取内存使用失败了喵！")
@@ -73,20 +93,20 @@ func GetMem() *mem.VirtualMemoryStat {
 }
 
 // 内存使用率%
-func GetMemPercent() float64 {
-	return GetMem().UsedPercent
+func getMemPercent() float64 {
+	return getMem().UsedPercent
 }
 
 // 内存使用情况
-func GetMemUsed() string {
-	used := Decimal(float64(GetMem().Used)/1024/1024/1024) + " GiB"
-	total := Decimal(float64(GetMem().Total)/1024/1024/1024) + " GiB"
+func getMemUsed() string {
+	used := fmt.Sprintf("%.2f MiB", float64(getMem().Used)/MiB)
+	total := fmt.Sprintf("%.2f MiB", float64(getMem().Total)/MiB)
 	str := used + "/" + total
 	return str
 }
 
 // 磁盘使用调用
-func GetDisk() *disk.UsageStat {
+func getDisk() *disk.UsageStat {
 	parts, err1 := disk.Partitions(true)
 	diskInfo, err2 := disk.Usage(parts[0].Mountpoint)
 	if !(kitten.Check(err1) && kitten.Check(err2)) {
@@ -96,32 +116,20 @@ func GetDisk() *disk.UsageStat {
 }
 
 // 系统盘使用率%
-func GetDiskPercent() float64 {
-	return GetDisk().UsedPercent
+func getDiskPercent() float64 {
+	return getDisk().UsedPercent
 }
 
 // 系统盘使用情况
-func GetDiskUsed() string {
-	used := Decimal(float64(GetDisk().Used)/1024/1024/1024) + " GiB"
-	total := Decimal(float64(GetDisk().Total)/1024/1024/1024) + " GiB"
+func getDiskUsed() string {
+	used := fmt.Sprintf("%.2f GiB", float64(getDisk().Used)/GiB)
+	total := fmt.Sprintf("%.2f GiB", float64(getDisk().Total)/GiB)
 	str := used + "/" + total
 	return str
 }
 
-// 转换为十进制数字字符串，并保留两位小数
-func Decimal(value float64) string {
-	str := fmt.Sprintf("%.2f", value)
-	return str
-}
-
-// 转换为十进制数字字符串，以整数形式输出
-func DecimalInt(value float64) string {
-	str := fmt.Sprintf("%.0f", value)
-	return str
-}
-
 // 获取CPU温度
-func GetCPUTemperature() string {
+func getCPUTemperature() string {
 	os.Remove(filePath)
 	time.Sleep(1 * time.Second)
 	file, err := os.ReadFile(filePath)
@@ -130,4 +138,26 @@ func GetCPUTemperature() string {
 	}
 	CPUTemperature := string(file)[329:331]
 	return CPUTemperature
+}
+
+// 返回状态等级
+func getPerf(cpu float64, mem float64, t string) int {
+	tt := float64(kitten.Atoi(t))
+	if 0 < tt && tt < 100 {
+		perf := (cpu + mem) * tt / 20000
+		log.Trace(perf)
+		switch {
+		case perf < 0.1:
+			return 0
+		case perf < 0.15:
+			return 1
+		case perf < 0.2:
+			return 2
+		case perf < 0.25:
+			return 3
+		case perf < 0.3:
+			return 4
+		}
+	}
+	return 5
 }

@@ -1,3 +1,4 @@
+// SF轻小说更新播报、小说信息查询、小说更新查询
 package sfacg
 
 import (
@@ -18,7 +19,7 @@ import (
 )
 
 const (
-	replyServiceName = "SFACG报更"           // 插件名
+	ReplyServiceName = "SFACG"             // 插件名
 	path             = "sfacg/config.yaml" // 配置文件路径
 )
 
@@ -40,7 +41,7 @@ func init() {
 		fmt.Sprintf("%s%s %s，可测试报更功能", kittenConfig.CommandPrefix, commandUpdateTest, ag),
 		fmt.Sprintf("%s%s %s，可预览更新内容", kittenConfig.CommandPrefix, commandUpdatePreview, ag),
 	}, "\n")
-	engine := control.Register(replyServiceName, &ctrl.Options[*zero.Ctx]{
+	engine := control.Register(ReplyServiceName, &ctrl.Options[*zero.Ctx]{
 		DisableOnDefault: false,
 		Help:             help,
 	})
@@ -50,7 +51,7 @@ func init() {
 	// 测试小说报更功能
 	engine.OnCommand("更新测试").Handle(func(ctx *zero.Ctx) {
 		novel := getNovel(ctx)
-		report := novel.Update()
+		report := novel.update()
 		ctx.SendChain(message.Image(novel.HeadUrl), message.Text(report))
 	})
 
@@ -69,22 +70,22 @@ func init() {
 	// 小说信息功能
 	engine.OnCommand("小说").Handle(func(ctx *zero.Ctx) {
 		novel := getNovel(ctx)
-		ctx.SendChain(message.Image(novel.CoverUrl), message.Text(novel.Information()))
+		ctx.SendChain(message.Image(novel.CoverUrl), message.Text(novel.information()))
 	})
 }
 
 // 获取小说（如果传入值不为书号，则先获取书号）
 func getNovel(ctx *zero.Ctx) (nv Novel) {
 	ag := ctx.State["args"].(string)
-	if !IsInt(ag) {
+	if !isInt(ag) {
 		var chk bool
-		ag, chk = FindBookID(ag)
+		ag, chk = findBookID(ag)
 		if !chk {
 			ctx.SendGroupMessage(ctx.Event.GroupID, ag)
 			return
 		}
 	}
-	nv.Init(ag)
+	nv.init(ag)
 	return nv
 }
 
@@ -102,19 +103,19 @@ func sfacgTrack() {
 	content := strings.Join([]string{
 		line,
 		"* OneBot + ZeroBot + Golang",
-		fmt.Sprintf("一共有%d本小说", len(LoadConfig())),
+		fmt.Sprintf("一共有%d本小说", len(loadConfig())),
 		"=======================================================",
 	}, "\n")
 	fmt.Println(content)
 
 	// 报更
 	for {
-		data := LoadConfig()
+		data := loadConfig()
 		dataNew := data
 		var updateError, update bool
 		for idx := range data {
 			id := data[idx].BookId
-			novel.Init(id)
+			novel.init(id)
 			chapterUrl := novel.NewChapter.Url
 
 			// 更新判定，并防止误报
@@ -124,7 +125,7 @@ func sfacgTrack() {
 				continue
 			}
 
-			report := novel.Update()
+			report := novel.update()
 
 			// 防止更新异常信息发到群里
 			if report == "更新异常喵！" {
@@ -133,9 +134,8 @@ func sfacgTrack() {
 			} else {
 				for _, groupID := range data[idx].GroupID {
 					selfId := kitten.LoadConfig().SelfId
-					zero.GetBot(selfId).SendGroupMessage(groupID, message.Image(novel.CoverUrl))
-					zero.GetBot(selfId).SendGroupMessage(groupID, message.Image(novel.HeadUrl))
-					zero.GetBot(selfId).SendGroupMessage(groupID, report)
+					messageReport := message.Message{message.Image(novel.CoverUrl), message.Image(novel.HeadUrl), message.Text(report)}
+					zero.GetBot(selfId).SendGroupMessage(groupID, messageReport)
 					update = true
 				}
 				dataNew[idx].BookName = novel.Name

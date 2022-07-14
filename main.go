@@ -1,3 +1,4 @@
+// KittenCore 的主函数所在包
 package main
 
 import (
