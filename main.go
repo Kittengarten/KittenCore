@@ -9,11 +9,22 @@ import (
 	"strings"
 	"time"
 
+	"github.com/FloatTech/zbputils/process"
 	_ "github.com/Kittengarten/KittenCore/abuse"
 	"github.com/Kittengarten/KittenCore/kitten"
 	_ "github.com/Kittengarten/KittenCore/perf"
 	_ "github.com/Kittengarten/KittenCore/sfacg"
 	_ "github.com/Kittengarten/KittenCore/stack"
+
+	_ "github.com/FloatTech/ZeroBot-Plugin/plugin/danbooru"
+	_ "github.com/FloatTech/ZeroBot-Plugin/plugin/epidemic"
+	_ "github.com/FloatTech/ZeroBot-Plugin/plugin/lolicon"
+	_ "github.com/FloatTech/ZeroBot-Plugin/plugin/music"
+	_ "github.com/FloatTech/ZeroBot-Plugin/plugin/qqwife"
+	_ "github.com/FloatTech/ZeroBot-Plugin/plugin/runcode"
+	_ "github.com/FloatTech/ZeroBot-Plugin/plugin/saucenao"
+	_ "github.com/FloatTech/ZeroBot-Plugin/plugin/tracemoe"
+	_ "github.com/FloatTech/ZeroBot-Plugin/plugin/translation"
 
 	zero "github.com/wdvxdr1123/ZeroBot"
 	"github.com/wdvxdr1123/ZeroBot/driver"
@@ -102,7 +113,8 @@ func main() {
 	config := kitten.LoadConfig()
 	log.Info("已经载入配置了喵！")
 	rand.Seed(time.Now().UnixNano()) // 全局重置随机数种子，插件无须再次使用
-	zero.Run(zero.Config{
+
+	zero.RunAndBlock(zero.Config{
 		NickName:      config.NickName,
 		CommandPrefix: config.CommandPrefix,
 		SuperUsers:    config.SuperUsers,
@@ -113,6 +125,5 @@ func main() {
 				AccessToken: config.WebSocket.AccessToken,
 			},
 		},
-	})
-	select {} // 阻塞进程，防止程序退出
+	}, process.GlobalInitMutex.Unlock)
 }

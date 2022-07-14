@@ -38,7 +38,7 @@ const (
 )
 
 func init() {
-	config := zero.BotConfig
+	config := kitten.LoadConfig()
 	kittenConfig := kitten.LoadConfig()
 	// 注册插件
 	help := strings.Join([]string{"发送",

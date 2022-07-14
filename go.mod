@@ -13,6 +13,16 @@ require (
 )
 
 require (
+	github.com/FloatTech/AnimeAPI v1.4.1-0.20220613042537-0adf8c5616ec // indirect
+	github.com/antchfx/htmlquery v1.2.5 // indirect
+	github.com/antchfx/xpath v1.2.1 // indirect
+	github.com/disintegration/imaging v1.6.2 // indirect
+	github.com/ericpauley/go-quantize v0.0.0-20200331213906-ae555eb2afa4 // indirect
+	github.com/fumiama/gotracemoe v0.0.3 // indirect
+	github.com/gabriel-vasile/mimetype v1.0.4 // indirect
+	github.com/golang/groupcache v0.0.0-20210331224755-41bb18bfe9da // indirect
+	github.com/jozsefsallai/gophersauce v1.0.1 // indirect
+	github.com/FloatTech/ZeroBot-Plugin v1.4.1
 	github.com/FloatTech/sqlite v0.3.2 // indirect
 	github.com/RomiChan/syncx v0.0.0-20220404072119-d7ea0ae15a4c // indirect
 	github.com/RomiChan/websocket v1.4.3-0.20220123145318-307a86b127bc // indirect
@@ -37,7 +47,7 @@ require (
 	github.com/tklauser/numcpus v0.4.0 // indirect
 	github.com/yusufpapurcu/wmi v1.2.2 // indirect
 	golang.org/x/image v0.0.0-20220601225756-64ec528b34cd // indirect
-	golang.org/x/net v0.0.0-20210916014120-12bc252f5db8 // indirect
+	golang.org/x/net v0.0.0-20220607020251-c690dde0001d // indirect
 	golang.org/x/sys v0.0.0-20220608164250-635b8c9b7f68 // indirect
 	golang.org/x/text v0.3.7 // indirect
 	modernc.org/libc v1.16.8 // indirect

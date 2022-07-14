@@ -33,7 +33,7 @@ func init() {
 	go load()
 	config := kitten.LoadConfig()
 	help := strings.Join([]string{"发送",
-		fmt.Sprintf("%s骂我或%s挨骂", config.CommandPrefix, config.CommandPrefix),
+		fmt.Sprintf("%s骂我\n或\n%s挨骂", config.CommandPrefix, config.CommandPrefix),
 		"在线挨骂，如果担心被冒犯到，请勿使用，否则后果自负",
 	}, "\n")
 	// 注册插件

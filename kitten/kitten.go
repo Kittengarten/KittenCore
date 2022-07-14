@@ -11,13 +11,16 @@ import (
 	"github.com/wdvxdr1123/ZeroBot/message"
 )
 
-var poke = rate.NewManager[int64](time.Minute*5, 9) // 戳一戳
-const randMax = 100                                 // 随机数上限（不包含）
+var (
+	poke     = rate.NewManager[int64](time.Minute*5, 9) // 戳一戳
+	nickname = zero.BotConfig.NickName[0]               // 昵称
+)
+
+const randMax = 100 // 随机数上限（不包含）
 
 func init() {
 	zero.On("notice/notify/poke", zero.OnlyToMe).SetBlock(false).
 		Handle(func(ctx *zero.Ctx) {
-			var nickname = zero.BotConfig.NickName[0]
 			switch {
 			case poke.Load(ctx.Event.GroupID).AcquireN(5):
 				// 5分钟共8块命令牌 一次消耗5块命令牌
