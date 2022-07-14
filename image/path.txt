@@ -1,1 +1,1 @@
-https://github.com/Kittengarten/KittenCore/tree/%E6%95%B0%E6%8D%AE/image/
+/home/ubuntu/Go-CQHTTP/数据/image/

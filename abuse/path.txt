@@ -1,1 +1,1 @@
-https://github.com/Kittengarten/KittenCore/tree/%E6%95%B0%E6%8D%AE/abuse/image/
+/home/ubuntu/Go-CQHTTP/数据/abuse/image/
