@@ -10,15 +10,11 @@ type (
 		OutOfStack string `yaml:"outofstack"` // 叠猫猫队列已满的回复
 	}
 
-	Data []struct {
-		Id   int64     `yaml:"id"`   // QQ
-		Name string    `yaml:"name"` // 群名片或昵称
-		Time time.Time `yaml:"time"` // 进入叠猫猫队列的时间
-	}
+	Data []Kitten
 
 	Kitten struct {
 		Id   int64     `yaml:"id"`   // QQ
 		Name string    `yaml:"name"` // 群名片或昵称
-		Time time.Time `yaml:"time"` // 进入叠猫猫队列的时间
+		Time time.Time `yaml:"time"` // 进入队列的时间
 	}
 )

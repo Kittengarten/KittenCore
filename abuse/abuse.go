@@ -1,4 +1,4 @@
-// 在线挨骂，如果担心被冒犯到，请勿使用，否则后果自负
+// Package abuse 在线挨骂，如果担心被冒犯到，请勿使用，否则后果自负
 package abuse
 
 import (
@@ -19,7 +19,8 @@ import (
 )
 
 const (
-	ReplyServiceName = "挨骂"             // 插件名
+	// ReplyServiceName 插件名
+	ReplyServiceName = "挨骂"
 	imagePath        = "abuse/path.txt" // 保存图片路径的文件
 	randMax          = 100              // 随机数上限（不包含）
 )

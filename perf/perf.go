@@ -1,4 +1,4 @@
-// 查看服务器运行状况
+// Package perf 查看服务器运行状况
 package perf
 
 import (
@@ -24,15 +24,24 @@ import (
 
 const (
 	_ = 1 << (10 * iota)
+	// KiB 表示 KiB 所含字节数的变量
 	KiB
+	// MiB 表示 MiB 所含字节数的变量
 	MiB
+	// GiB 表示 GiB 所含字节数的变量
 	GiB
+	// TiB 表示 TiB 所含字节数的变量
 	TiB
+	// PiB 表示 PiB 所含字节数的变量
 	PiB
+	// EiB 表示 EiB 所含字节数的变量
 	EiB
+	// ZiB 表示 ZiB 所含字节数的变量
 	ZiB
+	// YiB 表示 YiB 所含字节数的变量
 	YiB
-	ReplyServiceName = "查看"                                                               // 插件名
+	// ReplyServiceName 插件名
+	ReplyServiceName = "查看"
 	filePath         = "C:\\Program Files (x86)\\MSI Afterburner\\HardwareMonitoring.hml" // 温度配置文件路径
 	imagePath        = "perf/path.txt"                                                    // 保存图片路径的文件
 )
@@ -56,11 +65,11 @@ func init() {
 		var report message.Message
 		switch who {
 		case kittenConfig.NickName[0]:
-			cpu := getCpuPercent()
+			cpu := getCPUPercent()
 			mem := getMemPercent()
 			t := getCPUTemperature()
 			// 查看性能页
-			str = strings.Join([]string{fmt.Sprintf("CPU使用率：%.2f%%", getCpuPercent()),
+			str = strings.Join([]string{fmt.Sprintf("CPU使用率：%.2f%%", getCPUPercent()),
 				fmt.Sprintf("内存使用：%.0f%%（%s）", getMemPercent(), getMemUsed()),
 				fmt.Sprintf("系统盘使用：%.2f%%（%s）", getDiskPercent(), getDiskUsed()),
 				fmt.Sprintf("体温：%s℃", getCPUTemperature()),
@@ -75,7 +84,7 @@ func init() {
 }
 
 // CPU使用率%
-func getCpuPercent() float64 {
+func getCPUPercent() float64 {
 	percent, err := cpu.Percent(time.Second, false)
 	if !kitten.Check(err) {
 		log.Warn("获取CPU使用率失败了喵！")

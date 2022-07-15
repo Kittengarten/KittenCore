@@ -1,4 +1,4 @@
-// 包含了 KittenCore 以及各插件的核心依赖结构体、方法和函数，以及固有的响应（如戳一戳）
+// Package kitten 包含了 KittenCore 以及各插件的核心依赖结构体、方法和函数，以及固有的响应（如戳一戳）
 package kitten
 
 import (

@@ -15,13 +15,13 @@ import (
 	"github.com/wdvxdr1123/ZeroBot/message"
 )
 
-// 字符串转换为数字
+// Atoi 将字符串转换为数字
 func Atoi(str string) int {
 	num, _ := strconv.Atoi(str)
 	return num
 }
 
-// 文件读取
+// FileRead 文件读取
 func FileRead(path string) []byte {
 	res, err := os.Open(path)
 	if !Check(err) {
@@ -33,7 +33,7 @@ func FileRead(path string) []byte {
 	return data
 }
 
-// 文件写入
+// FileWrite 文件写入
 func FileWrite(path string, data []byte) (err error) {
 	res, err := os.Open(path)
 	if !Check(err) {
@@ -45,8 +45,8 @@ func FileWrite(path string, data []byte) (err error) {
 	return err
 }
 
-// 加载配置
-func LoadConfig() (config KittenConfig) {
+// LoadConfig 加载配置
+func LoadConfig() (config Config) {
 	const path = "config.yaml"
 	err := yaml.Unmarshal(FileRead(path), &config)
 	if !Check(err) {
@@ -77,7 +77,7 @@ func loadImagePath(path string) string {
 	return string(data)
 }
 
-// 加载图片，path 参数可以是保存路径的文件，也可以是路径本身（绝对路径）
+// GetImage 加载图片，path 参数可以是保存路径的文件，也可以是路径本身（绝对路径）
 func GetImage(path, name string) message.MessageSegment {
 	if isDir(path) {
 		return message.Image(path + name)
@@ -85,16 +85,15 @@ func GetImage(path, name string) message.MessageSegment {
 	return message.Image(loadImagePath(path) + name)
 }
 
-// 处理错误
+// Check 处理错误
 func Check(err interface{}) bool {
 	if err != nil {
 		return false
-	} else {
-		return true
 	}
+	return true
 }
 
-// 按权重抽取一个项目的idx，有可能返回-1（这种情况代表项目列表为空，需要处理以免报错）
+// Choose 按权重抽取一个项目的idx，有可能返回-1（这种情况代表项目列表为空，需要处理以免报错）
 func Choose(choices []Choice) int {
 	choiceAll := 0
 	choiceNum := 0
@@ -113,18 +112,17 @@ func Choose(choices []Choice) int {
 	return len(choices) - 1
 }
 
-// 判断两个时间是否是同一天
+// IsSameDate 判断两个时间是否是同一天
 func IsSameDate(t1 time.Time, t2 time.Time) bool {
 	year1, month1, day1 := t1.Date()
 	year2, month2, day2 := t2.Date()
 	if year1 == year2 && month1 == month2 && day1 == day2 {
 		return true
-	} else {
-		return false
 	}
+	return false
 }
 
-// 获取中间字符串
+// GetMidText 获取中间字符串，pre 为获取字符串的前缀，suf 为获取字符串的结尾，str 为整个字符串
 func GetMidText(pre string, suf string, str string) string {
 	n := strings.Index(str, pre)
 	if n == -1 {

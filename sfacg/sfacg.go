@@ -1,4 +1,4 @@
-// SF轻小说更新播报、小说信息查询、小说更新查询
+// Package sfacg SF轻小说更新播报、小说信息查询、小说更新查询
 package sfacg
 
 import (
@@ -19,7 +19,8 @@ import (
 )
 
 const (
-	ReplyServiceName = "SFACG"             // 插件名
+	// ReplyServiceName 插件名
+	ReplyServiceName = "SFACG"
 	path             = "sfacg/config.yaml" // 配置文件路径
 )
 
@@ -52,7 +53,7 @@ func init() {
 	engine.OnCommand("更新测试").Handle(func(ctx *zero.Ctx) {
 		novel := getNovel(ctx)
 		report := novel.update()
-		ctx.SendChain(message.Image(novel.HeadUrl), message.Text(report))
+		ctx.SendChain(message.Image(novel.HeadURL), message.Text(report))
 	})
 
 	// 预览小说更新功能
@@ -70,7 +71,7 @@ func init() {
 	// 小说信息功能
 	engine.OnCommand("小说").Handle(func(ctx *zero.Ctx) {
 		novel := getNovel(ctx)
-		ctx.SendChain(message.Image(novel.CoverUrl), message.Text(novel.information()))
+		ctx.SendChain(message.Image(novel.CoverURL), message.Text(novel.information()))
 	})
 }
 
@@ -114,12 +115,12 @@ func sfacgTrack() {
 		dataNew := data
 		var updateError, update bool
 		for idx := range data {
-			id := data[idx].BookId
+			id := data[idx].BookID
 			novel.init(id)
-			chapterUrl := novel.NewChapter.Url
+			chapterURL := novel.NewChapter.URL
 
 			// 更新判定，并防止误报
-			if chapterUrl == data[idx].RecordUrl ||
+			if chapterURL == data[idx].RecordURL ||
 				!novel.IsGet ||
 				!novel.NewChapter.IsGet {
 				continue
@@ -130,16 +131,16 @@ func sfacgTrack() {
 			// 防止更新异常信息发到群里
 			if report == "更新异常喵！" {
 				updateError = true
-				log.Warn(novel.NewChapter.BookUrl + report)
+				log.Warn(novel.NewChapter.BookURL + report)
 			} else {
 				for _, groupID := range data[idx].GroupID {
-					selfId := kitten.LoadConfig().SelfId
-					messageReport := message.Message{message.Image(novel.CoverUrl), message.Image(novel.HeadUrl), message.Text(report)}
-					zero.GetBot(selfId).SendGroupMessage(groupID, messageReport)
+					selfID := kitten.LoadConfig().SelfID
+					messageReport := message.Message{message.Image(novel.CoverURL), message.Image(novel.HeadURL), message.Text(report)}
+					zero.GetBot(selfID).SendGroupMessage(groupID, messageReport)
 					update = true
 				}
 				dataNew[idx].BookName = novel.Name
-				dataNew[idx].RecordUrl = novel.NewChapter.Url
+				dataNew[idx].RecordURL = novel.NewChapter.URL
 				dataNew[idx].UpdateTime = novel.NewChapter.Time.Format("2006年01月02日 15时04分05秒")
 			}
 		}

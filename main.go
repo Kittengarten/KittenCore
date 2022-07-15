@@ -59,9 +59,10 @@ func getLogLevelColorCode(level log.Level) string {
 	}
 }
 
+// LogFormat 日志输出样式
 type LogFormat struct{}
 
-// 颜色代码
+// Format 设置该日志输出样式的具体样式
 func (f LogFormat) Format(entry *log.Entry) ([]byte, error) {
 	buf := new(bytes.Buffer)
 
@@ -114,7 +115,7 @@ func main() {
 		Driver: []zero.Driver{
 			&driver.WSClient{
 				// OneBot 正向WS 默认使用 6700 端口
-				Url:         config.WebSocket.Url,
+				Url:         config.WebSocket.URL,
 				AccessToken: config.WebSocket.AccessToken,
 			},
 		},

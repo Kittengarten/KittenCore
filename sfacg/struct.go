@@ -3,17 +3,18 @@ package sfacg
 import "time"
 
 type (
+	// Novel 表示一本小说的数据集
 	Novel struct {
-		Id         string   // 小说书号
-		Url        string   // 小说网址
+		ID         string   // 小说书号
+		URL        string   // 小说网址
 		Name       string   // 小说书名
 		IsVip      bool     // 是否上架
 		Writer     string   // 作者昵称
 		HitNum     string   // 小说点击
 		WordNum    string   // 小说字数
 		Preview    string   // 章节预览
-		HeadUrl    string   // 头像网址
-		CoverUrl   string   // 封面网址
+		HeadURL    string   // 头像网址
+		CoverURL   string   // 封面网址
 		Collection string   // 小说收藏
 		NewChapter Chapter  // 章节信息
 		Type       string   // 小说类型
@@ -23,27 +24,30 @@ type (
 		IsGet      bool     // 是否可以获取
 	}
 
+	// Chapter 表示一个章节的数据集
 	Chapter struct {
-		BookUrl string    // 本书网址
-		Url     string    // 章节网址
+		BookURL string    // 本书网址
+		URL     string    // 章节网址
 		Time    time.Time // 更新时间
 		Title   string    // 章节名称
 		WordNum int       // 章节字数
-		LastUrl string    // 上章网址
-		NextUrl string    // 下章网址
+		LastURL string    // 上章网址
+		NextURL string    // 下章网址
 		IsGet   bool      // 是否可以获取
 	}
 
+	// Compare 表示章节之间比较的数据集
 	Compare struct {
 		Times   int           // 更新次数
 		TimeGap time.Duration // 更新时间差
 	}
 
+	// Config 表示多项小说配置的数据集组成的数组
 	Config []struct {
-		BookId     string  `yaml:"bookid"`     // 报更书号
+		BookID     string  `yaml:"bookid"`     // 报更书号
 		BookName   string  `yaml:"bookname"`   // 报更书名
 		GroupID    []int64 `yaml:"groupid"`    // 书友群号
-		RecordUrl  string  `yaml:"recordurl"`  // 上次更新链接
+		RecordURL  string  `yaml:"recordurl"`  // 上次更新链接
 		UpdateTime string  `yaml:"updatetime"` // 上次更新时间
 	}
 )

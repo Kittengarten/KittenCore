@@ -13,13 +13,13 @@ import (
 )
 
 // 小说网页信息获取
-func (nv *Novel) init(bookId string) {
-	nv.Id = bookId
-	nv.Url = "https://book.sfacg.com/Novel/" + bookId // 生成链接
-	nv.NewChapter.BookUrl = nv.Url                    // 用于向章节传入本书链接
-	req, err := http.Get(nv.Url)
+func (nv *Novel) init(bookID string) {
+	nv.ID = bookID
+	nv.URL = "https://book.sfacg.com/Novel/" + bookID // 生成链接
+	nv.NewChapter.BookURL = nv.URL                    // 用于向章节传入本书链接
+	req, err := http.Get(nv.URL)
 	if !kitten.Check(err) {
-		log.Warn(fmt.Sprintf("书号%s获取网页失败了喵！", bookId))
+		log.Warn(fmt.Sprintf("书号%s获取网页失败了喵！", bookID))
 		nv.IsGet = false
 	} else {
 		defer req.Body.Close()
@@ -27,13 +27,13 @@ func (nv *Novel) init(bookId string) {
 		if strings.EqualFold(doc.Find("title").Text(), "出错了") ||
 			strings.EqualFold(doc.Find("title").Text(), "糟糕,页面找不到了") ||
 			len(doc.Find("title").Text()) < 43 { // 防止网页炸了导致问题
-			log.Info(fmt.Sprintf("书号%s没有喵！", bookId))
+			log.Info(fmt.Sprintf("书号%s没有喵！", bookID))
 			nv.IsGet = false
 		} else {
 			nv.IsGet = true
 			nv.Name = doc.Find("h1.title").Find("span.text").Text()             // 获取书名
 			nv.Writer = doc.Find("div.author-name").Find("span").Text()         // 获取作者
-			nv.HeadUrl, _ = doc.Find("div.author-mask").Find("img").Attr("src") // 获取头像链接
+			nv.HeadURL, _ = doc.Find("div.author-mask").Find("img").Attr("src") // 获取头像链接
 
 			textRow := doc.Find("div.text-row").Find("span") // 获取详细数字
 			nv.Type = textRow.Eq(0).Text()[9:]               // 获取类型
@@ -52,7 +52,7 @@ func (nv *Novel) init(bookId string) {
 			// 	nv.TagList[i] = selection.Text()
 			// }) // 获取标签(暂时不能用)
 
-			nv.CoverUrl, _ = doc.Find("div.figure").Find("img").Eq(0).Attr("src")  // 获取封面
+			nv.CoverURL, _ = doc.Find("div.figure").Find("img").Eq(0).Attr("src")  // 获取封面
 			nv.Collection = doc.Find("#BasicOperation").Find("a").Eq(2).Text()[7:] // 获取收藏
 
 			nv.Preview = doc.Find("div.chapter-info").Find("p").Text()
@@ -61,35 +61,35 @@ func (nv *Novel) init(bookId string) {
 			nv.Preview = strings.Replace(nv.Preview, "\r", "", -1)
 			nv.Preview = strings.Replace(nv.Preview, "　", "", -1) // 获取预览
 
-			nvNewChapterUrl, _ := doc.Find("div.chapter-info").Find("h3").Find("a").Attr("href")
-			nv.IsVip = strings.Contains(nvNewChapterUrl, "vip")
+			nvNewChapterURL, _ := doc.Find("div.chapter-info").Find("h3").Find("a").Attr("href")
+			nv.IsVip = strings.Contains(nvNewChapterURL, "vip")
 
-			if nvNewChapterUrl == "" {
+			if nvNewChapterURL == "" {
 				nv.NewChapter.IsGet = false // 防止更新章节炸了跳转到网站首页引起程序报错
-				log.Warn(fmt.Sprintf("%s获取更新链接失败了喵！", nv.Url))
+				log.Warn(fmt.Sprintf("%s获取更新链接失败了喵！", nv.URL))
 			} else {
-				nvNewChapterUrl = "https://book.sfacg.com" + nvNewChapterUrl
-				nv.NewChapter.init(nvNewChapterUrl) // 获取新章节链接
+				nvNewChapterURL = "https://book.sfacg.com" + nvNewChapterURL
+				nv.NewChapter.init(nvNewChapterURL) // 获取新章节链接
 			}
 		}
 	}
 }
 
 // 新章节信息获取
-func (cp *Chapter) init(url string) {
+func (cp *Chapter) init(URL string) {
 	loc, _ := time.LoadLocation("Local")
-	cp.Url = url // 生成链接
-	req, err := http.Get(cp.Url)
+	cp.URL = URL // 生成链接
+	req, err := http.Get(cp.URL)
 	if !kitten.Check(err) {
 		cp.IsGet = false
-		log.Warn(fmt.Sprintf("%s获取更新网页失败了喵！", url))
+		log.Warn(fmt.Sprintf("%s获取更新网页失败了喵！", URL))
 	} else {
 		defer req.Body.Close()
 		doc, _ := goquery.NewDocumentFromReader(req.Body) // 获取新章节网页
-		if cp.Url != cp.BookUrl {
+		if cp.URL != cp.BookURL {
 			if strings.EqualFold(doc.Find("title").Text(), "出错了") ||
 				strings.EqualFold(doc.Find("title").Text(), "糟糕,页面找不到了") {
-				log.Info(fmt.Sprintf("章节%s没有喵！", cp.Url))
+				log.Info(fmt.Sprintf("章节%s没有喵！", cp.URL))
 				cp.IsGet = false // 防止奇怪的用户对不存在的书号进行更新测试，导致程序报错
 			} else {
 				cp.IsGet = true
@@ -98,14 +98,14 @@ func (cp *Chapter) init(url string) {
 				cp.Time, _ = time.ParseInLocation("2006/1/2 15:04:05", desc.Eq(1).Text()[15:], loc) // 获取更新时间
 				cp.Title = doc.Find("h1.article-title").Text()                                      // 获取新章节标题
 
-				cp.LastUrl, _ = doc.Find("div.fn-btn").Eq(-1).Find("a").Eq(0).Attr("href")
-				cp.NextUrl, _ = doc.Find("div.fn-btn").Eq(-1).Find("a").Eq(1).Attr("href")
-				cp.LastUrl = "https://book.sfacg.com" + cp.LastUrl // 获取上一章链接
-				cp.NextUrl = "https://book.sfacg.com" + cp.NextUrl // 获取下一章链接
+				cp.LastURL, _ = doc.Find("div.fn-btn").Eq(-1).Find("a").Eq(0).Attr("href")
+				cp.NextURL, _ = doc.Find("div.fn-btn").Eq(-1).Find("a").Eq(1).Attr("href")
+				cp.LastURL = "https://book.sfacg.com" + cp.LastURL // 获取上一章链接
+				cp.NextURL = "https://book.sfacg.com" + cp.NextURL // 获取下一章链接
 			}
 		} else {
 			cp.IsGet = false
-			log.Warn(fmt.Sprintf("%s更新异常喵！", url))
+			log.Warn(fmt.Sprintf("%s更新异常喵！", URL))
 		} // 防止章节炸了导致获取新章节跳转引发panic
 	}
 }
@@ -116,12 +116,12 @@ func (nv *Novel) makeCompare() Compare {
 	var this, last Chapter
 	this = nv.NewChapter
 	if this.IsGet {
-		last.init(this.LastUrl)
+		last.init(this.LastURL)
 		cm.TimeGap = this.Time.Sub(last.Time)
 		cm.Times = 1
 		for kitten.IsSameDate(last.Time, this.Time) {
 			this = last
-			last.init(this.LastUrl)
+			last.init(this.LastURL)
 			cm.Times++
 		}
 	} else {
@@ -140,7 +140,7 @@ func (nv *Novel) information() string {
 	//		tags += "]"
 	//	}
 	str := strings.Join([]string{"书名：" + nv.Name,
-		"书号：" + nv.Id,
+		"书号：" + nv.ID,
 		"作者：" + nv.Writer,
 		fmt.Sprintf("【%s】", nv.Type),
 		"收藏：" + nv.Collection,
@@ -150,15 +150,14 @@ func (nv *Novel) information() string {
 	}, "，") + "\n\n" + nv.Introduce
 	if nv.IsGet {
 		return str
-	} else {
-		return fmt.Sprintf("书号%s打不开喵！", nv.Id)
 	}
+	return fmt.Sprintf("书号%s打不开喵！", nv.ID)
 }
 
 // 搜索
 func findBookID(keyword string) (string, bool) {
-	searchUrl := "http://s.sfacg.com/?Key=" + keyword + "&S=1&SS=0"
-	req, err := http.Get(searchUrl)
+	searchURL := "http://s.sfacg.com/?Key=" + keyword + "&S=1&SS=0"
+	req, err := http.Get(searchURL)
 	if !kitten.Check(err) {
 		log.Warn("获取书号失败了喵！")
 		return "获取书号失败了喵！", false
@@ -184,18 +183,17 @@ func (nv *Novel) update() string {
 	if cm.TimeGap == 0 {
 		log.Warning("更新异常喵！")
 		return "更新异常喵！"
-	} else {
-		timeGap = strings.Replace(timeGap, "h", "小时", 1)
-		timeGap = strings.Replace(timeGap, "m", "分钟", 1)
-		timeGap = strings.Replace(timeGap, "s", "秒", 1)
-
-		chapterName := nv.NewChapter.Title
-
-		str := strings.Join([]string{fmt.Sprintf("《%s》更新了喵～", nv.Name) + chapterName,
-			"更新字数：" + wordNum,
-			"间隔时间：" + timeGap,
-			fmt.Sprintf("当日第%d更", cm.Times),
-		}, "，")
-		return str
 	}
+	timeGap = strings.Replace(timeGap, "h", "小时", 1)
+	timeGap = strings.Replace(timeGap, "m", "分钟", 1)
+	timeGap = strings.Replace(timeGap, "s", "秒", 1)
+
+	chapterName := nv.NewChapter.Title
+
+	str := strings.Join([]string{fmt.Sprintf("《%s》更新了喵～", nv.Name) + chapterName,
+		"更新字数：" + wordNum,
+		"间隔时间：" + timeGap,
+		fmt.Sprintf("当日第%d更", cm.Times),
+	}, "，")
+	return str
 }
