@@ -26,6 +26,8 @@ const (
 
 var (
 	kittenConfig = kitten.LoadConfig()
+	// Alive 报更协程是否存活
+	Alive bool
 )
 
 func init() {
@@ -91,10 +93,10 @@ func getNovel(ctx *zero.Ctx) (nv Novel) {
 }
 
 func sfacgTrack() {
-	// 处理panic，防止程序崩溃
+	// 处理 panic，防止程序崩溃
 	defer func() {
 		if err := recover(); !kitten.Check(err) {
-			log.Error(err)
+			log.Errorf("报更协程出现了错误：%s", err)
 		}
 	}()
 
@@ -104,7 +106,7 @@ func sfacgTrack() {
 	content := strings.Join([]string{
 		line,
 		"* OneBot + ZeroBot + Golang",
-		fmt.Sprintf("一共有%d本小说", len(loadConfig())),
+		fmt.Sprintf("一共有 %d 本小说", len(loadConfig())),
 		"=======================================================",
 	}, "\n")
 	fmt.Println(content)
@@ -150,12 +152,12 @@ func sfacgTrack() {
 			updateConfig, err1 := yaml.Marshal(dataNew)
 			err2 := kitten.FileWrite(path, updateConfig)
 			if !kitten.Check(err1) || !kitten.Check(err2) {
-				log.Warn(fmt.Sprintf("记录%s失败喵！", path))
+				log.Warn(fmt.Sprintf("记录 %s 失败喵！", path))
 			} else {
-				log.Info(fmt.Sprintf("记录%s成功喵！", path))
+				log.Info(fmt.Sprintf("记录 %s 成功喵！", path))
 			}
 		}
 		time.Sleep(5 * time.Second) // 每 5 秒检测一次
-		log.Trace("报更持续运行中……")
+		Alive = true                // 报告协程存活
 	}
 }

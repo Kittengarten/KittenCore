@@ -2,7 +2,6 @@
 package kitten
 
 import (
-	"fmt"
 	"math/rand"
 	"time"
 
@@ -12,6 +11,7 @@ import (
 )
 
 var (
+	config   = LoadConfig()                             // 全局配置文件
 	poke     = rate.NewManager[int64](time.Minute*5, 9) // 戳一戳
 	nickname = LoadConfig().NickName[0]                 // 昵称
 )
@@ -19,18 +19,23 @@ var (
 const randMax = 100 // 随机数上限（不包含）
 
 func init() {
+	// 戳一戳
 	zero.On("notice/notify/poke", zero.OnlyToMe).SetBlock(false).
 		Handle(func(ctx *zero.Ctx) {
+			var (
+				gID = ctx.Event.GroupID // 本群的群号
+				uID = ctx.Event.UserID  // 发出 poke 的 QQ 号
+			)
 			switch {
-			case poke.Load(ctx.Event.GroupID).AcquireN(5):
+			case poke.Load(gID).AcquireN(5):
 				// 5分钟共8块命令牌 一次消耗5块命令牌
-				ctx.SendChain(message.Poke(ctx.Event.UserID))
-			case poke.Load(ctx.Event.GroupID).AcquireN(3):
+				ctx.SendChain(message.Poke(uID))
+			case poke.Load(gID).AcquireN(3):
 				// 5分钟共8块命令牌 一次消耗3块命令牌
-				ctx.SendChain(message.At(ctx.Event.UserID), message.Text(fmt.Sprintf("请不要拍%s >_<", nickname)))
-			case poke.Load(ctx.Event.GroupID).Acquire():
+				ctx.SendChain(message.At(uID), TextOf("请不要拍%s >_<", nickname))
+			case poke.Load(gID).Acquire():
 				// 5分钟共8块命令牌 一次消耗1块命令牌
-				ctx.SendChain(message.At(ctx.Event.UserID), message.Text(fmt.Sprintf("喂(#`O′) 拍%s干嘛！（好感-%d）", nickname, rand.Intn(randMax)+1)))
+				ctx.SendChain(message.At(uID), TextOf("喂(#`O′) 拍%s干嘛！（好感 - %d）", nickname, rand.Intn(randMax)+1))
 			default:
 				// 频繁触发，不回复
 			}

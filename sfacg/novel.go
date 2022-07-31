@@ -19,7 +19,7 @@ func (nv *Novel) init(bookID string) {
 	nv.NewChapter.BookURL = nv.URL                    // 用于向章节传入本书链接
 	req, err := http.Get(nv.URL)
 	if !kitten.Check(err) {
-		log.Warn(fmt.Sprintf("书号%s获取网页失败了喵！", bookID))
+		log.Warn(fmt.Sprintf("书号 %s 获取网页失败了喵！", bookID))
 		nv.IsGet = false
 	} else {
 		defer req.Body.Close()
@@ -27,7 +27,7 @@ func (nv *Novel) init(bookID string) {
 		if strings.EqualFold(doc.Find("title").Text(), "出错了") ||
 			strings.EqualFold(doc.Find("title").Text(), "糟糕,页面找不到了") ||
 			len(doc.Find("title").Text()) < 43 { // 防止网页炸了导致问题
-			log.Info(fmt.Sprintf("书号%s没有喵！", bookID))
+			log.Info(fmt.Sprintf("书号 %s 没有喵！", bookID))
 			nv.IsGet = false
 		} else {
 			nv.IsGet = true
@@ -36,24 +36,36 @@ func (nv *Novel) init(bookID string) {
 			nv.HeadURL, _ = doc.Find("div.author-mask").Find("img").Attr("src") // 获取头像链接
 
 			textRow := doc.Find("div.text-row").Find("span") // 获取详细数字
-			nv.Type = textRow.Eq(0).Text()[9:]               // 获取类型
-			nv.HitNum = textRow.Eq(2).Text()[9:]             // 获取点击
+			if len(textRow.Eq(0).Text()) > 9 {
+				nv.Type = textRow.Eq(0).Text()[9:] // 获取类型
+			} else {
+				log.Error("获取类型错误喵！")
+			}
+			if len(textRow.Eq(2).Text()) > 9 {
+				nv.HitNum = textRow.Eq(2).Text()[9:] // 获取点击
+			} else {
+				log.Error("获取点击错误喵！")
+			}
 			nv.WordNum = textRow.Eq(1).Text()
 			loc, _ := time.LoadLocation("Local")
-			nv.NewChapter.Time, _ =
-				time.ParseInLocation("2006/1/2 15:04:05", textRow.Eq(3).Text()[9:], loc) // 防止章节炸了导致获取不到更新时间
-
+			if len(textRow.Eq(3).Text()) > 9 {
+				nv.NewChapter.Time, _ = time.ParseInLocation("2006/1/2 15:04:05", textRow.Eq(3).Text()[9:], loc)
+			}
 			WordNumInfo := nv.WordNum
-			nv.WordNum = nv.WordNum[9 : len(nv.WordNum)-14] // 获取字数
-			nv.Status = WordNumInfo[len(WordNumInfo)-11:]   //获取状态
-
+			if len(nv.WordNum) > 9 {
+				nv.WordNum = nv.WordNum[9 : len(nv.WordNum)-14] // 获取字数
+			}
+			if len(WordNumInfo) > 11 {
+				nv.Status = WordNumInfo[len(WordNumInfo)-11:] //获取状态
+			}
 			nv.Introduce = doc.Find("p.introduce").Text() // 获取简述
 			// doc.Find("ul.tag-list > span#text").Each(func(i int, selection *goquery.Selection) {
 			// 	nv.TagList[i] = selection.Text()
 			// }) // 获取标签(暂时不能用)
-
-			nv.CoverURL, _ = doc.Find("div.figure").Find("img").Eq(0).Attr("src")  // 获取封面
-			nv.Collection = doc.Find("#BasicOperation").Find("a").Eq(2).Text()[7:] // 获取收藏
+			nv.CoverURL, _ = doc.Find("div.figure").Find("img").Eq(0).Attr("src") // 获取封面
+			if len(doc.Find("#BasicOperation").Find("a").Eq(2).Text()) > 7 {
+				nv.Collection = doc.Find("#BasicOperation").Find("a").Eq(2).Text()[7:] // 获取收藏
+			}
 
 			nv.Preview = doc.Find("div.chapter-info").Find("p").Text()
 			nv.Preview = strings.Replace(nv.Preview, " ", "", -1)
@@ -66,7 +78,7 @@ func (nv *Novel) init(bookID string) {
 
 			if nvNewChapterURL == "" {
 				nv.NewChapter.IsGet = false // 防止更新章节炸了跳转到网站首页引起程序报错
-				log.Warn(fmt.Sprintf("%s获取更新链接失败了喵！", nv.URL))
+				log.Warn(fmt.Sprintf("%s 获取更新链接失败了喵！", nv.URL))
 			} else {
 				nvNewChapterURL = "https://book.sfacg.com" + nvNewChapterURL
 				nv.NewChapter.init(nvNewChapterURL) // 获取新章节链接
@@ -82,21 +94,25 @@ func (cp *Chapter) init(URL string) {
 	req, err := http.Get(cp.URL)
 	if !kitten.Check(err) {
 		cp.IsGet = false
-		log.Warn(fmt.Sprintf("%s获取更新网页失败了喵！", URL))
+		log.Warn(fmt.Sprintf("%s 获取更新网页失败了喵！", URL))
 	} else {
 		defer req.Body.Close()
 		doc, _ := goquery.NewDocumentFromReader(req.Body) // 获取新章节网页
 		if cp.URL != cp.BookURL {
 			if strings.EqualFold(doc.Find("title").Text(), "出错了") ||
 				strings.EqualFold(doc.Find("title").Text(), "糟糕,页面找不到了") {
-				log.Info(fmt.Sprintf("章节%s没有喵！", cp.URL))
+				log.Info(fmt.Sprintf("章节【%s】没有喵！", cp.URL))
 				cp.IsGet = false // 防止奇怪的用户对不存在的书号进行更新测试，导致程序报错
 			} else {
 				cp.IsGet = true
-				desc := doc.Find("div.article-desc").Find("span")                                   // Debug用
-				cp.WordNum = kitten.Atoi(desc.Eq(2).Text()[9:])                                     // 获取新章节字数
-				cp.Time, _ = time.ParseInLocation("2006/1/2 15:04:05", desc.Eq(1).Text()[15:], loc) // 获取更新时间
-				cp.Title = doc.Find("h1.article-title").Text()                                      // 获取新章节标题
+				desc := doc.Find("div.article-desc").Find("span")
+				if len(desc.Eq(2).Text()) > 9 {
+					cp.WordNum = kitten.Atoi(desc.Eq(2).Text()[9:]) // 获取新章节字数
+				}
+				if len(desc.Eq(1).Text()) > 15 {
+					cp.Time, _ = time.ParseInLocation("2006/1/2 15:04:05", desc.Eq(1).Text()[15:], loc) // 获取更新时间
+				}
+				cp.Title = doc.Find("h1.article-title").Text() // 获取新章节标题
 
 				cp.LastURL, _ = doc.Find("div.fn-btn").Eq(-1).Find("a").Eq(0).Attr("href")
 				cp.NextURL, _ = doc.Find("div.fn-btn").Eq(-1).Find("a").Eq(1).Attr("href")

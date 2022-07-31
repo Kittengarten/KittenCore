@@ -25,7 +25,7 @@ func Atoi(str string) int {
 func FileRead(path string) []byte {
 	res, err := os.Open(path)
 	if !Check(err) {
-		log.Warn(fmt.Sprintf("读取文件%s失败了喵！", path))
+		log.Warn(fmt.Sprintf("读取文件 %s 失败了喵！", path))
 	} else {
 		defer res.Close()
 	}
@@ -37,7 +37,7 @@ func FileRead(path string) []byte {
 func FileWrite(path string, data []byte) (err error) {
 	res, err := os.Open(path)
 	if !Check(err) {
-		log.Warn(fmt.Sprintf("写入文件%s失败了喵！", path))
+		log.Warn(fmt.Sprintf("写入文件 %s 失败了喵！", path))
 	} else {
 		defer res.Close()
 	}
@@ -50,7 +50,7 @@ func LoadConfig() (config Config) {
 	const path = "config.yaml"
 	err := yaml.Unmarshal(FileRead(path), &config)
 	if !Check(err) {
-		log.Fatal(fmt.Sprintf("打开%s失败了喵！", path), err)
+		log.Fatal(fmt.Sprintf("打开 %s 失败了喵！", path), err)
 		return
 	}
 	return config
@@ -69,7 +69,7 @@ func isDir(path string) bool {
 func loadImagePath(path string) string {
 	res, err := os.Open(path)
 	if !Check(err) {
-		log.Warn(fmt.Sprintf("打开文件%s失败了喵！", path))
+		log.Warn(fmt.Sprintf("打开文件 %s 失败了喵！", path))
 	} else {
 		defer res.Close()
 	}
@@ -122,7 +122,7 @@ func IsSameDate(t1 time.Time, t2 time.Time) bool {
 	return false
 }
 
-// GetMidText 获取中间字符串，pre 为获取字符串的前缀，suf 为获取字符串的结尾，str 为整个字符串
+// GetMidText 获取中间字符串，pre 为获取字符串的前缀（不包含），suf 为获取字符串的后缀（不包含），str 为整个字符串
 func GetMidText(pre string, suf string, str string) string {
 	n := strings.Index(str, pre)
 	if n == -1 {
@@ -136,4 +136,9 @@ func GetMidText(pre string, suf string, str string) string {
 		m = len(str)
 	}
 	return string([]byte(str)[:m])
+}
+
+// TextOf 格式化构建 message.Text 文本，格式同 fmt.Sprintf
+func TextOf(format string, a ...any) message.MessageSegment {
+	return message.Text(fmt.Sprintf(format, a...))
 }

@@ -21,6 +21,7 @@ type (
 	LogConfig struct {
 		Level string // 日志等级
 		Path  string // 日志路径
+		Days  int    // 单段分割文件记录的天数
 	}
 
 	// Choice 是一个随机项目的抽象接口

@@ -11,17 +11,19 @@ import (
 
 	"github.com/FloatTech/zbputils/process"
 	_ "github.com/Kittengarten/KittenCore/abuse"
+	_ "github.com/Kittengarten/KittenCore/essence"
 	"github.com/Kittengarten/KittenCore/kitten"
 	_ "github.com/Kittengarten/KittenCore/perf"
+	"github.com/Kittengarten/KittenCore/sfacg"
 	_ "github.com/Kittengarten/KittenCore/sfacg"
 	_ "github.com/Kittengarten/KittenCore/stack"
 
 	_ "github.com/FloatTech/ZeroBot-Plugin/plugin/music"
-	_ "github.com/FloatTech/ZeroBot-Plugin/plugin/qqwife"
 
 	zero "github.com/wdvxdr1123/ZeroBot"
 	"github.com/wdvxdr1123/ZeroBot/driver"
 
+	logf "github.com/lestrrat-go/file-rotatelogs"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -84,25 +86,46 @@ func (f LogFormat) Format(entry *log.Entry) ([]byte, error) {
 
 func init() {
 	config := kitten.LoadConfig()
+
+	var (
+		logName = config.Log.Path // 日志文件路径
+		logF    = config.Log.Days // 单段分割文件记录的天数
+	)
+	// 配置分割日志文件
+	writer, err := logf.New(
+		// 分割日志文件命名规则
+		kitten.GetMidText("", ".txt", logName)+"-%Y-%m-%d.txt",
+		// 与最新的日志文件建立软链接
+		logf.WithLinkName(logName),
+		// 分割日志文件间隔
+		logf.WithRotationTime(time.Duration(int(time.Hour)*24*logF)),
+		// 禁用清理
+		logf.WithMaxAge(-1),
+	)
+	if !kitten.Check(err) {
+		log.Errorf("配置分割日志文件失败：%v", err)
+	}
+
 	log.SetFormatter(&LogFormat{}) // 设置日志输出样式
-	file, err := os.OpenFile(config.Log.Path, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0666)
-	mw := io.MultiWriter(os.Stdout, file)
+	mw := io.MultiWriter(os.Stdout, writer)
 	if kitten.Check(err) {
 		log.SetOutput(mw)
 	} else {
 		log.Warn("写入日志失败了喵！")
 	}
 	log.SetLevel(log.TraceLevel) // 设置最低日志等级
+
 }
 
 func main() {
-	// 处理panic，防止程序崩溃
+	// 处理 panic，防止程序崩溃
 	defer func() {
 		if err := recover(); !kitten.Check(err) {
-			log.Error("main函数有Bug喵！")
-			log.Error(err)
+			log.Errorf("main 函数有 Bug：%s，喵！", err)
 		}
 	}()
+
+	go checkAlive(&sfacg.Alive, "sfacg ") // 检查 sfacg 报更协程是否存活
 
 	config := kitten.LoadConfig()
 	log.Info("已经载入配置了喵！")
@@ -120,4 +143,25 @@ func main() {
 			},
 		},
 	}, process.GlobalInitMutex.Unlock)
+}
+
+// 检查协程是否存活
+func checkAlive(ok *bool, name string) {
+	// 处理 panic，防止程序崩溃
+	defer func() {
+		if err := recover(); !kitten.Check(err) {
+			log.Errorf("checkAlive 函数有 Bug：%s，喵！", err)
+		}
+	}()
+
+	config := kitten.LoadConfig()
+
+	for {
+		*ok = false
+		time.Sleep(time.Minute) // 每分钟检测一次
+		if !*ok {
+			zero.GetBot(config.SelfID).SendPrivateMessage(config.SuperUsers[0], name+"协程挂掉了喵！")
+			break // 停止检测
+		}
+	}
 }
