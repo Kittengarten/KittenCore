@@ -67,9 +67,7 @@ type LogFormat struct{}
 // Format 设置该日志输出样式的具体样式
 func (f LogFormat) Format(entry *log.Entry) ([]byte, error) {
 	buf := new(bytes.Buffer)
-
 	buf.WriteString(getLogLevelColorCode(entry.Level))
-
 	buf.WriteByte('[')
 	buf.WriteString(entry.Time.Format("2006-01-02 15:04:05"))
 	buf.WriteString("] ")
@@ -78,16 +76,13 @@ func (f LogFormat) Format(entry *log.Entry) ([]byte, error) {
 	buf.WriteString("]: ")
 	buf.WriteString(entry.Message)
 	buf.WriteString(" \n")
-
 	buf.WriteString(colorReset)
-
 	return buf.Bytes(), nil
 }
 
 func init() {
-	config := kitten.LoadConfig()
-
 	var (
+		config  = kitten.LoadConfig()
 		logName = config.Log.Path // 日志文件路径
 		logF    = config.Log.Days // 单段分割文件记录的天数
 	)
@@ -125,7 +120,7 @@ func main() {
 		}
 	}()
 
-	go checkAlive(&sfacg.Alive, "sfacg ") // 检查 sfacg 报更协程是否存活
+	go checkAlive(&sfacg.Alive, "sfacg 报更") // 检查 sfacg 报更协程是否存活
 
 	config := kitten.LoadConfig()
 	log.Info("已经载入配置了喵！")

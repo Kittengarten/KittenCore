@@ -84,7 +84,7 @@ func loadData(path string) (stackData Data) {
 func in(data Data, dataExit Data, stackConfig Config, ctx *zero.Ctx) {
 	permit := true
 	ID := ctx.Event.UserID
-	var report string
+	var report, reports string
 
 	for _, meow := range dataExit {
 		if ID == meow.ID {
@@ -106,20 +106,23 @@ func in(data Data, dataExit Data, stackConfig Config, ctx *zero.Ctx) {
 			report = stackConfig.OutOfStack
 			permit = false
 			// 压猫猫
-			if exitLabel := 0; checkStack(len(data)) {
+			if exitLabel := -1; checkStack(len(data)) {
 				// 只有下半的猫猫会被压坏
 				for IDx := range data {
-					if data[IDx].Count++; data[IDx].Count > stackConfig.MaxCount && IDx <= len(data)/2 {
+					if data[IDx].Count++; data[IDx].Count > stackConfig.MaxCount && IDx < len(data)/2 {
 						exitLabel = IDx // 最上面一只压坏的猫猫的位置
 					}
 				}
-				exitData := data[:exitLabel+1]
-				reports := strings.Join(reverse(exitData), "\n")
-				// 将被压坏的的猫猫记录至退出日志
-				for _, kitten := range exitData {
-					logExit(kitten.ID, ctx, dataExit)
+				// 如果有猫猫被压坏
+				if exitLabel >= 0 {
+					exitData := data[:exitLabel+1]
+					reports = strings.Join(reverse(exitData), "\n")
+					// 将被压坏的的猫猫记录至退出日志
+					for _, kitten := range exitData {
+						logExit(kitten.ID, ctx)
+					}
+					data = data[exitLabel+1:]
 				}
-				data = data[exitLabel+1:]
 				stackData, err1 := yaml.Marshal(data)
 				err2 := kitten.FileWrite("stack/data.yaml", stackData)
 				if !kitten.Check(err1) || !kitten.Check(err2) {
@@ -127,11 +130,12 @@ func in(data Data, dataExit Data, stackConfig Config, ctx *zero.Ctx) {
 					log.Warn(strconv.FormatInt(ID, 10) + report)
 				} else {
 					report += fmt.Sprintf("\n\n压猫猫成功，下面的猫猫对你的好感度下降了！你在 %d 小时内无法加入叠猫猫。", stackConfig.GapTime)
-					if exitLabel > 0 {
-						report += fmt.Sprintf("\n\n有 %d 只猫猫被压坏了喵！需要休息 %d 小时。\n%s", exitLabel, stackConfig.GapTime, reports)
+					// 如果有猫猫被压坏
+					if exitLabel >= 0 {
+						report += fmt.Sprintf("\n\n有 %d 只猫猫被压坏了喵！需要休息 %d 小时。\n%s", exitLabel+1, stackConfig.GapTime, reports)
 					}
 					log.Info(strconv.FormatInt(ID, 10) + report)
-					logExit(ID, ctx, dataExit) // 将压猫猫的猫猫记录至退出日志
+					logExit(ID, ctx) // 将压猫猫的猫猫记录至退出日志
 				}
 			} else {
 				report += "\n\n压猫猫失败了喵！"
@@ -142,7 +146,7 @@ func in(data Data, dataExit Data, stackConfig Config, ctx *zero.Ctx) {
 			if checkStack(len(data)) {
 				var meow Kitten
 				meow.ID = ID
-				meow.Name = ctx.CardOrNickName(ID)
+				meow.Name = kitten.GetTitle(*ctx, ID) + ctx.CardOrNickName(ID)
 				meow.Time = time.Unix(ctx.Event.Time, 0)
 				data = append(data, meow)
 				stackData, err1 := yaml.Marshal(data)
@@ -163,7 +167,7 @@ func in(data Data, dataExit Data, stackConfig Config, ctx *zero.Ctx) {
 				exitData := data[len(data)-exitCount:]
 				// 将摔下来的的猫猫记录至退出日志
 				for _, kitten := range exitData {
-					logExit(kitten.ID, ctx, dataExit)
+					logExit(kitten.ID, ctx)
 				}
 				data = data[:len(data)-exitCount]
 				stackData, err1 := yaml.Marshal(data)
@@ -177,7 +181,7 @@ func in(data Data, dataExit Data, stackConfig Config, ctx *zero.Ctx) {
 						exitCount, stackConfig.GapTime, strings.Join(reverse(exitData), "\n"))
 					permit = false
 					log.Info(strconv.FormatInt(ID, 10) + report)
-					logExit(ID, ctx, dataExit) // 将叠猫猫失败的猫猫记录至退出日志
+					logExit(ID, ctx) // 将叠猫猫失败的猫猫记录至退出日志
 				}
 			}
 		}
@@ -216,7 +220,7 @@ func exit(data Data, dataExit Data, ctx *zero.Ctx) {
 		} else {
 			report = "退出叠猫猫成功喵！"
 			log.Info(strconv.FormatInt(ID, 10) + report)
-			logExit(ID, ctx, dataExit)
+			logExit(ID, ctx)
 		}
 		if permit {
 			ctx.SendChain(message.At(ID), message.Text(report))
@@ -294,11 +298,12 @@ func autoExit(path string, config Config) {
 }
 
 // 记录至退出日志
-func logExit(ID int64, ctx *zero.Ctx, dataExit Data) {
+func logExit(ID int64, ctx *zero.Ctx) {
+	dataExit := loadData("stack/exit.yaml")
 	var meowExit Kitten
 	meowExit.ID = ID
 	meowExit.Time = time.Unix(ctx.Event.Time, 0)
-	meowExit.Name = ctx.CardOrNickName(ID)
+	meowExit.Name = kitten.GetTitle(*ctx, ID) + ctx.CardOrNickName(ID)
 	dataExit = append(dataExit, meowExit)
 	exitData, err1 := yaml.Marshal(dataExit)
 	err2 := kitten.FileWrite("stack/exit.yaml", exitData)

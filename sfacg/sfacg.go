@@ -49,7 +49,7 @@ func init() {
 		Help:             help,
 	})
 
-	go sfacgTrack()
+	go track()
 
 	// 测试小说报更功能
 	engine.OnCommand("更新测试").Handle(func(ctx *zero.Ctx) {
@@ -92,7 +92,7 @@ func getNovel(ctx *zero.Ctx) (nv Novel) {
 	return nv
 }
 
-func sfacgTrack() {
+func track() {
 	// 处理 panic，防止程序崩溃
 	defer func() {
 		if err := recover(); !kitten.Check(err) {
@@ -100,7 +100,6 @@ func sfacgTrack() {
 		}
 	}()
 
-	var novel Novel
 	name := kitten.LoadConfig().NickName[0]
 	line := "======================[" + name + "]======================"
 	content := strings.Join([]string{
@@ -110,6 +109,17 @@ func sfacgTrack() {
 		"=======================================================",
 	}, "\n")
 	fmt.Println(content)
+
+	var (
+		novel Novel
+		bot   = <-kitten.Bot
+	)
+
+	if bot != nil {
+		log.Info("报更已经获取到实例了喵！")
+	} else {
+		log.Error("报更没有获取到实例了喵！")
+	}
 
 	// 报更
 	for {
@@ -136,9 +146,8 @@ func sfacgTrack() {
 				log.Warn(novel.NewChapter.BookURL + report)
 			} else {
 				for _, groupID := range data[idx].GroupID {
-					selfID := kitten.LoadConfig().SelfID
 					messageReport := message.Message{message.Image(novel.CoverURL), message.Image(novel.HeadURL), message.Text(report)}
-					zero.GetBot(selfID).SendGroupMessage(groupID, messageReport)
+					bot.SendGroupMessage(groupID, messageReport)
 					update = true
 				}
 				dataNew[idx].BookName = novel.Name

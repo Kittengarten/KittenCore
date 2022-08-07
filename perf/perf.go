@@ -69,17 +69,28 @@ func init() {
 			mem := getMemPercent()
 			t := getCPUTemperature()
 			ping := checkServer(config.WebSocket.URL)
-			if ping < 0 {
+			if ping <= 0 {
 				pingMessage = "连接超时喵！"
+			} else if ping < 1 {
+				pingMessage = "延迟：< 1 ms"
 			} else {
 				pingMessage = fmt.Sprintf("延迟：%d ms", ping)
 			}
 			// 查看性能页
+			annoStr, err := kitten.GetWTAAnno()
+			var reportAnno string
+			if !kitten.Check(err) {
+				log.Error("报时失败喵！", err)
+				reportAnno = "喵？"
+			} else {
+				reportAnno = fmt.Sprintf("喵喵报时：现在是%s", annoStr)
+			}
 			str = strings.Join([]string{fmt.Sprintf("CPU 使用率：%.2f%%", cpu),
 				fmt.Sprintf("内存使用：%.0f%%（%s）", mem, getMemUsed()),
 				fmt.Sprintf("系统盘使用：%.2f%%（%s）", getDiskPercent(), getDiskUsed()),
 				fmt.Sprintf("体温：%s℃", t),
 				pingMessage,
+				reportAnno,
 			}, "\n")
 			perf := getPerf(cpu, mem, t)
 			report = message.Message{kitten.GetImage(imagePath, strconv.Itoa(perf)+".png"), message.Text(str)}
@@ -98,12 +109,12 @@ func getCPUPercent() float64 {
 }
 
 // 内存使用调用
-func getMem() *mem.VirtualMemoryStat {
+func getMem() (memInfo *mem.VirtualMemoryStat) {
 	memInfo, err := mem.VirtualMemory()
 	if !kitten.Check(err) {
 		log.Warn("获取内存使用失败了喵！", err)
 	}
-	return memInfo
+	return
 }
 
 // 内存使用率%
@@ -120,13 +131,13 @@ func getMemUsed() string {
 }
 
 // 磁盘使用调用
-func getDisk() *disk.UsageStat {
+func getDisk() (diskInfo *disk.UsageStat) {
 	parts, err1 := disk.Partitions(true)
 	diskInfo, err2 := disk.Usage(parts[0].Mountpoint)
 	if !(kitten.Check(err1) && kitten.Check(err2)) {
 		log.Warn("获取磁盘使用失败了喵！", err1, err2)
 	}
-	return diskInfo
+	return
 }
 
 // 系统盘使用率%
@@ -135,23 +146,23 @@ func getDiskPercent() float64 {
 }
 
 // 系统盘使用情况
-func getDiskUsed() string {
+func getDiskUsed() (str string) {
 	used := fmt.Sprintf("%.2f GiB", float64(getDisk().Used)/GiB)
 	total := fmt.Sprintf("%.2f GiB", float64(getDisk().Total)/GiB)
-	str := used + "/" + total
-	return str
+	str = used + "/" + total
+	return
 }
 
 // 获取CPU温度
-func getCPUTemperature() string {
+func getCPUTemperature() (CPUTemperature string) {
 	os.Remove(filePath)
 	time.Sleep(1 * time.Second)
 	file, err := os.ReadFile(filePath)
 	if !kitten.Check(err) {
 		log.Warn("获取 CPU 温度日志失败了喵！", err)
 	}
-	CPUTemperature := string(file)[329:331]
-	return CPUTemperature
+	CPUTemperature = string(file)[329:331]
+	return
 }
 
 // 返回状态等级
@@ -176,7 +187,7 @@ func getPerf(cpu float64, mem float64, t string) int {
 	return 5
 }
 
-// 检查连接状况
+// 检查连接状况，错误则返回 -1，正常则返回延迟的毫秒数
 func checkServer(url string) int64 {
 	url = kitten.GetMidText("//", ":", url)
 	log.Tracef("正在 Ping %s 喵……", url)

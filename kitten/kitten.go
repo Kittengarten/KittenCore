@@ -14,11 +14,21 @@ var (
 	config   = LoadConfig()                             // 全局配置文件
 	poke     = rate.NewManager[int64](time.Minute*5, 9) // 戳一戳
 	nickname = LoadConfig().NickName[0]                 // 昵称
+	// Bot 用于传送 Bot 实例的通道
+	Bot = make(chan *zero.Ctx)
 )
 
 const randMax = 100 // 随机数上限（不包含）
 
 func init() {
+	go func() {
+		var bot *zero.Ctx
+		for bot == nil {
+			bot = zero.GetBot(config.SelfID)
+		}
+		Bot <- bot
+	}()
+
 	// 戳一戳
 	zero.On("notice/notify/poke", zero.OnlyToMe).SetBlock(false).
 		Handle(func(ctx *zero.Ctx) {

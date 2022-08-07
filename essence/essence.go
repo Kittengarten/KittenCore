@@ -18,6 +18,7 @@ import (
 const (
 	// ReplyServiceName 插件名
 	ReplyServiceName = "精华消息"
+	fail             = "获取精华消息失败喵！"
 )
 
 func init() {
@@ -35,21 +36,27 @@ func init() {
 	engine.OnCommand("精华").Handle(func(ctx *zero.Ctx) {
 		essenceList := ctx.GetThisGroupEssenceMessageList()
 		essenceCount := len(essenceList.Array())
-		log.Tracef("获得了 %d 条精华消息喵！", essenceCount)
-		IDx := rand.Intn(int(essenceCount))
-		essenceMessage := essenceList.Array()[IDx]
-		log.Trace(essenceMessage)
-		var (
-			ID       = gjson.Get(essenceMessage.Raw, "sender_id")
-			nickname = gjson.Get(essenceMessage.Raw, "sender_nick")
-			msID     = gjson.Get(essenceMessage.Raw, "message_id")
-		)
-		ms := ctx.GetMessage(message.NewMessageIDFromInteger(msID.Int()))
-		log.Trace(ms)
-		reportText := kitten.TextOf("【精华消息】\n%s（%d）:\n", nickname.String(), ID.Int())
-		report := make(message.Message, len(ms.Elements))
-		report = append(report, reportText)
-		report = append(report, ms.Elements...)
-		ctx.Send(report)
+		if essenceCount == 0 {
+			ctx.Send(fail)
+			log.Error(fail)
+		} else {
+			log.Tracef("获得了 %d 条精华消息喵！", essenceCount)
+			IDx := rand.Intn(int(essenceCount))
+			essenceMessage := essenceList.Array()[IDx]
+			log.Trace(essenceMessage)
+			var (
+				ID       = gjson.Get(essenceMessage.Raw, "sender_id")
+				nickname = gjson.Get(essenceMessage.Raw, "sender_nick")
+				msID     = gjson.Get(essenceMessage.Raw, "message_id")
+			)
+			ctx.GetGroupMessageHistory(ctx.Event.GroupID, msID.Int())
+			ms := ctx.GetMessage(message.NewMessageIDFromInteger(msID.Int()))
+			log.Trace(ms)
+			reportText := kitten.TextOf("【精华消息】\n%s（%d）:\n", kitten.GetTitle(*ctx, ID.Int())+nickname.String(), ID.Int())
+			report := make(message.Message, len(ms.Elements))
+			report = append(report, reportText)
+			report = append(report, ms.Elements...)
+			ctx.Send(report)
+		}
 	})
 }

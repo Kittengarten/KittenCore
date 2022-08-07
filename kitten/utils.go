@@ -11,26 +11,29 @@ import (
 
 	"gopkg.in/yaml.v3"
 
+	"github.com/Kittengarten/KittenAnno/wta"
 	log "github.com/sirupsen/logrus"
+	"github.com/tidwall/gjson"
+	zero "github.com/wdvxdr1123/ZeroBot"
 	"github.com/wdvxdr1123/ZeroBot/message"
 )
 
 // Atoi 将字符串转换为数字
-func Atoi(str string) int {
-	num, _ := strconv.Atoi(str)
-	return num
+func Atoi(str string) (num int) {
+	num, _ = strconv.Atoi(str)
+	return
 }
 
 // FileRead 文件读取
-func FileRead(path string) []byte {
+func FileRead(path string) (data []byte) {
 	res, err := os.Open(path)
 	if !Check(err) {
 		log.Warn(fmt.Sprintf("读取文件 %s 失败了喵！", path))
 	} else {
 		defer res.Close()
 	}
-	data, _ := ioutil.ReadAll(res)
-	return data
+	data, _ = ioutil.ReadAll(res)
+	return
 }
 
 // FileWrite 文件写入
@@ -42,7 +45,7 @@ func FileWrite(path string, data []byte) (err error) {
 		defer res.Close()
 	}
 	err = ioutil.WriteFile(path, data, 0666)
-	return err
+	return
 }
 
 // LoadConfig 加载配置
@@ -53,7 +56,7 @@ func LoadConfig() (config Config) {
 		log.Fatal(fmt.Sprintf("打开 %s 失败了喵！", path), err)
 		return
 	}
-	return config
+	return
 }
 
 // （私有）判断路径是否文件夹
@@ -141,4 +144,23 @@ func GetMidText(pre string, suf string, str string) string {
 // TextOf 格式化构建 message.Text 文本，格式同 fmt.Sprintf
 func TextOf(format string, a ...any) message.MessageSegment {
 	return message.Text(fmt.Sprintf(format, a...))
+}
+
+// GetTitle 从 uid 获取【头衔】
+func GetTitle(ctx zero.Ctx, uid int64) (title string) {
+	gmi := ctx.GetGroupMemberInfo(ctx.Event.GroupID, uid, true)
+	if titleStr := gjson.Get(gmi.Raw, "title").Str; titleStr == "" {
+		title = titleStr
+	} else {
+		title = fmt.Sprintf("【%s】", gjson.Get(gmi.Raw, "title").Str)
+	}
+	return
+}
+
+// GetWTAAnno 获取世界树纪元的完整字符串
+func GetWTAAnno() (str string, err error) {
+	anno, err := wta.GetAnno()
+	str = anno.YearStr + anno.MonthStr + anno.DayStr
+	str = fmt.Sprintf("%s　%d:%0*d:%0*d", str, anno.Hour, 2, anno.Minute, 2, anno.Second)
+	return
 }
