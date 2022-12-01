@@ -6,6 +6,6 @@
 
 所有指令均需要加上前缀（在data/config.yaml中可以设置）
 
-由于项目中可能含有非ASCII字符文件名，可能需要执行 `git config --bool hooks.allownoascii true`
+由于项目中可能含有非 `ASCII` 字符文件名，可能需要执行 `git config --bool hooks.allownoascii true`
 
 可以双击机器人头像（戳一戳）触发响应

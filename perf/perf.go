@@ -8,18 +8,18 @@ import (
 	"strings"
 	"time"
 
-	"github.com/Kittengarten/KittenCore/kitten"
-
-	"github.com/shirou/gopsutil/v3/cpu"
-	"github.com/shirou/gopsutil/v3/disk"
-	"github.com/shirou/gopsutil/v3/mem"
-
 	ctrl "github.com/FloatTech/zbpctrl"
 	"github.com/FloatTech/zbputils/control"
 	zero "github.com/wdvxdr1123/ZeroBot"
 	"github.com/wdvxdr1123/ZeroBot/message"
 
 	"github.com/go-ping/ping"
+	"github.com/shirou/gopsutil/v3/cpu"
+	"github.com/shirou/gopsutil/v3/disk"
+	"github.com/shirou/gopsutil/v3/mem"
+
+	"github.com/Kittengarten/KittenCore/kitten"
+
 	log "github.com/sirupsen/logrus"
 )
 
@@ -43,32 +43,41 @@ const (
 	YiB
 	// ReplyServiceName 插件名
 	ReplyServiceName = "查看"
+	brief            = "查看运行状况"
 	filePath         = "C:\\Program Files (x86)\\MSI Afterburner\\HardwareMonitoring.hml" // 温度配置文件路径
 	imagePath        = "perf/path.txt"                                                    // 保存图片路径的文件
 )
 
 func init() {
-	config := kitten.LoadConfig()
-	// 注册插件
-	help := strings.Join([]string{"发送",
-		fmt.Sprintf("%s查看%s，可获取服务器运行状况", config.CommandPrefix, config.NickName[0]),
-	}, "\n")
-	engine := control.Register(ReplyServiceName, &ctrl.Options[*zero.Ctx]{
-		DisableOnDefault: false,
-		Help:             help,
-	})
+	var (
+		help = strings.Join([]string{"发送",
+			fmt.Sprintf("%s查看%s，可获取服务器运行状况", kitten.Configs.CommandPrefix, kitten.Configs.NickName[0]),
+		}, "\n")
+		// 注册插件
+		engine = control.Register(ReplyServiceName, &ctrl.Options[*zero.Ctx]{
+			DisableOnDefault: false,
+			Brief:            brief,
+			Help:             help,
+		})
+	)
 
 	// 查看功能
 	engine.OnCommand("查看").Handle(func(ctx *zero.Ctx) {
-		who := ctx.State["args"].(string)
-		var str, pingMessage string
-		var report message.Message
+		var (
+			who              = ctx.State["args"].(string)
+			str, pingMessage string
+			report           message.Message
+		)
 		switch who {
-		case config.NickName[0]:
-			cpu := getCPUPercent()
-			mem := getMemPercent()
-			t := getCPUTemperature()
-			ping := checkServer(config.WebSocket.URL)
+		case zero.BotConfig.NickName[0]:
+			var (
+				cpu          = getCPUPercent()
+				mem          = getMemPercent()
+				t            = getCPUTemperature()
+				ping         = checkServer(kitten.LoadConfig().WebSocket.URL)
+				annoStr, err = kitten.GetWTAAnno()
+				reportAnno   string
+			)
 			if ping <= 0 {
 				pingMessage = "连接超时喵！"
 			} else if ping < 1 {
@@ -77,8 +86,6 @@ func init() {
 				pingMessage = fmt.Sprintf("延迟：%d ms", ping)
 			}
 			// 查看性能页
-			annoStr, err := kitten.GetWTAAnno()
-			var reportAnno string
 			if !kitten.Check(err) {
 				log.Error("报时失败喵！", err)
 				reportAnno = "喵？"
@@ -92,8 +99,7 @@ func init() {
 				pingMessage,
 				reportAnno,
 			}, "\n")
-			perf := getPerf(cpu, mem, t)
-			report = message.Message{kitten.GetImage(imagePath, strconv.Itoa(perf)+".png"), message.Text(str)}
+			report = message.Message{kitten.GetImage(imagePath, strconv.Itoa(getPerf(cpu, mem, t))+".png"), message.Text(str)}
 		}
 		ctx.Send(report)
 	})
@@ -123,11 +129,13 @@ func getMemPercent() float64 {
 }
 
 // 内存使用情况
-func getMemUsed() string {
-	used := fmt.Sprintf("%.2f MiB", float64(getMem().Used)/MiB)
-	total := fmt.Sprintf("%.2f MiB", float64(getMem().Total)/MiB)
-	str := used + "/" + total
-	return str
+func getMemUsed() (str string) {
+	var (
+		used  = fmt.Sprintf("%.2f MiB", float64(getMem().Used)/MiB)
+		total = fmt.Sprintf("%.2f MiB", float64(getMem().Total)/MiB)
+	)
+	str = used + "/" + total
+	return
 }
 
 // 磁盘使用调用
@@ -147,8 +155,10 @@ func getDiskPercent() float64 {
 
 // 系统盘使用情况
 func getDiskUsed() (str string) {
-	used := fmt.Sprintf("%.2f GiB", float64(getDisk().Used)/GiB)
-	total := fmt.Sprintf("%.2f GiB", float64(getDisk().Total)/GiB)
+	var (
+		used  = fmt.Sprintf("%.2f GiB", float64(getDisk().Used)/GiB)
+		total = fmt.Sprintf("%.2f GiB", float64(getDisk().Total)/GiB)
+	)
 	str = used + "/" + total
 	return
 }
@@ -161,16 +171,15 @@ func getCPUTemperature() (CPUTemperature string) {
 	if !kitten.Check(err) {
 		log.Warn("获取 CPU 温度日志失败了喵！", err)
 	}
-	CPUTemperature = string(file)[329:331]
+	CPUTemperature = string(file[329:331])
 	return
 }
 
 // 返回状态等级
 func getPerf(cpu float64, mem float64, t string) int {
-	tt := float64(kitten.Atoi(t))
-	if 0 < tt && tt < 100 {
+	if tt := float64(kitten.Atoi(t)); 0 < tt && tt < 100 {
 		perf := (cpu + mem) * tt / 20000
-		log.Tracef("喵喵的负荷评分是 %f……", perf)
+		log.Tracef("%s的负荷评分是 %f……", zero.BotConfig.NickName[0], perf)
 		switch {
 		case perf < 0.1:
 			return 0

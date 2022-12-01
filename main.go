@@ -9,19 +9,52 @@ import (
 	"strings"
 	"time"
 
-	"github.com/FloatTech/zbputils/process"
+	"github.com/FloatTech/floatbox/process"
+	zero "github.com/wdvxdr1123/ZeroBot"
+	"github.com/wdvxdr1123/ZeroBot/driver"
+
+	"github.com/Kittengarten/KittenCore/kitten"
+
 	_ "github.com/Kittengarten/KittenCore/abuse"
 	_ "github.com/Kittengarten/KittenCore/essence"
-	"github.com/Kittengarten/KittenCore/kitten"
 	_ "github.com/Kittengarten/KittenCore/perf"
-	"github.com/Kittengarten/KittenCore/sfacg"
 	_ "github.com/Kittengarten/KittenCore/sfacg"
 	_ "github.com/Kittengarten/KittenCore/stack"
 
+	_ "github.com/FloatTech/ZeroBot-Plugin/plugin/ahsai"
+	_ "github.com/FloatTech/ZeroBot-Plugin/plugin/aipaint"
+	_ "github.com/FloatTech/ZeroBot-Plugin/plugin/aiwife"
+	_ "github.com/FloatTech/ZeroBot-Plugin/plugin/alipayvoice"
+	_ "github.com/FloatTech/ZeroBot-Plugin/plugin/b14"
+	_ "github.com/FloatTech/ZeroBot-Plugin/plugin/baidu"
+	_ "github.com/FloatTech/ZeroBot-Plugin/plugin/base64gua"
+	_ "github.com/FloatTech/ZeroBot-Plugin/plugin/baseamasiro"
+	_ "github.com/FloatTech/ZeroBot-Plugin/plugin/cangtoushi"
+	_ "github.com/FloatTech/ZeroBot-Plugin/plugin/choose"
+	_ "github.com/FloatTech/ZeroBot-Plugin/plugin/chrev"
+	_ "github.com/FloatTech/ZeroBot-Plugin/plugin/coser"
+	_ "github.com/FloatTech/ZeroBot-Plugin/plugin/danbooru"
+	_ "github.com/FloatTech/ZeroBot-Plugin/plugin/epidemic"
+	_ "github.com/FloatTech/ZeroBot-Plugin/plugin/font"
+	_ "github.com/FloatTech/ZeroBot-Plugin/plugin/gif"
+	_ "github.com/FloatTech/ZeroBot-Plugin/plugin/github"
+	_ "github.com/FloatTech/ZeroBot-Plugin/plugin/image_finder"
+	_ "github.com/FloatTech/ZeroBot-Plugin/plugin/jiami"
+	_ "github.com/FloatTech/ZeroBot-Plugin/plugin/jikipedia"
+	_ "github.com/FloatTech/ZeroBot-Plugin/plugin/lolicon"
+	_ "github.com/FloatTech/ZeroBot-Plugin/plugin/moegoe"
 	_ "github.com/FloatTech/ZeroBot-Plugin/plugin/music"
+	_ "github.com/FloatTech/ZeroBot-Plugin/plugin/nativewife"
+	_ "github.com/FloatTech/ZeroBot-Plugin/plugin/nbnhhsh"
+	_ "github.com/FloatTech/ZeroBot-Plugin/plugin/runcode"
+	_ "github.com/FloatTech/ZeroBot-Plugin/plugin/saucenao"
+	_ "github.com/FloatTech/ZeroBot-Plugin/plugin/tiangou"
+	_ "github.com/FloatTech/ZeroBot-Plugin/plugin/tracemoe"
+	_ "github.com/FloatTech/ZeroBot-Plugin/plugin/wenben"
+	_ "github.com/FloatTech/ZeroBot-Plugin/plugin/wenxinAI"
+	_ "github.com/FloatTech/ZeroBot-Plugin/plugin/ymgal"
 
-	zero "github.com/wdvxdr1123/ZeroBot"
-	"github.com/wdvxdr1123/ZeroBot/driver"
+	_ "github.com/FloatTech/ZeroBot-Plugin/plugin/ai_reply"
 
 	logf "github.com/lestrrat-go/file-rotatelogs"
 	log "github.com/sirupsen/logrus"
@@ -38,6 +71,8 @@ const (
 	colorCodeTrace = "\x1b[36m"   // color.Style{color.Cyan}.String()
 	colorReset     = "\x1b[0m"
 )
+
+var config = kitten.LoadConfig()
 
 // 获取日志等级对应色彩代码
 func getLogLevelColorCode(level log.Level) string {
@@ -82,28 +117,25 @@ func (f LogFormat) Format(entry *log.Entry) ([]byte, error) {
 
 func init() {
 	var (
-		config  = kitten.LoadConfig()
 		logName = config.Log.Path // 日志文件路径
 		logF    = config.Log.Days // 单段分割文件记录的天数
-	)
-	// 配置分割日志文件
-	writer, err := logf.New(
-		// 分割日志文件命名规则
-		kitten.GetMidText("", ".txt", logName)+"-%Y-%m-%d.txt",
-		// 与最新的日志文件建立软链接
-		logf.WithLinkName(logName),
-		// 分割日志文件间隔
-		logf.WithRotationTime(time.Duration(int(time.Hour)*24*logF)),
-		// 禁用清理
-		logf.WithMaxAge(-1),
+		// 配置分割日志文件
+		writer, err = logf.New(
+			// 分割日志文件命名规则
+			kitten.GetMidText("", ".txt", logName)+"-%Y-%m-%d.txt",
+			// 与最新的日志文件建立软链接
+			logf.WithLinkName(logName),
+			// 分割日志文件间隔
+			logf.WithRotationTime(time.Duration(int(time.Hour)*24*logF)),
+			// 禁用清理
+			logf.WithMaxAge(-1),
+		)
 	)
 	if !kitten.Check(err) {
 		log.Errorf("配置分割日志文件失败：%v", err)
 	}
-
 	log.SetFormatter(&LogFormat{}) // 设置日志输出样式
-	mw := io.MultiWriter(os.Stdout, writer)
-	if kitten.Check(err) {
+	if mw := io.MultiWriter(os.Stdout, writer); kitten.Check(err) {
 		log.SetOutput(mw)
 	} else {
 		log.Warn("写入日志失败了喵！")
@@ -119,44 +151,17 @@ func main() {
 			log.Errorf("main 函数有 Bug：%s，喵！", err)
 		}
 	}()
-
-	go checkAlive(&sfacg.Alive, "sfacg 报更") // 检查 sfacg 报更协程是否存活
-
-	config := kitten.LoadConfig()
-	log.Info("已经载入配置了喵！")
 	rand.Seed(time.Now().UnixNano()) // 全局重置随机数种子，插件无须再次使用
-
-	zero.RunAndBlock(zero.Config{
+	zero.RunAndBlock(&zero.Config{
 		NickName:      config.NickName,
 		CommandPrefix: config.CommandPrefix,
 		SuperUsers:    config.SuperUsers,
 		Driver: []zero.Driver{
 			&driver.WSClient{
-				// OneBot 正向WS 默认使用 6700 端口
+				// OneBot 正向 WS 默认使用 6700 端口
 				Url:         config.WebSocket.URL,
 				AccessToken: config.WebSocket.AccessToken,
 			},
 		},
 	}, process.GlobalInitMutex.Unlock)
-}
-
-// 检查协程是否存活
-func checkAlive(ok *bool, name string) {
-	// 处理 panic，防止程序崩溃
-	defer func() {
-		if err := recover(); !kitten.Check(err) {
-			log.Errorf("checkAlive 函数有 Bug：%s，喵！", err)
-		}
-	}()
-
-	config := kitten.LoadConfig()
-
-	for {
-		*ok = false
-		time.Sleep(time.Minute) // 每分钟检测一次
-		if !*ok {
-			zero.GetBot(config.SelfID).SendPrivateMessage(config.SuperUsers[0], name+"协程挂掉了喵！")
-			break // 停止检测
-		}
-	}
 }

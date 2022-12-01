@@ -9,13 +9,15 @@ import (
 	"strings"
 	"time"
 
+	"github.com/tidwall/gjson"
 	"gopkg.in/yaml.v3"
 
-	"github.com/Kittengarten/KittenAnno/wta"
-	log "github.com/sirupsen/logrus"
-	"github.com/tidwall/gjson"
 	zero "github.com/wdvxdr1123/ZeroBot"
 	"github.com/wdvxdr1123/ZeroBot/message"
+
+	"github.com/Kittengarten/KittenAnno/wta"
+
+	log "github.com/sirupsen/logrus"
 )
 
 // Atoi 将字符串转换为数字
@@ -98,8 +100,7 @@ func Check(err interface{}) bool {
 
 // Choose 按权重抽取一个项目的idx，有可能返回-1（这种情况代表项目列表为空，需要处理以免报错）
 func Choose(choices []Choice) int {
-	choiceAll := 0
-	choiceNum := 0
+	var choiceAll, choiceNum = 0, 0
 	for idx := range choices {
 		choiceAll += choices[idx].GetChance()
 	}
@@ -117,8 +118,10 @@ func Choose(choices []Choice) int {
 
 // IsSameDate 判断两个时间是否是同一天
 func IsSameDate(t1 time.Time, t2 time.Time) bool {
-	year1, month1, day1 := t1.Date()
-	year2, month2, day2 := t2.Date()
+	var (
+		year1, month1, day1 = t1.Date()
+		year2, month2, day2 = t2.Date()
+	)
 	if year1 == year2 && month1 == month2 && day1 == day2 {
 		return true
 	}

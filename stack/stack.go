@@ -7,17 +7,18 @@ import (
 	"math/rand"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
 
-	"github.com/Kittengarten/KittenCore/kitten"
+	"gopkg.in/yaml.v3"
 
 	ctrl "github.com/FloatTech/zbpctrl"
 	"github.com/FloatTech/zbputils/control"
 
-	"gopkg.in/yaml.v3"
-
 	zero "github.com/wdvxdr1123/ZeroBot"
 	"github.com/wdvxdr1123/ZeroBot/message"
+
+	"github.com/Kittengarten/KittenCore/kitten"
 
 	log "github.com/sirupsen/logrus"
 )
@@ -25,36 +26,46 @@ import (
 const (
 	// ReplyServiceName 插件名
 	ReplyServiceName = "叠猫猫"
-	imagePath        = "image/path.txt" // 保存图片路径的文件
+	brief            = "一起来玩叠猫猫"
+	imagePath        = "image/path.txt"  // 保存图片路径的文件
+	dataPath         = "stack/data.yaml" // 叠猫猫数据文件
+	exitPath         = "stack/exit.yaml" // 叠猫猫退出日志文件
 )
 
 var (
-	kittenConfig = kitten.LoadConfig()
-	stackConfig  = loadConfig()
+	stackConfig = loadConfig()
+	mu          sync.RWMutex
 )
 
 func init() {
-	go autoExit("stack/data.yaml", stackConfig)
-	go autoExit("stack/exit.yaml", stackConfig)
+	go autoExit(dataPath, stackConfig)
+	go autoExit(exitPath, stackConfig)
 
-	help := strings.Join([]string{"发送",
-		fmt.Sprintf("%s叠猫猫 [参数]", kittenConfig.CommandPrefix),
-		"参数可选：加入|退出|查看",
-		fmt.Sprintf("叠猫猫每层高度有 %d%% 概率会失败", stackConfig.FailPercent),
-		fmt.Sprintf("最多可以叠 %d 只猫猫哦", stackConfig.MaxStack),
-		fmt.Sprintf("在叠猫猫队列中超过 %d 小时后，会自动退出", stackConfig.MaxTime),
-		fmt.Sprintf("主动退出叠猫猫；试图压别的猫猫；被压超过 %d 次且位于下半部分；叠猫猫失败摔下来——这些情况需要 %d 小时后，才能再次加入", stackConfig.MaxCount, stackConfig.GapTime),
-	}, "\n")
-	// 注册插件
-	engine := control.Register(ReplyServiceName, &ctrl.Options[*zero.Ctx]{
-		DisableOnDefault: false,
-		Help:             help,
-	})
+	var (
+		help = strings.Join([]string{"发送",
+			fmt.Sprintf("%s叠猫猫 [参数]", kitten.Configs.CommandPrefix),
+			"参数可选：加入|退出|查看",
+			fmt.Sprintf("叠猫猫每层高度有 %d%% 概率会失败", stackConfig.FailPercent),
+			fmt.Sprintf("最多可以叠 %d 只猫猫哦", stackConfig.MaxStack),
+			fmt.Sprintf("在叠猫猫队列中超过 %d 小时后，会自动退出", stackConfig.MaxTime),
+			fmt.Sprintf("主动退出叠猫猫；试图压别的猫猫；被压超过 %d 次且位于下半部分；叠猫猫失败摔下来——这些情况需要 %d 小时后，才能再次加入", stackConfig.MaxCount, stackConfig.GapTime),
+		}, "\n")
+		// 注册插件
+		engine = control.Register(ReplyServiceName, &ctrl.Options[*zero.Ctx]{
+			DisableOnDefault: false,
+			Brief:            brief,
+			Help:             help,
+		})
+	)
 
 	engine.OnCommand("叠猫猫").Handle(func(ctx *zero.Ctx) {
-		ag := ctx.State["args"].(string)
-		data := loadData("stack/data.yaml")
-		dataExit := loadData("stack/exit.yaml")
+		mu.RLock()
+		defer mu.RUnlock()
+		var (
+			ag       = ctx.State["args"].(string)
+			data     = loadData(dataPath)
+			dataExit = loadData(exitPath)
+		)
 		switch ag {
 		case "加入":
 			in(data, dataExit, stackConfig, ctx)
@@ -71,21 +82,22 @@ func init() {
 // 加载叠猫猫配置
 func loadConfig() (stackConfig Config) {
 	yaml.Unmarshal(kitten.FileRead("stack/config.yaml"), &stackConfig)
-	return stackConfig
+	return
 }
 
 // 加载叠猫猫数据
 func loadData(path string) (stackData Data) {
 	yaml.Unmarshal(kitten.FileRead(path), &stackData)
-	return stackData
+	return
 }
 
 // 加入叠猫猫
 func in(data Data, dataExit Data, stackConfig Config, ctx *zero.Ctx) {
-	permit := true
-	ID := ctx.Event.UserID
-	var report, reports string
-
+	var (
+		permit          = true
+		ID              = ctx.Event.UserID
+		report, reports string
+	)
 	for _, meow := range dataExit {
 		if ID == meow.ID {
 			report = fmt.Sprintf("休息不足 %d 小时，不能加入喵！", stackConfig.GapTime)
@@ -100,7 +112,6 @@ func in(data Data, dataExit Data, stackConfig Config, ctx *zero.Ctx) {
 			log.Info(strconv.FormatInt(ID, 10) + report)
 		}
 	}
-
 	if permit {
 		if len(data) >= stackConfig.MaxStack {
 			report = stackConfig.OutOfStack
@@ -123,20 +134,14 @@ func in(data Data, dataExit Data, stackConfig Config, ctx *zero.Ctx) {
 					}
 					data = data[exitLabel+1:]
 				}
-				stackData, err1 := yaml.Marshal(data)
-				err2 := kitten.FileWrite("stack/data.yaml", stackData)
-				if !kitten.Check(err1) || !kitten.Check(err2) {
-					report += "\n\n压猫猫失败了喵！"
-					log.Warn(strconv.FormatInt(ID, 10) + report)
-				} else {
-					report += fmt.Sprintf("\n\n压猫猫成功，下面的猫猫对你的好感度下降了！你在 %d 小时内无法加入叠猫猫。", stackConfig.GapTime)
-					// 如果有猫猫被压坏
-					if exitLabel >= 0 {
-						report += fmt.Sprintf("\n\n有 %d 只猫猫被压坏了喵！需要休息 %d 小时。\n%s", exitLabel+1, stackConfig.GapTime, reports)
-					}
-					log.Info(strconv.FormatInt(ID, 10) + report)
-					logExit(ID, ctx) // 将压猫猫的猫猫记录至退出日志
+				save(data, dataPath)
+				report += fmt.Sprintf("\n\n压猫猫成功，下面的猫猫对你的好感度下降了！你在 %d 小时内无法加入叠猫猫。", stackConfig.GapTime)
+				// 如果有猫猫被压坏
+				if exitLabel >= 0 {
+					report += fmt.Sprintf("\n\n有 %d 只猫猫被压坏了喵！需要休息 %d 小时。\n%s", exitLabel+1, stackConfig.GapTime, reports)
 				}
+				log.Info(strconv.FormatInt(ID, 10) + report)
+				logExit(ID, ctx) // 将压猫猫的猫猫记录至退出日志
 			} else {
 				report += "\n\n压猫猫失败了喵！"
 				log.Info(strconv.FormatInt(ID, 10) + report)
@@ -144,21 +149,15 @@ func in(data Data, dataExit Data, stackConfig Config, ctx *zero.Ctx) {
 		} else {
 			// 检查叠猫猫是否成功
 			if checkStack(len(data)) {
-				var meow Kitten
-				meow.ID = ID
-				meow.Name = kitten.GetTitle(*ctx, ID) + ctx.CardOrNickName(ID)
-				meow.Time = time.Unix(ctx.Event.Time, 0)
-				data = append(data, meow)
-				stackData, err1 := yaml.Marshal(data)
-				err2 := kitten.FileWrite("stack/data.yaml", stackData)
-				if !kitten.Check(err1) || !kitten.Check(err2) {
-					report = "叠猫猫失败了喵！"
-					permit = false
-					log.Warn(strconv.FormatInt(ID, 10) + report)
-				} else {
-					report = fmt.Sprintf("叠猫猫成功，目前处于队列中第 %d 位喵～", len(data))
-					log.Info(strconv.FormatInt(ID, 10) + report)
+				meow := Kitten{
+					ID:   ID,
+					Name: kitten.GetTitle(*ctx, ID) + ctx.CardOrNickName(ID),
+					Time: time.Unix(ctx.Event.Time, 0),
 				}
+				data = append(data, meow)
+				save(data, dataPath)
+				report = fmt.Sprintf("叠猫猫成功，目前处于队列中第 %d 位喵～", len(data))
+				log.Info(strconv.FormatInt(ID, 10) + report)
 			} else {
 				exitCount := int(math.Ceil(float64(len(data)) * rand.Float64()))
 				if exitCount == 0 {
@@ -170,19 +169,12 @@ func in(data Data, dataExit Data, stackConfig Config, ctx *zero.Ctx) {
 					logExit(kitten.ID, ctx)
 				}
 				data = data[:len(data)-exitCount]
-				stackData, err1 := yaml.Marshal(data)
-				err2 := kitten.FileWrite("stack/data.yaml", stackData)
-				if !kitten.Check(err1) || !kitten.Check(err2) {
-					report = "叠猫猫失败了喵！"
-					permit = false
-					log.Warn(strconv.FormatInt(ID, 10) + report)
-				} else {
-					report = fmt.Sprintf("叠猫猫失败，上面 %d 只猫猫摔下来了喵！需要休息 %d 小时。\n%s",
-						exitCount, stackConfig.GapTime, strings.Join(reverse(exitData), "\n"))
-					permit = false
-					log.Info(strconv.FormatInt(ID, 10) + report)
-					logExit(ID, ctx) // 将叠猫猫失败的猫猫记录至退出日志
-				}
+				save(data, dataPath)
+				report = fmt.Sprintf("叠猫猫失败，上面 %d 只猫猫摔下来了喵！需要休息 %d 小时。\n%s",
+					exitCount, stackConfig.GapTime, strings.Join(reverse(exitData), "\n"))
+				permit = false
+				log.Info(strconv.FormatInt(ID, 10) + report)
+				logExit(ID, ctx) // 将叠猫猫失败的猫猫记录至退出日志
 			}
 		}
 	}
@@ -195,24 +187,26 @@ func in(data Data, dataExit Data, stackConfig Config, ctx *zero.Ctx) {
 
 // 退出叠猫猫
 func exit(data Data, dataExit Data, ctx *zero.Ctx) {
-	permit := true
-	ID := ctx.Event.UserID
-	dataNew := data
-	var report string
-
+	var (
+		permit  = true
+		ID      = ctx.Event.UserID
+		dataNew = data
+		report  string
+	)
 	for IDx, meow := range data {
 		if ID == meow.ID {
 			dataNew = append(data[:IDx], data[IDx+1:]...)
 		}
 	}
-
 	if len(dataNew) == len(data) {
 		report = "没有加入叠猫猫，不能退出喵！"
 		permit = false
 		log.Warn(strconv.FormatInt(ID, 10) + report)
 	} else {
-		stackData, err1 := yaml.Marshal(dataNew)
-		err2 := kitten.FileWrite("stack/data.yaml", stackData)
+		var (
+			stackData, err1 = yaml.Marshal(dataNew)
+			err2            = kitten.FileWrite(dataPath, stackData)
+		)
 		if !kitten.Check(err1) || !kitten.Check(err2) {
 			report = "退出叠猫猫失败喵！"
 			permit = false
@@ -233,8 +227,10 @@ func exit(data Data, dataExit Data, ctx *zero.Ctx) {
 // 查看叠猫猫
 func view(data Data, ctx *zero.Ctx) {
 	const report = "【叠猫猫队列】"
-	dataString := reverse(data)                                              // 反序查看
-	reports := fmt.Sprintf("%s\n%s", report, strings.Join(dataString, "\n")) // 生成播报
+	var (
+		dataString = reverse(data)                                                 // 反序查看
+		reports    = fmt.Sprintf("%s\n%s", report, strings.Join(dataString, "\n")) // 生成播报
+	)
 	if len(data) <= 0 {
 		reports = fmt.Sprintf("%s暂时没有猫猫哦", reports)
 	}
@@ -251,6 +247,23 @@ func reverse(data Data) []string {
 	return dataStringReverse
 }
 
+// 叠猫猫数据文件存储，成功则返回 True
+func save(data Data, path string) (ok bool) {
+	var (
+		stackData, err1 = yaml.Marshal(data)
+		err2            = kitten.FileWrite(path, stackData)
+	)
+	ok = kitten.Check(err1) && kitten.Check(err2)
+	if !ok {
+		log.Errorf("文件写入错误喵！\n%v\n%v", err1, err2)
+		reciver := kitten.Configs.SuperUsers[0]
+		if kitten.Bot != nil {
+			kitten.Bot.SendPrivateMessage(reciver, "叠猫猫文件写入错误，请检查日志喵！")
+		}
+	}
+	return
+}
+
 // 自动退出队列
 func autoExit(path string, config Config) {
 	// 处理 panic，防止程序崩溃
@@ -259,22 +272,23 @@ func autoExit(path string, config Config) {
 			log.Error(err)
 		}
 	}()
-
-	var limitTimeHours int
+	var limitTime time.Duration = time.Hour
 	switch path {
-	case "stack/data.yaml":
-		limitTimeHours = config.MaxTime
-	case "stack/exit.yaml":
-		limitTimeHours = config.GapTime
+	case dataPath:
+		limitTime = time.Duration(config.MaxTime) * time.Hour
+	case exitPath:
+		limitTime = time.Duration(config.GapTime) * time.Hour
 	}
-
 	for {
-		data := loadData(path)
-		dataNew := data
-		limitTime, _ := time.ParseDuration(strconv.Itoa(limitTimeHours) + "h")
-		nextTime := time.Now().Add(limitTime)
+		mu.RLock()
+
+		var (
+			data     = loadData(path)
+			dataNew  = data
+			nextTime = time.Now().Add(limitTime)
+		)
 		if len(data) > 0 {
-			if time.Since(data[0].Time).Hours() > float64(limitTimeHours) {
+			if time.Since(data[0].Time) > limitTime {
 				if len(data) > 1 {
 					nextTime = data[1].Time.Add(limitTime)
 				}
@@ -284,14 +298,9 @@ func autoExit(path string, config Config) {
 			}
 		}
 		if len(dataNew) != len(data) {
-			stackData, err1 := yaml.Marshal(dataNew)
-			err2 := kitten.FileWrite(path, stackData)
-			if !kitten.Check(err1) || !kitten.Check(err2) {
-				log.Warn(fmt.Sprintf("定时退出 %s 失败喵！", path))
-			} else {
-				log.Info(fmt.Sprintf("定时退出 %s 成功喵！", path))
-			}
+			save(dataNew, path)
 		}
+		mu.RUnlock()
 		log.Info(fmt.Sprintf("下次定时退出 %s 时间为：%s", path, nextTime.Format("2006-01-02 15:04:05")))
 		time.Sleep(time.Until(nextTime))
 	}
@@ -299,21 +308,16 @@ func autoExit(path string, config Config) {
 
 // 记录至退出日志
 func logExit(ID int64, ctx *zero.Ctx) {
-	dataExit := loadData("stack/exit.yaml")
-	var meowExit Kitten
-	meowExit.ID = ID
-	meowExit.Time = time.Unix(ctx.Event.Time, 0)
-	meowExit.Name = kitten.GetTitle(*ctx, ID) + ctx.CardOrNickName(ID)
+	var (
+		dataExit = loadData(exitPath)
+		meowExit = Kitten{
+			ID:   ID,
+			Time: time.Unix(ctx.Event.Time, 0),
+			Name: kitten.GetTitle(*ctx, ID) + ctx.CardOrNickName(ID),
+		}
+	)
 	dataExit = append(dataExit, meowExit)
-	exitData, err1 := yaml.Marshal(dataExit)
-	err2 := kitten.FileWrite("stack/exit.yaml", exitData)
-	if !kitten.Check(err1) || !kitten.Check(err2) {
-		lg := "记录至退出日志失败了喵！"
-		log.Warn(strconv.FormatInt(meowExit.ID, 10) + lg)
-	} else {
-		lg := "记录至退出日志成功喵！"
-		log.Info(strconv.FormatInt(meowExit.ID, 10) + lg)
-	}
+	save(dataExit, exitPath)
 }
 
 // 检查压猫猫或叠猫猫是否成功

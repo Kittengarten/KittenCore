@@ -9,6 +9,7 @@ import (
 	"github.com/Kittengarten/KittenCore/kitten"
 
 	"github.com/PuerkitoBio/goquery"
+
 	log "github.com/sirupsen/logrus"
 )
 
@@ -34,8 +35,7 @@ func (nv *Novel) init(bookID string) {
 			nv.Name = doc.Find("h1.title").Find("span.text").Text()             // 获取书名
 			nv.Writer = doc.Find("div.author-name").Find("span").Text()         // 获取作者
 			nv.HeadURL, _ = doc.Find("div.author-mask").Find("img").Attr("src") // 获取头像链接
-
-			textRow := doc.Find("div.text-row").Find("span") // 获取详细数字
+			textRow := doc.Find("div.text-row").Find("span")                    // 获取详细数字
 			if len(textRow.Eq(0).Text()) > 9 {
 				nv.Type = textRow.Eq(0).Text()[9:] // 获取类型
 			} else {
@@ -89,10 +89,8 @@ func (nv *Novel) init(bookID string) {
 
 // 新章节信息获取
 func (cp *Chapter) init(URL string) {
-	loc, _ := time.LoadLocation("Local")
 	cp.URL = URL // 生成链接
-	req, err := http.Get(cp.URL)
-	if !kitten.Check(err) {
+	if req, err := http.Get(cp.URL); !kitten.Check(err) {
 		cp.IsGet = false
 		log.Warn(fmt.Sprintf("%s 获取更新网页失败了喵！", URL))
 	} else {
@@ -110,6 +108,7 @@ func (cp *Chapter) init(URL string) {
 					cp.WordNum = kitten.Atoi(desc.Eq(2).Text()[9:]) // 获取新章节字数
 				}
 				if len(desc.Eq(1).Text()) > 15 {
+					loc, _ := time.LoadLocation("Local")
 					cp.Time, _ = time.ParseInLocation("2006/1/2 15:04:05", desc.Eq(1).Text()[15:], loc) // 获取更新时间
 				}
 				cp.Title = doc.Find("h1.article-title").Text() // 获取新章节标题
@@ -127,8 +126,7 @@ func (cp *Chapter) init(URL string) {
 }
 
 // 与上次更新比较
-func (nv *Novel) makeCompare() Compare {
-	var cm Compare
+func (nv *Novel) makeCompare() (cm Compare) {
 	var this, last Chapter
 	this = nv.NewChapter
 	if this.IsGet {
@@ -144,18 +142,18 @@ func (nv *Novel) makeCompare() Compare {
 		cm.Times = 0
 		cm.TimeGap = 1
 	} // 防止无限得不到更新章节循环
-	return cm
+	return
 }
 
 // 小说信息
-func (nv *Novel) information() string {
+func (nv *Novel) information() (str string) {
 	//	var tags string //暂时不能用
 	//	for _, v := range nv.TagList {
 	//		tags += "["
 	//		tags += v
 	//		tags += "]"
 	//	}
-	str := strings.Join([]string{"书名：" + nv.Name,
+	str = strings.Join([]string{"书名：" + nv.Name,
 		"书号：" + nv.ID,
 		"作者：" + nv.Writer,
 		fmt.Sprintf("【%s】", nv.Type),
@@ -165,23 +163,26 @@ func (nv *Novel) information() string {
 		"更新：" + nv.NewChapter.Time.Format("2006年01月02日 15时04分05秒"),
 	}, "，") + "\n\n" + nv.Introduce
 	if nv.IsGet {
-		return str
+		return
 	}
 	return fmt.Sprintf("书号%s打不开喵！", nv.ID)
 }
 
 // 搜索
 func findBookID(keyword string) (string, bool) {
-	searchURL := "http://s.sfacg.com/?Key=" + keyword + "&S=1&SS=0"
-	req, err := http.Get(searchURL)
+	var (
+		searchURL = fmt.Sprintf("http://s.sfacg.com/?Key=%s&S=1&SS=0", keyword)
+		req, err  = http.Get(searchURL)
+	)
 	if !kitten.Check(err) {
 		log.Warn("获取书号失败了喵！")
 		return "获取书号失败了喵！", false
 	}
 	defer req.Body.Close()
-	doc, _ := goquery.NewDocumentFromReader(req.Body)
-
-	href, haveResult := doc.Find("#SearchResultList1___ResultList_LinkInfo_0").Attr("href")
+	var (
+		doc, _           = goquery.NewDocumentFromReader(req.Body)
+		href, haveResult = doc.Find("#SearchResultList1___ResultList_LinkInfo_0").Attr("href")
+	)
 	if !haveResult {
 		log.Info(keyword + "搜索无结果喵。")
 		return fmt.Sprintf("关键词【%s】找不到小说喵！", keyword), false
@@ -190,12 +191,12 @@ func findBookID(keyword string) (string, bool) {
 }
 
 // 更新信息
-func (nv *Novel) update() string {
-	var cm = nv.makeCompare()
-
-	wordNum := fmt.Sprintf("%d字", nv.NewChapter.WordNum)
-
-	timeGap := cm.TimeGap.String()
+func (nv *Novel) update() (str string) {
+	var (
+		cm      = nv.makeCompare()
+		wordNum = fmt.Sprintf("%d字", nv.NewChapter.WordNum)
+		timeGap = cm.TimeGap.String()
+	)
 	if cm.TimeGap == 0 {
 		log.Warning("更新异常喵！")
 		return "更新异常喵！"
@@ -203,13 +204,11 @@ func (nv *Novel) update() string {
 	timeGap = strings.Replace(timeGap, "h", "小时", 1)
 	timeGap = strings.Replace(timeGap, "m", "分钟", 1)
 	timeGap = strings.Replace(timeGap, "s", "秒", 1)
-
 	chapterName := nv.NewChapter.Title
-
-	str := strings.Join([]string{fmt.Sprintf("《%s》更新了喵～", nv.Name) + chapterName,
+	str = strings.Join([]string{fmt.Sprintf("《%s》更新了喵～", nv.Name) + chapterName,
 		"更新字数：" + wordNum,
 		"间隔时间：" + timeGap,
 		fmt.Sprintf("当日第%d更", cm.Times),
 	}, "，")
-	return str
+	return
 }

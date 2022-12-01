@@ -11,22 +11,24 @@ import (
 )
 
 var (
-	config   = LoadConfig()                             // 全局配置文件
 	poke     = rate.NewManager[int64](time.Minute*5, 9) // 戳一戳
 	nickname = LoadConfig().NickName[0]                 // 昵称
-	// Bot 用于传送 Bot 实例的通道
-	Bot = make(chan *zero.Ctx)
+	// Bot 实例
+	Bot *zero.Ctx
+	// Botchan 用于传送 Bot 实例的通道
+	Botchan = make(chan *zero.Ctx)
+	// Configs 来自 Bot 的配置文件
+	Configs = LoadConfig()
 )
 
 const randMax = 100 // 随机数上限（不包含）
 
 func init() {
 	go func() {
-		var bot *zero.Ctx
-		for bot == nil {
-			bot = zero.GetBot(config.SelfID)
+		for Bot == nil {
+			Bot = zero.GetBot(Configs.SelfID)
 		}
-		Bot <- bot
+		Botchan <- Bot
 	}()
 
 	// 戳一戳

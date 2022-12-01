@@ -3,9 +3,9 @@ package sfacg
 import (
 	"regexp"
 
-	"github.com/Kittengarten/KittenCore/kitten"
-
 	"gopkg.in/yaml.v3"
+
+	"github.com/Kittengarten/KittenCore/kitten"
 )
 
 // 加载配置
