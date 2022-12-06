@@ -19,7 +19,6 @@ require (
 )
 
 require (
-	github.com/Baidu-AIP/golang-sdk v1.1.1 // indirect
 	github.com/Coloured-glaze/gg v1.3.4 // indirect
 	github.com/FloatTech/AnimeAPI v1.6.1-0.20221203040820-0dda47e61cd8 // indirect
 	github.com/FloatTech/rendercard v0.0.2-0.20221128165614-a41216d2422e // indirect
@@ -30,8 +29,6 @@ require (
 	github.com/andybalholm/cascadia v1.3.1 // indirect
 	github.com/antchfx/htmlquery v1.2.5 // indirect
 	github.com/antchfx/xpath v1.2.1 // indirect
-	github.com/chzyer/readline v1.5.0 // indirect
-	github.com/corona10/goimagehash v1.1.0 // indirect
 	github.com/disintegration/imaging v1.6.2 // indirect
 	github.com/ericpauley/go-quantize v0.0.0-20200331213906-ae555eb2afa4 // indirect
 	github.com/faiface/beep v1.1.0 // indirect
@@ -43,28 +40,22 @@ require (
 	github.com/fumiama/gofastTEA v0.0.10 // indirect
 	github.com/fumiama/gotracemoe v0.0.3 // indirect
 	github.com/fumiama/jieba v0.0.0-20221203025406-36c17a10b565 // indirect
-	github.com/fumiama/sqlite3 v1.20.0 // indirect
 	github.com/fumiama/unibase2n v0.0.0-20221020155353-02876e777430 // indirect
 	github.com/gabriel-vasile/mimetype v1.4.1 // indirect
-	github.com/go-logr/logr v1.2.3 // indirect
 	github.com/go-ole/go-ole v1.2.6 // indirect
 	github.com/go-task/slim-sprig v0.0.0-20210107165309-348f09dbbbc0 // indirect
 	github.com/golang/freetype v0.0.0-20170609003504-e2365dfdc4a0 // indirect
 	github.com/golang/groupcache v0.0.0-20210331224755-41bb18bfe9da // indirect
 	github.com/golang/mock v1.6.0 // indirect
-	github.com/golang/protobuf v1.5.2 // indirect
 	github.com/google/pprof v0.0.0-20221203041831-ce31453925ec // indirect
 	github.com/google/uuid v1.3.0 // indirect
 	github.com/hajimehoshi/oto v1.0.1 // indirect
-	github.com/ianlancetaylor/demangle v0.0.0-20220319035150-800ac71e25c2 // indirect
 	github.com/jfreymuth/oggvorbis v1.0.4 // indirect
 	github.com/jfreymuth/vorbis v1.0.2 // indirect
 	github.com/jinzhu/gorm v1.9.16 // indirect
 	github.com/jinzhu/inflection v1.0.0 // indirect
 	github.com/jonboulle/clockwork v0.3.0 // indirect
 	github.com/jozsefsallai/gophersauce v1.0.1 // indirect
-	github.com/kballard/go-shellquote v0.0.0-20180428030007-95032a82bc51 // indirect
-	github.com/kr/pretty v0.3.1 // indirect
 	github.com/kr/text v0.2.0 // indirect
 	github.com/lestrrat-go/strftime v1.0.6 // indirect
 	github.com/lucas-clemente/quic-go v0.31.0 // indirect
@@ -73,11 +64,8 @@ require (
 	github.com/marten-seemann/qtls-go1-18 v0.1.3 // indirect
 	github.com/marten-seemann/qtls-go1-19 v0.1.1 // indirect
 	github.com/mattn/go-isatty v0.0.16 // indirect
-	github.com/mroth/weightedrand v1.0.0 // indirect
-	github.com/nfnt/resize v0.0.0-20180221191011-83c6a9932646 // indirect
 	github.com/onsi/ginkgo/v2 v2.5.1 // indirect
 	github.com/pkg/errors v0.9.1 // indirect
-	github.com/pkumza/numcn v1.0.0 // indirect
 	github.com/power-devops/perfstat v0.0.0-20220216144756-c35f1ee13d7c // indirect
 	github.com/remyoudompheng/bigfft v0.0.0-20220927061507-ef77025ab5aa // indirect
 	github.com/rogpeppe/go-internal v1.9.0 // indirect
@@ -85,9 +73,7 @@ require (
 	github.com/tidwall/pretty v1.2.1 // indirect
 	github.com/tklauser/go-sysconf v0.3.11 // indirect
 	github.com/tklauser/numcpus v0.6.0 // indirect
-	github.com/wcharczuk/go-chart/v2 v2.1.0 // indirect
 	github.com/yusufpapurcu/wmi v1.2.2 // indirect
-	gitlab.com/gomidi/midi/v2 v2.0.25 // indirect
 	golang.org/x/crypto v0.3.0 // indirect
 	golang.org/x/exp v0.0.0-20221205204356-47842c84f3db // indirect
 	golang.org/x/exp/shiny v0.0.0-20221205204356-47842c84f3db // indirect
@@ -99,15 +85,12 @@ require (
 	golang.org/x/sys v0.3.0 // indirect
 	golang.org/x/text v0.5.0 // indirect
 	golang.org/x/tools v0.4.0 // indirect
-	google.golang.org/protobuf v1.28.0 // indirect
-	lukechampine.com/uint128 v1.2.0 // indirect
-	modernc.org/cc/v3 v3.40.0 // indirect
-	modernc.org/ccgo/v3 v3.16.13 // indirect
 	modernc.org/libc v1.21.5 // indirect
 	modernc.org/mathutil v1.5.0 // indirect
 	modernc.org/memory v1.5.0 // indirect
-	modernc.org/opt v0.1.3 // indirect
 	modernc.org/sqlite v1.20.0 // indirect
-	modernc.org/strutil v1.1.3 // indirect
-	modernc.org/token v1.0.1 // indirect
 )
+
+replace modernc.org/sqlite => github.com/fumiama/sqlite3 v1.20.0-with-win386
+
+replace github.com/remyoudompheng/bigfft => github.com/fumiama/bigfft v0.0.0-20211011143303-6e0bfa3c836b

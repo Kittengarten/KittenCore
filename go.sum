@@ -82,6 +82,8 @@ github.com/faiface/beep v1.1.0 h1:A2gWP6xf5Rh7RG/p9/VAW2jRSDEGQm5sbOb38sf5d4c=
 github.com/faiface/beep v1.1.0/go.mod h1:6I8p6kK2q4opL/eWb+kAkk38ehnTunWeToJB+s51sT4=
 github.com/fumiama/ahsai v0.1.0 h1:LXD61Kaj6kJHa3AEGsLIfKNzcgaVxg7JB72OR4yNNZ4=
 github.com/fumiama/ahsai v0.1.0/go.mod h1:fFeNnqgo44i8FIaguK659aQryuZeFy+4klYLQu/rfdk=
+github.com/fumiama/bigfft v0.0.0-20211011143303-6e0bfa3c836b h1:Zt3pFQditAdWTHCOVkiloc9ZauBoWrb37guFV4iIRvE=
+github.com/fumiama/bigfft v0.0.0-20211011143303-6e0bfa3c836b/go.mod h1:qqbHyh8v60DhA7CoWK5oRCqLrMHRGoxYCSS9EjAz6Eo=
 github.com/fumiama/cron v1.3.0 h1:ZWlwuexF+HQHl3cYytEE5HNwD99q+3vNZF1GrEiXCFo=
 github.com/fumiama/cron v1.3.0/go.mod h1:bz5Izvgi/xEUI8tlBN8BI2jr9Moo8N4or0KV8xXuPDY=
 github.com/fumiama/go-base16384 v1.6.1 h1:4yb4JgmBJDnQtq3XGXXdLrVwEnRpjhMUt4eAcsNeA30=
@@ -96,6 +98,8 @@ github.com/fumiama/gotracemoe v0.0.3 h1:iI5EbE9A3UUbfukG6+/soYPjp1S31eCNYf4tw7s6
 github.com/fumiama/gotracemoe v0.0.3/go.mod h1:tyqahdUzHf0bQIAVY/GYmDWvYYe5ik1ZbhnGYh+zl40=
 github.com/fumiama/jieba v0.0.0-20221203025406-36c17a10b565 h1:sQuR2+N5HurnvsZhiKdEg+Ig354TaqgCQRxd/0KgIOQ=
 github.com/fumiama/jieba v0.0.0-20221203025406-36c17a10b565/go.mod h1:UUEvyLTJ7yoOA/viKG4wEis4ERydM7+Ny6gZUWgkS80=
+github.com/fumiama/sqlite3 v1.20.0-with-win386 h1:ZR1AXGBEtkfq9GAXehOVcwn+aaCG8itrkgEsz4ggx5k=
+github.com/fumiama/sqlite3 v1.20.0-with-win386/go.mod h1:Os58MHwYCcYZCy2PGChBrQtBAw5/LS1ZZOkfc+C/I7s=
 github.com/fumiama/sqlite3 v1.20.0 h1:Lsdl6WOiKK5IbtbRgN3j99QVX0DjeM052+CYDp0+ABE=
 github.com/fumiama/sqlite3 v1.20.0/go.mod h1:Xa/vRB/jo9QobtDK6vF+8ZMfDvkhN/8D6uo5gwKKzbM=
 github.com/fumiama/unibase2n v0.0.0-20221020155353-02876e777430 h1:XL4SnagpaVHYybnnj6whQxmt8Ps9/kaG6sCNn4X1GGA=
