@@ -71,12 +71,12 @@ func init() {
 		switch who {
 		case zero.BotConfig.NickName[0]:
 			var (
-				cpu          = getCPUPercent()
-				mem          = getMemPercent()
-				t            = getCPUTemperature()
-				ping         = checkServer(kitten.LoadConfig().WebSocket.URL)
-				annoStr, err = kitten.GetWTAAnno()
-				reportAnno   string
+				cpu                                      = getCPUPercent()
+				mem                                      = getMemPercent()
+				t                                        = getCPUTemperature()
+				ping                                     = checkServer(kitten.LoadConfig().WebSocket.URL)
+				annoStr, flower, elemental, imagery, err = kitten.GetWTAAnno()
+				reportAnno                               string
 			)
 			if ping <= 0 {
 				pingMessage = "连接超时喵！"
@@ -90,7 +90,10 @@ func init() {
 				log.Error("报时失败喵！", err)
 				reportAnno = "喵？"
 			} else {
-				reportAnno = fmt.Sprintf("喵喵报时：现在是%s", annoStr)
+				reportAnno = strings.Join([]string{fmt.Sprintf("喵喵报时：现在是%s", annoStr),
+					fmt.Sprintf("花卉：%s", flower),
+					fmt.Sprintf("～%s元灵之%s～", elemental, imagery),
+				}, "\n")
 			}
 			str = strings.Join([]string{fmt.Sprintf("CPU 使用率：%.2f%%", cpu),
 				fmt.Sprintf("内存使用：%.0f%%（%s）", mem, getMemUsed()),

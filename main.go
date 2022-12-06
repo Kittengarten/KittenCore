@@ -21,6 +21,8 @@ import (
 	_ "github.com/Kittengarten/KittenCore/sfacg"
 	_ "github.com/Kittengarten/KittenCore/stack"
 
+	_ "github.com/FloatTech/ZeroBot-Plugin/plugin/thesaurus"
+
 	_ "github.com/FloatTech/ZeroBot-Plugin/plugin/ahsai"
 	_ "github.com/FloatTech/ZeroBot-Plugin/plugin/aipaint"
 	_ "github.com/FloatTech/ZeroBot-Plugin/plugin/aiwife"
@@ -53,8 +55,6 @@ import (
 	_ "github.com/FloatTech/ZeroBot-Plugin/plugin/wenben"
 	_ "github.com/FloatTech/ZeroBot-Plugin/plugin/wenxinAI"
 	_ "github.com/FloatTech/ZeroBot-Plugin/plugin/ymgal"
-
-	_ "github.com/FloatTech/ZeroBot-Plugin/plugin/ai_reply"
 
 	logf "github.com/lestrrat-go/file-rotatelogs"
 	log "github.com/sirupsen/logrus"
