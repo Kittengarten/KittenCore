@@ -48,8 +48,8 @@ func init() {
 			log.Error(fail)
 		} else {
 			var (
-				IDx            = rand.Intn(int(essenceCount))
-				essenceMessage = essenceList.Array()[IDx]
+				i              = rand.Intn(int(essenceCount))
+				essenceMessage = essenceList.Array()[i]
 				ID             = gjson.Get(essenceMessage.Raw, "sender_id")
 				nickname       = gjson.Get(essenceMessage.Raw, "sender_nick")
 				msID           = gjson.Get(essenceMessage.Raw, "message_id")

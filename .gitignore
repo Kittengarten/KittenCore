@@ -1,8 +1,7 @@
 .vscode/
 data/
 log/
+config.yaml
 kitten.ps1
+eekda/name.txt
 kitten/kitten_.go
-log.txt
-stack/data.yaml
-stack/exit.yaml

@@ -50,35 +50,35 @@ func init() {
 
 	engine.OnCommandGroup(command).Handle(func(ctx *zero.Ctx) {
 		var (
-			idx           = kitten.Choose(abuseResponses)
+			i             = kitten.Choose(abuseResponses)
 			messageToSend message.MessageSegment
 		)
-		if abuseConfig[idx].String == "" {
-			if abuseConfig[idx].Image == "" {
+		if abuseConfig[i].String == "" {
+			if abuseConfig[i].Image == "" {
 				log.Warn("获取不到 abuse 信息喵！")
 				messageToSend = kitten.TextOf("喵喵不想理你（好感 - %d）", rand.Intn(randMax)+1)
 			} else {
-				messageToSend = kitten.GetImage(imagePath, abuseConfig[idx].GetInformation())
+				messageToSend = kitten.GetImage(imagePath, abuseConfig[i].GetInformation())
 			}
 		} else {
-			messageToSend = message.Text(abuseConfig[idx].GetInformation())
+			messageToSend = message.Text(abuseConfig[i].GetInformation())
 		}
 		ctx.SendChain(message.At(ctx.Event.UserID), messageToSend)
 	})
 }
 
 // 加载配置
-func loadConfig() (config []Response) {
-	yaml.Unmarshal(kitten.FileRead(filePath), &config)
+func loadConfig() (cf []Response) {
+	yaml.Unmarshal(kitten.FileReadDirect(filePath), &cf)
 	return
 }
 
 // 将配置转换为 []kitten.Choice 接口
 func load() {
-	yaml.Unmarshal(kitten.FileRead(filePath), &abuseConfig)
+	yaml.Unmarshal(kitten.FileReadDirect(filePath), &abuseConfig)
 	values := make([]kitten.Choice, len(abuseConfig))
-	for idx, value := range abuseConfig {
-		values[idx] = value
+	for i, value := range abuseConfig {
+		values[i] = value
 	}
 	abuseResponses = values[:len(loadConfig())]
 }

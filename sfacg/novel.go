@@ -15,47 +15,46 @@ import (
 
 // 小说网页信息获取
 func (nv *Novel) init(bookID string) {
+	nv.IsGet = false // 初始化
 	nv.ID = bookID
 	nv.URL = "https://book.sfacg.com/Novel/" + bookID // 生成链接
 	nv.NewChapter.BookURL = nv.URL                    // 用于向章节传入本书链接
 	req, err := http.Get(nv.URL)
 	if !kitten.Check(err) {
 		log.Warn(fmt.Sprintf("书号 %s 获取网页失败了喵！", bookID))
-		nv.IsGet = false
 	} else {
 		defer req.Body.Close()
 		doc, _ := goquery.NewDocumentFromReader(req.Body) // 获取小说网页
 		if strings.EqualFold(doc.Find("title").Text(), "出错了") ||
 			strings.EqualFold(doc.Find("title").Text(), "糟糕,页面找不到了") ||
-			len(doc.Find("title").Text()) < 43 { // 防止网页炸了导致问题
+			43 > len(doc.Find("title").Text()) { // 防止网页炸了导致问题
 			log.Info(fmt.Sprintf("书号 %s 没有喵！", bookID))
-			nv.IsGet = false
 		} else {
 			nv.IsGet = true
 			nv.Name = doc.Find("h1.title").Find("span.text").Text()             // 获取书名
 			nv.Writer = doc.Find("div.author-name").Find("span").Text()         // 获取作者
 			nv.HeadURL, _ = doc.Find("div.author-mask").Find("img").Attr("src") // 获取头像链接
 			textRow := doc.Find("div.text-row").Find("span")                    // 获取详细数字
-			if len(textRow.Eq(0).Text()) > 9 {
+			if 9 < len(textRow.Eq(0).Text()) {
 				nv.Type = textRow.Eq(0).Text()[9:] // 获取类型
 			} else {
 				log.Error("获取类型错误喵！")
 			}
-			if len(textRow.Eq(2).Text()) > 9 {
+			if 9 < len(textRow.Eq(2).Text()) {
 				nv.HitNum = textRow.Eq(2).Text()[9:] // 获取点击
 			} else {
 				log.Error("获取点击错误喵！")
 			}
 			nv.WordNum = textRow.Eq(1).Text()
 			loc, _ := time.LoadLocation("Local")
-			if len(textRow.Eq(3).Text()) > 9 {
+			if 9 < len(textRow.Eq(3).Text()) {
 				nv.NewChapter.Time, _ = time.ParseInLocation("2006/1/2 15:04:05", textRow.Eq(3).Text()[9:], loc)
 			}
 			WordNumInfo := nv.WordNum
-			if len(nv.WordNum) > 9 {
+			if 9 < len(nv.WordNum) {
 				nv.WordNum = nv.WordNum[9 : len(nv.WordNum)-14] // 获取字数
 			}
-			if len(WordNumInfo) > 11 {
+			if 11 < len(WordNumInfo) {
 				nv.Status = WordNumInfo[len(WordNumInfo)-11:] //获取状态
 			}
 			nv.Introduce = doc.Find("p.introduce").Text() // 获取简述
@@ -63,7 +62,7 @@ func (nv *Novel) init(bookID string) {
 			// 	nv.TagList[i] = selection.Text()
 			// }) // 获取标签(暂时不能用)
 			nv.CoverURL, _ = doc.Find("div.figure").Find("img").Eq(0).Attr("src") // 获取封面
-			if len(doc.Find("#BasicOperation").Find("a").Eq(2).Text()) > 7 {
+			if 7 < len(doc.Find("#BasicOperation").Find("a").Eq(2).Text()) {
 				nv.Collection = doc.Find("#BasicOperation").Find("a").Eq(2).Text()[7:] // 获取收藏
 			}
 
@@ -89,9 +88,9 @@ func (nv *Novel) init(bookID string) {
 
 // 新章节信息获取
 func (cp *Chapter) init(URL string) {
-	cp.URL = URL // 生成链接
+	cp.IsGet = false // 初始化
+	cp.URL = URL     // 生成链接
 	if req, err := http.Get(cp.URL); !kitten.Check(err) {
-		cp.IsGet = false
 		log.Warn(fmt.Sprintf("%s 获取更新网页失败了喵！", URL))
 	} else {
 		defer req.Body.Close()
@@ -100,14 +99,13 @@ func (cp *Chapter) init(URL string) {
 			if strings.EqualFold(doc.Find("title").Text(), "出错了") ||
 				strings.EqualFold(doc.Find("title").Text(), "糟糕,页面找不到了") {
 				log.Info(fmt.Sprintf("章节【%s】没有喵！", cp.URL))
-				cp.IsGet = false // 防止奇怪的用户对不存在的书号进行更新测试，导致程序报错
 			} else {
 				cp.IsGet = true
 				desc := doc.Find("div.article-desc").Find("span")
-				if len(desc.Eq(2).Text()) > 9 {
+				if 9 < len(desc.Eq(2).Text()) {
 					cp.WordNum = kitten.Atoi(desc.Eq(2).Text()[9:]) // 获取新章节字数
 				}
-				if len(desc.Eq(1).Text()) > 15 {
+				if 15 < len(desc.Eq(1).Text()) {
 					loc, _ := time.LoadLocation("Local")
 					cp.Time, _ = time.ParseInLocation("2006/1/2 15:04:05", desc.Eq(1).Text()[15:], loc) // 获取更新时间
 				}
@@ -119,9 +117,8 @@ func (cp *Chapter) init(URL string) {
 				cp.NextURL = "https://book.sfacg.com" + cp.NextURL // 获取下一章链接
 			}
 		} else {
-			cp.IsGet = false
-			log.Warn(fmt.Sprintf("%s更新异常喵！", URL))
-		} // 防止章节炸了导致获取新章节跳转引发panic
+			log.Warn(fmt.Sprintf("%s更新异常喵！", URL)) // 防止章节炸了导致获取新章节跳转引发panic
+		}
 	}
 }
 
@@ -168,10 +165,10 @@ func (nv *Novel) information() (str string) {
 	return fmt.Sprintf("书号%s打不开喵！", nv.ID)
 }
 
-// 搜索
-func findBookID(keyword string) (string, bool) {
+// 用关键词搜索书号，如失败，返回值为失败信息
+func findBookID(key string) (string, bool) {
 	var (
-		searchURL = fmt.Sprintf("http://s.sfacg.com/?Key=%s&S=1&SS=0", keyword)
+		searchURL = fmt.Sprintf("http://s.sfacg.com/?Key=%s&S=1&SS=0", key)
 		req, err  = http.Get(searchURL)
 	)
 	if !kitten.Check(err) {
@@ -184,8 +181,8 @@ func findBookID(keyword string) (string, bool) {
 		href, haveResult = doc.Find("#SearchResultList1___ResultList_LinkInfo_0").Attr("href")
 	)
 	if !haveResult {
-		log.Info(keyword + "搜索无结果喵。")
-		return fmt.Sprintf("关键词【%s】找不到小说喵！", keyword), false
+		log.Info(key + "搜索无结果喵。")
+		return fmt.Sprintf("关键词【%s】找不到小说喵！", key), false
 	}
 	return href[29:], true
 }

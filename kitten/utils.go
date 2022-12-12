@@ -26,8 +26,20 @@ func Atoi(str string) (num int) {
 	return
 }
 
+// FileReadDirect 文件读取
+func FileReadDirect(path string) (data []byte) {
+	res, err := os.Open(path)
+	if !Check(err) {
+		log.Warn(fmt.Sprintf("读取文件 %s 失败了喵！", path))
+	} else {
+		defer res.Close()
+	}
+	data, _ = ioutil.ReadAll(res)
+	return
+}
+
 // FileRead 文件读取
-func FileRead(path string) (data []byte) {
+func FileRead(path string) (data []byte, err error) {
 	res, err := os.Open(path)
 	if !Check(err) {
 		log.Warn(fmt.Sprintf("读取文件 %s 失败了喵！", path))
@@ -53,7 +65,7 @@ func FileWrite(path string, data []byte) (err error) {
 // LoadConfig 加载配置
 func LoadConfig() (config Config) {
 	const path = "config.yaml"
-	err := yaml.Unmarshal(FileRead(path), &config)
+	err := yaml.Unmarshal(FileReadDirect(path), &config)
 	if !Check(err) {
 		log.Fatal(fmt.Sprintf("打开 %s 失败了喵！", path), err)
 		return
@@ -90,7 +102,7 @@ func GetImage(path, name string) message.MessageSegment {
 	return message.Image(loadImagePath(path) + name)
 }
 
-// Check 处理错误
+// Check 处理错误，没有错误则返回 True
 func Check(err interface{}) bool {
 	if err != nil {
 		return false
@@ -98,19 +110,19 @@ func Check(err interface{}) bool {
 	return true
 }
 
-// Choose 按权重抽取一个项目的idx，有可能返回-1（这种情况代表项目列表为空，需要处理以免报错）
+// Choose 按权重抽取一个项目的序号 i，有可能返回-1（这种情况代表项目列表为空，需要处理以免报错）
 func Choose(choices []Choice) int {
 	var choiceAll, choiceNum = 0, 0
-	for idx := range choices {
-		choiceAll += choices[idx].GetChance()
+	for i := range choices {
+		choiceAll += choices[i].GetChance()
 	}
-	if choiceAll > 0 {
+	if 0 < choiceAll {
 		choiceNum = rand.Intn(choiceAll)
 	}
-	for idx := range choices {
-		choiceNum -= choices[idx].GetChance()
-		if choiceNum < 0 {
-			return idx
+	for i := range choices {
+		choiceNum -= choices[i].GetChance()
+		if 0 > choiceNum {
+			return i
 		}
 	}
 	return len(choices) - 1
@@ -149,7 +161,7 @@ func TextOf(format string, a ...any) message.MessageSegment {
 	return message.Text(fmt.Sprintf(format, a...))
 }
 
-// GetTitle 从 uid 获取【头衔】
+// GetTitle 从 UID 获取【头衔】
 func GetTitle(ctx zero.Ctx, uid int64) (title string) {
 	gmi := ctx.GetGroupMemberInfo(ctx.Event.GroupID, uid, true)
 	if titleStr := gjson.Get(gmi.Raw, "title").Str; titleStr == "" {

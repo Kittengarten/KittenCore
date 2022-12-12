@@ -3,10 +3,10 @@ module github.com/Kittengarten/KittenCore
 go 1.19
 
 require (
-	github.com/FloatTech/ZeroBot-Plugin v1.6.0-beta3
-	github.com/FloatTech/floatbox v0.0.0-20221203040505-d7352e564906
-	github.com/FloatTech/zbpctrl v1.5.3-0.20221203040611-11f118e1d5ec
-	github.com/FloatTech/zbputils v1.6.1-0.20221203040741-3bc28d5e3cd1
+	github.com/FloatTech/ZeroBot-Plugin v1.6.0
+	github.com/FloatTech/floatbox v0.0.0-20221210051813-4bd44af40c60
+	github.com/FloatTech/zbpctrl v1.5.3-0.20221210051848-740ab7bd6ec3
+	github.com/FloatTech/zbputils v1.6.1-0.20221210052030-50f19ddfae6f
 	github.com/Kittengarten/KittenAnno v0.0.9
 	github.com/PuerkitoBio/goquery v1.8.0
 	github.com/go-ping/ping v1.1.0
@@ -14,13 +14,13 @@ require (
 	github.com/shirou/gopsutil/v3 v3.22.11
 	github.com/sirupsen/logrus v1.9.0
 	github.com/tidwall/gjson v1.14.4
-	github.com/wdvxdr1123/ZeroBot v1.6.5
+	github.com/wdvxdr1123/ZeroBot v1.6.6
 	gopkg.in/yaml.v3 v3.0.1
 )
 
 require (
 	github.com/Coloured-glaze/gg v1.3.4 // indirect
-	github.com/FloatTech/AnimeAPI v1.6.1-0.20221203040820-0dda47e61cd8 // indirect
+	github.com/FloatTech/AnimeAPI v1.6.1-0.20221210053102-a9b76da3c119 // indirect
 	github.com/FloatTech/rendercard v0.0.2-0.20221128165614-a41216d2422e // indirect
 	github.com/FloatTech/sqlite v1.5.7 // indirect
 	github.com/FloatTech/ttl v0.0.0-20220715042055-15612be72f5b // indirect
@@ -58,14 +58,15 @@ require (
 	github.com/jozsefsallai/gophersauce v1.0.1 // indirect
 	github.com/kr/text v0.2.0 // indirect
 	github.com/lestrrat-go/strftime v1.0.6 // indirect
-	github.com/lucas-clemente/quic-go v0.31.0 // indirect
+	github.com/lucas-clemente/quic-go v0.31.1 // indirect
 	github.com/lufia/plan9stats v0.0.0-20220913051719-115f729f3c8c // indirect
 	github.com/marten-seemann/qpack v0.3.0 // indirect
 	github.com/marten-seemann/qtls-go1-18 v0.1.3 // indirect
 	github.com/marten-seemann/qtls-go1-19 v0.1.1 // indirect
 	github.com/mattn/go-isatty v0.0.16 // indirect
-	github.com/onsi/ginkgo/v2 v2.5.1 // indirect
+	github.com/onsi/ginkgo/v2 v2.6.0 // indirect
 	github.com/pkg/errors v0.9.1 // indirect
+	github.com/pkumza/numcn v1.0.0 // indirect
 	github.com/power-devops/perfstat v0.0.0-20220216144756-c35f1ee13d7c // indirect
 	github.com/remyoudompheng/bigfft v0.0.0-20220927061507-ef77025ab5aa // indirect
 	github.com/rogpeppe/go-internal v1.9.0 // indirect
@@ -74,13 +75,13 @@ require (
 	github.com/tklauser/go-sysconf v0.3.11 // indirect
 	github.com/tklauser/numcpus v0.6.0 // indirect
 	github.com/yusufpapurcu/wmi v1.2.2 // indirect
-	golang.org/x/crypto v0.3.0 // indirect
-	golang.org/x/exp v0.0.0-20221205204356-47842c84f3db // indirect
-	golang.org/x/exp/shiny v0.0.0-20221205204356-47842c84f3db // indirect
+	golang.org/x/crypto v0.4.0 // indirect
+	golang.org/x/exp v0.0.0-20221208152030-732eee02a75a // indirect
+	golang.org/x/exp/shiny v0.0.0-20221208152030-732eee02a75a // indirect
 	golang.org/x/image v0.2.0 // indirect
 	golang.org/x/mobile v0.0.0-20221110043201-43a038452099 // indirect
 	golang.org/x/mod v0.7.0 // indirect
-	golang.org/x/net v0.3.0 // indirect
+	golang.org/x/net v0.4.0 // indirect
 	golang.org/x/sync v0.1.0 // indirect
 	golang.org/x/sys v0.3.0 // indirect
 	golang.org/x/text v0.5.0 // indirect

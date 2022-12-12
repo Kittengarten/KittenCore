@@ -78,9 +78,9 @@ func init() {
 				annoStr, flower, elemental, imagery, err = kitten.GetWTAAnno()
 				reportAnno                               string
 			)
-			if ping <= 0 {
+			if 0 >= ping {
 				pingMessage = "连接超时喵！"
-			} else if ping < 1 {
+			} else if 1 > ping {
 				pingMessage = "延迟：< 1 ms"
 			} else {
 				pingMessage = fmt.Sprintf("延迟：%d ms", ping)
@@ -90,7 +90,7 @@ func init() {
 				log.Error("报时失败喵！", err)
 				reportAnno = "喵？"
 			} else {
-				reportAnno = strings.Join([]string{fmt.Sprintf("喵喵报时：现在是%s", annoStr),
+				reportAnno = strings.Join([]string{fmt.Sprintf("%s报时：现在是%s", zero.BotConfig.NickName[0], annoStr),
 					fmt.Sprintf("花卉：%s", flower),
 					fmt.Sprintf("～%s元灵之%s～", elemental, imagery),
 				}, "\n")
@@ -180,19 +180,19 @@ func getCPUTemperature() (CPUTemperature string) {
 
 // 返回状态等级
 func getPerf(cpu float64, mem float64, t string) int {
-	if tt := float64(kitten.Atoi(t)); 0 < tt && tt < 100 {
+	if tt := float64(kitten.Atoi(t)); 0 < tt && 100 > tt {
 		perf := (cpu + mem) * tt / 20000
 		log.Tracef("%s的负荷评分是 %f……", zero.BotConfig.NickName[0], perf)
 		switch {
-		case perf < 0.1:
+		case 0.1 > perf:
 			return 0
-		case perf < 0.15:
+		case 0.15 > perf:
 			return 1
-		case perf < 0.2:
+		case 0.2 > perf:
 			return 2
-		case perf < 0.25:
+		case 0.25 > perf:
 			return 3
-		case perf < 0.3:
+		case 0.3 > perf:
 			return 4
 		}
 	}
