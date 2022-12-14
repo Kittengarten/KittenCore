@@ -4,7 +4,7 @@
 
 ## 使用方法
 
-所有指令均需要加上前缀（在data/config.yaml中可以设置）
+所有指令均需要加上前缀（在 `config.yaml` 中可以设置）
 
 由于项目中可能含有非 `ASCII` 字符文件名，可能需要执行 `git config --bool hooks.allownoascii true`
 
