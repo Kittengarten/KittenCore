@@ -1,4 +1,4 @@
-# KittenAbuseBP（挨骂）
+# 挨骂
 
 ## 简介
 
