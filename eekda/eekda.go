@@ -86,35 +86,40 @@ func init() {
 						"LowTea":    true,
 						"Dinner":    true,
 						"Supper":    true}
-					j = 0
+					statMap = make(map[int64]Kitten) // QQ:猫猫集合
+					j       = 0
 				)
 				if !kitten.Check(yaml.Unmarshal(stat, &statData)) {
 					log.Warn("饮食统计数据损坏了喵！")
 				}
-			re:
-				for i, v := range statData {
-					switch v.ID {
-					case todayData.Breakfast:
-						statData[i].Breakfast++
-						isNew["Breakfast"] = false
-						continue re
-					case todayData.Lunch:
-						statData[i].Lunch++
-						isNew["Lunch"] = false
-						continue re
-					case todayData.LowTea:
-						statData[i].LowTea++
-						isNew["LowTea"] = false
-						continue re
-					case todayData.Dinner:
-						statData[i].Dinner++
-						isNew["Dinner"] = false
-						continue re
-					case todayData.Supper:
-						statData[i].Supper++
-						isNew["Supper"] = false
-						continue re
-					}
+				for _, v := range statData {
+					statMap[v.ID] = v
+				}
+				bf, bfok := statMap[todayData.Breakfast]
+				l, lok := statMap[todayData.Lunch]
+				lt, ltok := statMap[todayData.LowTea]
+				d, dok := statMap[todayData.Dinner]
+				s, sok := statMap[todayData.Supper]
+				isNew = map[string]bool{"Breakfast": !bfok,
+					"Lunch":  !lok,
+					"LowTea": !ltok,
+					"Dinner": !dok,
+					"Supper": !sok}
+				switch true {
+				case bfok:
+					bf.Breakfast++
+					fallthrough
+				case lok:
+					l.Lunch++
+					fallthrough
+				case ltok:
+					lt.LowTea++
+					fallthrough
+				case dok:
+					d.Dinner++
+					fallthrough
+				case sok:
+					s.Supper++
 				}
 				for k, v := range isNew {
 					new := Kitten{

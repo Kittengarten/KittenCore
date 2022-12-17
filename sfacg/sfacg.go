@@ -6,6 +6,7 @@ import (
 	"strings"
 	"time"
 
+	mapset "github.com/deckarep/golang-set"
 	"gopkg.in/yaml.v3"
 
 	ctrl "github.com/FloatTech/zbpctrl"
@@ -72,7 +73,6 @@ func init() {
 		} else {
 			ctx.Send(report)
 		}
-
 	})
 
 	// 小说信息功能
@@ -87,55 +87,79 @@ func init() {
 			novel    = getNovel(ctx)
 			cf, _    = loadConfig(engine)
 			track    = make(Config, 1)
-			hasNovel bool
 			hasGroup bool
+			groupSet = make(map[string]mapset.Set) // 书号:群号集合
 		)
+		cfi := make([]interface{}, len(cf)) // 书号接口数组
 		for k, v := range cf {
-			if v.BookID == novel.ID {
-				hasNovel = true // 已经存在此小说
-				for _, g := range v.GroupID {
-					if g == ctx.Event.GroupID {
-						hasGroup = true // 已经存在此群
-					}
-				}
-				if !hasGroup {
-					cf[k].GroupID = append(v.GroupID, ctx.Event.GroupID)
-				}
+			cfi[k] = v.BookID
+			gi := make([]interface{}, len(v.GroupID))
+			for i, g := range v.GroupID {
+				gi[i] = g
 			}
+			groupSet[v.BookID] = mapset.NewSetFromSlice(gi) // 群号集合
 		}
-		if !hasNovel {
+		cfs := mapset.NewSetFromSlice(cfi) // 书号集合
+		if cfs.Contains(novel.ID) {
+			if groupSet[novel.ID].Add(ctx.Event.GroupID) {
+				for k, v := range cf {
+					gi := groupSet[v.BookID].ToSlice()
+					gs := make([]int64, len(v.GroupID)+1)
+					for i, g := range gi {
+						gs[i] = g.(int64)
+					}
+					cf[k].GroupID = gs
+				}
+			} else {
+				hasGroup = true // 已经存在此群
+			}
+		} else {
 			track[0].BookID = novel.ID
 			track[0].BookName = novel.Name
-			track[0].GroupID = make([]int64, 1)
-			track[0].GroupID[0] = ctx.Event.GroupID
+			track[0].GroupID = []int64{ctx.Event.GroupID}
 			cf = append(cf, track[0])
 		}
 		if saveConfig(cf, engine) {
 			ctx.Send(fmt.Sprintf("添加《%s》报更成功喵！", novel.Name))
 		} else {
-			ctx.Send(fmt.Sprintf("添加《%s》报更失败喵！", novel.Name))
+			if hasGroup {
+				ctx.Send(fmt.Sprintf("《%s》已经添加报更了喵！", novel.Name))
+			} else {
+				ctx.Send(fmt.Sprintf("添加《%s》报更失败喵！", novel.Name))
+			}
 		}
 	})
 
 	// 移除报更
 	engine.OnCommand("取消报更", zero.AdminPermission).Handle(func(ctx *zero.Ctx) {
 		var (
-			novel   = getNovel(ctx)
-			cf, err = loadConfig(engine)
-			ok      bool
+			novel    = getNovel(ctx)
+			cf, err  = loadConfig(engine)
+			groupSet = make(map[string]mapset.Set) // 书号:群号集合
+			ok       bool
 		)
 		if kitten.Check(err) && 0 < len(cf) {
+			cfi := make([]interface{}, len(cf)) // 书号接口数组
 			for k, v := range cf {
-				if v.BookID == novel.ID {
-					for _, g := range v.GroupID {
-						if g == ctx.Event.GroupID {
-							cf[k].GroupID = append(v.GroupID[:k], v.GroupID[k+1:]...)
-							ok = true
-						}
-						if 1 > len(cf[k].GroupID) {
-							cf = append(cf[:k], cf[k+1:]...)
-						}
+				cfi[k] = v.BookID
+				gi := make([]interface{}, len(v.GroupID))
+				for i, g := range v.GroupID {
+					gi[i] = g
+				}
+				groupSet[v.BookID] = mapset.NewSetFromSlice(gi) // 群号集合
+				l := groupSet[v.BookID].Cardinality()
+				groupSet[v.BookID].Remove(ctx.Event.GroupID)
+				ok = l != groupSet[v.BookID].Cardinality()
+				for k, v := range cf {
+					gi := groupSet[v.BookID].ToSlice()
+					gs := make([]int64, len(v.GroupID)-1)
+					for i, g := range gi {
+						gs[i] = g.(int64)
 					}
+					cf[k].GroupID = gs
+				}
+				if 0 >= len(cf[k].GroupID) {
+					cf = append(cf[:k], cf[k+1:]...)
 				}
 			}
 		}
