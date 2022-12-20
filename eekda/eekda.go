@@ -85,9 +85,9 @@ func init() {
 						"Lunch":     true,
 						"LowTea":    true,
 						"Dinner":    true,
-						"Supper":    true}
+						"Supper":    true,
+					}
 					statMap = make(map[int64]Kitten) // QQ:猫猫集合
-					j       = 0
 				)
 				if !kitten.Check(yaml.Unmarshal(stat, &statData)) {
 					log.Warn("饮食统计数据损坏了喵！")
@@ -100,11 +100,13 @@ func init() {
 				lt, ltok := statMap[todayData.LowTea]
 				d, dok := statMap[todayData.Dinner]
 				s, sok := statMap[todayData.Supper]
-				isNew = map[string]bool{"Breakfast": !bfok,
-					"Lunch":  !lok,
-					"LowTea": !ltok,
-					"Dinner": !dok,
-					"Supper": !sok}
+				isNew = map[string]bool{
+					"Breakfast": !bfok,
+					"Lunch":     !lok,
+					"LowTea":    !ltok,
+					"Dinner":    !dok,
+					"Supper":    !sok,
+				}
 				switch true {
 				case bfok:
 					bf.Breakfast++
@@ -122,24 +124,50 @@ func init() {
 					s.Supper++
 				}
 				for k, v := range isNew {
-					new := Kitten{
-						ID:   int64(list[nums[j]].Get("user_id").Int()),
-						Name: getLine(int64(list[nums[j]].Get("user_id").Int()), ctx),
-					}
-					j++
-					if v {
-						switch k {
-						case "Breakfast":
+					var new Kitten
+					switch k {
+					case "Breakfast":
+						new = Kitten{
+							ID:   todayData.Breakfast,
+							Name: getLine(todayData.Breakfast, ctx),
+						}
+						if v {
 							new.Breakfast = 1
-						case "Lunch":
+						}
+					case "Lunch":
+						new = Kitten{
+							ID:   todayData.Lunch,
+							Name: getLine(todayData.Lunch, ctx),
+						}
+						if v {
 							new.Lunch = 1
-						case "LowTea":
+						}
+					case "LowTea":
+						new = Kitten{
+							ID:   todayData.LowTea,
+							Name: getLine(todayData.LowTea, ctx),
+						}
+						if v {
 							new.LowTea = 1
-						case "Dinner":
+						}
+					case "Dinner":
+						new = Kitten{
+							ID:   todayData.Dinner,
+							Name: getLine(todayData.Dinner, ctx),
+						}
+						if v {
 							new.Dinner = 1
-						case "Supper":
+						}
+					case "Supper":
+						new = Kitten{
+							ID:   todayData.Supper,
+							Name: getLine(todayData.Supper, ctx),
+						}
+						if v {
 							new.Supper = 1
 						}
+					}
+					if v {
 						statData = append(statData, new)
 					}
 				}
