@@ -1,6 +1,7 @@
 package sfacg
 
 import (
+	"os"
 	"regexp"
 
 	"gopkg.in/yaml.v3"
@@ -12,11 +13,23 @@ import (
 
 // 加载配置
 func loadConfig(e *control.Engine) (cf Config, err error) {
-	f, err := kitten.FileRead(e.DataFolder() + configFile)
-	if !kitten.Check(err) {
-		return
+re:
+	isExist, err := kitten.PathExists(e.DataFolder() + configFile)
+	// 如果确定文件是否存在
+	if kitten.Check(err) {
+		// 如果文件不存在，创建文件后重新载入命令
+		if !isExist {
+			fp, err := os.Create(e.DataFolder() + configFile)
+			if kitten.Check(err) {
+				fp.WriteString("[]")
+				defer fp.Close()
+				goto re
+			}
+		} else {
+			// 如果文件存在
+			yaml.Unmarshal(kitten.FileReadDirect(e.DataFolder()+configFile), &cf)
+		}
 	}
-	yaml.Unmarshal(f, &cf)
 	return
 }
 
