@@ -20,12 +20,10 @@ func (nv *Novel) init(bookID string) {
 	nv.URL = "https://book.sfacg.com/Novel/" + bookID // 生成链接
 	nv.NewChapter.BookURL = nv.URL                    // 用于向章节传入本书链接
 	req, err := http.Get(nv.URL)
-	if !kitten.Check(err) {
-		log.Warn(fmt.Sprintf("书号 %s 获取网页失败了喵！", bookID))
-	} else {
+	if kitten.Check(err) {
 		defer req.Body.Close()
-		doc, _ := goquery.NewDocumentFromReader(req.Body) // 获取小说网页
-		if strings.EqualFold(doc.Find("title").Text(), "出错了") ||
+		// 获取小说网页
+		if doc, _ := goquery.NewDocumentFromReader(req.Body); strings.EqualFold(doc.Find("title").Text(), "出错了") ||
 			strings.EqualFold(doc.Find("title").Text(), "糟糕,页面找不到了") ||
 			43 > len(doc.Find("title").Text()) { // 防止网页炸了导致问题
 			log.Info(fmt.Sprintf("书号 %s 没有喵！", bookID))
@@ -83,6 +81,8 @@ func (nv *Novel) init(bookID string) {
 				nv.NewChapter.init(nvNewChapterURL) // 获取新章节链接
 			}
 		}
+	} else {
+		log.Warn(fmt.Sprintf("书号 %s 获取网页失败了喵！", bookID))
 	}
 }
 
@@ -90,9 +90,7 @@ func (nv *Novel) init(bookID string) {
 func (cp *Chapter) init(URL string) {
 	cp.IsGet = false // 初始化
 	cp.URL = URL     // 生成链接
-	if req, err := http.Get(cp.URL); !kitten.Check(err) {
-		log.Warn(fmt.Sprintf("%s 获取更新网页失败了喵！", URL))
-	} else {
+	if req, err := http.Get(cp.URL); kitten.Check(err) {
 		defer req.Body.Close()
 		doc, _ := goquery.NewDocumentFromReader(req.Body) // 获取新章节网页
 		if cp.URL != cp.BookURL {
@@ -119,14 +117,15 @@ func (cp *Chapter) init(URL string) {
 		} else {
 			log.Warn(fmt.Sprintf("%s更新异常喵！", URL)) // 防止章节炸了导致获取新章节跳转引发panic
 		}
+	} else {
+		log.Warn(fmt.Sprintf("%s 获取更新网页失败了喵！", URL))
 	}
 }
 
 // 与上次更新比较
 func (nv *Novel) makeCompare() (cm Compare) {
 	var this, last Chapter
-	this = nv.NewChapter
-	if this.IsGet {
+	if this = nv.NewChapter; this.IsGet {
 		last.init(this.LastURL)
 		cm.TimeGap = this.Time.Sub(last.Time)
 		cm.Times = 1
@@ -144,7 +143,7 @@ func (nv *Novel) makeCompare() (cm Compare) {
 
 // 小说信息
 func (nv *Novel) information() (str string) {
-	//	var tags string //暂时不能用
+	//	var tags string // 暂时不能用
 	//	for _, v := range nv.TagList {
 	//		tags += "["
 	//		tags += v

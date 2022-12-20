@@ -21,7 +21,10 @@ var (
 	Configs = LoadConfig()
 )
 
-const randMax = 100 // 随机数上限（不包含）
+const (
+	randMax = 100           // 随机数上限（不包含）
+	path    = "config.yaml" // 配置文件名
+)
 
 func init() {
 	go func() {

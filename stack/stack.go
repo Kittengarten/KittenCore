@@ -146,36 +146,35 @@ func in(data Data, esc Data, stackConfig Config, ctx *zero.Ctx, e *control.Engin
 				report += "\n\n压猫猫失败了喵！"
 				log.Info(strconv.FormatInt(ID, 10) + report)
 			}
-		} else {
-			// 检查叠猫猫是否成功
-			if checkStack(len(data)) {
-				meow := Kitten{
-					ID:   ID,
-					Name: kitten.GetTitle(*ctx, ID) + ctx.CardOrNickName(ID),
-					Time: time.Unix(ctx.Event.Time, 0),
-				}
-				data = append(data, meow)
-				save(data, e.DataFolder()+dataFile)
-				report = fmt.Sprintf("叠猫猫成功，目前处于队列中第 %d 位喵～", len(data))
-				log.Info(strconv.FormatInt(ID, 10) + report)
-			} else {
-				exitCount := int(math.Ceil(float64(len(data)) * rand.Float64()))
-				if exitCount == 0 {
-					exitCount = 1
-				}
-				exitData := data[len(data)-exitCount:]
-				// 将摔下来的的猫猫记录至退出日志
-				for _, kitten := range exitData {
-					logExit(kitten.ID, ctx, e)
-				}
-				data = data[:len(data)-exitCount]
-				save(data, e.DataFolder()+dataFile)
-				report = fmt.Sprintf("叠猫猫失败，上面 %d 只猫猫摔下来了喵！需要休息 %d 小时。\n%s",
-					exitCount, stackConfig.GapTime, strings.Join(reverse(exitData), "\n"))
-				permit = false
-				log.Info(strconv.FormatInt(ID, 10) + report)
-				logExit(ID, ctx, e) // 将叠猫猫失败的猫猫记录至退出日志
+		} else if checkStack(len(data)) {
+			// 如果叠猫猫成功
+			meow := Kitten{
+				ID:   ID,
+				Name: kitten.GetTitle(*ctx, ID) + ctx.CardOrNickName(ID),
+				Time: time.Unix(ctx.Event.Time, 0),
 			}
+			data = append(data, meow)
+			save(data, e.DataFolder()+dataFile)
+			report = fmt.Sprintf("叠猫猫成功，目前处于队列中第 %d 位喵～", len(data))
+			log.Info(strconv.FormatInt(ID, 10) + report)
+		} else {
+			// 如果叠猫猫失败
+			exitCount := int(math.Ceil(float64(len(data)) * rand.Float64()))
+			if exitCount == 0 {
+				exitCount = 1
+			}
+			exitData := data[len(data)-exitCount:]
+			// 将摔下来的的猫猫记录至退出日志
+			for _, kitten := range exitData {
+				logExit(kitten.ID, ctx, e)
+			}
+			data = data[:len(data)-exitCount]
+			save(data, e.DataFolder()+dataFile)
+			report = fmt.Sprintf("叠猫猫失败，上面 %d 只猫猫摔下来了喵！需要休息 %d 小时。\n%s",
+				exitCount, stackConfig.GapTime, strings.Join(reverse(exitData), "\n"))
+			permit = false
+			log.Info(strconv.FormatInt(ID, 10) + report)
+			logExit(ID, ctx, e) // 将叠猫猫失败的猫猫记录至退出日志
 		}
 	}
 	if permit {
@@ -207,14 +206,14 @@ func exit(data Data, ctx *zero.Ctx, e *control.Engine) {
 			stackData, err1 = yaml.Marshal(dataNew)
 			err2            = kitten.FileWrite(e.DataFolder()+dataFile, stackData)
 		)
-		if !kitten.Check(err1) || !kitten.Check(err2) {
-			report = "退出叠猫猫失败喵！"
-			permit = false
-			log.Warn(strconv.FormatInt(ID, 10) + report)
-		} else {
+		if kitten.Check(err1) && kitten.Check(err2) {
 			report = "退出叠猫猫成功喵！"
 			log.Info(strconv.FormatInt(ID, 10) + report)
 			logExit(ID, ctx, e)
+		} else {
+			report = "退出叠猫猫失败喵！"
+			permit = false
+			log.Warn(strconv.FormatInt(ID, 10) + report)
 		}
 		if permit {
 			ctx.SendChain(message.At(ID), message.Text(report))

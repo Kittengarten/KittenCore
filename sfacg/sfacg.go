@@ -85,49 +85,52 @@ func init() {
 	engine.OnCommand("添加报更", zero.AdminPermission).Handle(func(ctx *zero.Ctx) {
 		var (
 			novel    = getNovel(ctx)
-			cf, _    = loadConfig(engine)
+			cf, err  = loadConfig(engine)
 			track    = make(Config, 1)
 			hasGroup bool
 			groupSet = make(map[string]mapset.Set) // 书号:群号集合
 		)
-		cfi := make([]interface{}, len(cf)) // 书号接口数组
-		for k, v := range cf {
-			cfi[k] = v.BookID
-			gi := make([]interface{}, len(v.GroupID))
-			for i, g := range v.GroupID {
-				gi[i] = g
+		if kitten.Check(err) {
+			cfi := make([]interface{}, len(cf)) // 书号接口数组
+			for k, v := range cf {
+				cfi[k] = v.BookID
+				gi := make([]interface{}, len(v.GroupID))
+				for i, g := range v.GroupID {
+					gi[i] = g
+				}
+				groupSet[v.BookID] = mapset.NewSetFromSlice(gi) // 群号集合
 			}
-			groupSet[v.BookID] = mapset.NewSetFromSlice(gi) // 群号集合
-		}
-		cfs := mapset.NewSetFromSlice(cfi) // 书号集合
-		if cfs.Contains(novel.ID) {
-			if groupSet[novel.ID].Add(ctx.Event.GroupID) {
-				for k, v := range cf {
-					gi := groupSet[v.BookID].ToSlice()
-					gs := make([]int64, len(v.GroupID)+1)
-					for i, g := range gi {
-						gs[i] = g.(int64)
+			cfs := mapset.NewSetFromSlice(cfi) // 书号集合
+			if cfs.Contains(novel.ID) {
+				if groupSet[novel.ID].Add(ctx.Event.GroupID) {
+					for k, v := range cf {
+						gi := groupSet[v.BookID].ToSlice()
+						gs := make([]int64, len(v.GroupID)+1)
+						for i, g := range gi {
+							gs[i] = g.(int64)
+						}
+						cf[k].GroupID = gs
 					}
-					cf[k].GroupID = gs
+				} else {
+					hasGroup = true // 已经存在此群
 				}
 			} else {
-				hasGroup = true // 已经存在此群
+				track[0].BookID = novel.ID
+				track[0].BookName = novel.Name
+				track[0].GroupID = []int64{ctx.Event.GroupID}
+				cf = append(cf, track[0])
 			}
-		} else {
-			track[0].BookID = novel.ID
-			track[0].BookName = novel.Name
-			track[0].GroupID = []int64{ctx.Event.GroupID}
-			cf = append(cf, track[0])
-		}
-		if saveConfig(cf, engine) {
-			ctx.Send(fmt.Sprintf("添加《%s》报更成功喵！", novel.Name))
-		} else {
-			if hasGroup {
+			if saveConfig(cf, engine) {
+				ctx.Send(fmt.Sprintf("添加《%s》报更成功喵！", novel.Name))
+			} else if hasGroup {
 				ctx.Send(fmt.Sprintf("《%s》已经添加报更了喵！", novel.Name))
 			} else {
 				ctx.Send(fmt.Sprintf("添加《%s》报更失败喵！", novel.Name))
 			}
+		} else {
+			ctx.Send(fmt.Sprintf("添加《%s》报更出现错误喵！\n错误：%s", novel.Name, err))
 		}
+
 	})
 
 	// 移除报更
@@ -163,14 +166,14 @@ func init() {
 				}
 			}
 		}
-		if !ok {
-			ctx.Send("本书不存在或不在追更列表，也许有其它错误喵～")
-		} else {
+		if ok {
 			if saveConfig(cf, engine) {
 				ctx.Send(fmt.Sprintf("取消《%s》报更成功喵！", novel.Name))
 			} else {
 				ctx.Send(fmt.Sprintf("取消《%s》报更成功喵！", novel.Name))
 			}
+		} else {
+			ctx.Send("本书不存在或不在追更列表，也许有其它错误喵～")
 		}
 	})
 }
@@ -200,12 +203,12 @@ func track(e *control.Engine) {
 	}()
 
 	var (
-		novel   Novel
-		bot     = <-kitten.Botchan
-		name    = zero.BotConfig.NickName[0]
-		line    = "======================[" + name + "]======================"
-		data, _ = loadConfig(e)
-		content = strings.Join([]string{
+		novel     Novel
+		bot       = <-kitten.Botchan
+		name      = zero.BotConfig.NickName[0]
+		line      = "======================[" + name + "]======================"
+		data, err = loadConfig(e)
+		content   = strings.Join([]string{
 			line,
 			"* OneBot + ZeroBot + Golang",
 			fmt.Sprintf("一共有 %d 本小说", len(data)),
@@ -214,12 +217,16 @@ func track(e *control.Engine) {
 		t = time.Tick(5 * time.Second) // 每 5 秒检测一次
 	)
 
+	if !kitten.Check(err) {
+		log.Errorf("载入配置文件出现了错误：%s", err)
+	}
+
 	fmt.Println(content)
 
-	if bot != nil {
-		log.Info("报更已经获取到实例了喵！")
+	if bot == nil {
+		log.Error("报更没有获取到实例喵！")
 	} else {
-		log.Error("报更没有获取到实例了喵！")
+		log.Info("报更已经获取到实例了喵！")
 	}
 
 	// 报更
@@ -267,10 +274,10 @@ func track(e *control.Engine) {
 				updateConfig, err1 = yaml.Marshal(dataNew)
 				err2               = kitten.FileWrite(e.DataFolder()+configFile, updateConfig)
 			)
-			if !kitten.Check(err1) || !kitten.Check(err2) {
-				log.Warn(fmt.Sprintf("记录 %s 失败喵！", e.DataFolder()+configFile))
-			} else {
+			if kitten.Check(err1) && kitten.Check(err2) {
 				log.Info(fmt.Sprintf("记录 %s 成功喵！", e.DataFolder()+configFile))
+			} else {
+				log.Warn(fmt.Sprintf("记录 %s 失败喵！", e.DataFolder()+configFile))
 			}
 		}
 		select {

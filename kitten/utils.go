@@ -64,9 +64,7 @@ func FileWrite(path string, data []byte) (err error) {
 
 // LoadConfig 加载配置
 func LoadConfig() (config Config) {
-	const path = "config.yaml"
-	err := yaml.Unmarshal(FileReadDirect(path), &config)
-	if !Check(err) {
+	if err := yaml.Unmarshal(FileReadDirect(path), &config); !Check(err) {
 		log.Fatal(fmt.Sprintf("打开 %s 失败了喵！", path), err)
 		return
 	}
@@ -135,8 +133,7 @@ func Choose(choices []Choice) int {
 		choiceNum = rand.Intn(choiceAll)
 	}
 	for i := range choices {
-		choiceNum -= choices[i].GetChance()
-		if 0 > choiceNum {
+		if choiceNum -= choices[i].GetChance(); 0 > choiceNum {
 			return i
 		}
 	}

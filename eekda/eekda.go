@@ -175,23 +175,17 @@ func init() {
 				stat, _ = yaml.Marshal(statData)
 				kitten.FileWrite(engine.DataFolder()+statFile, stat)
 			}
-		} else {
-			isExist, err := kitten.PathExists(engine.DataFolder() + todayFile)
+		} else if isExist, err := kitten.PathExists(engine.DataFolder() + todayFile); !kitten.Check(err) {
 			// 如果不确定文件存在
-			if !kitten.Check(err) {
-				doNotKnow(ctx)
+			doNotKnow(ctx)
+		} else if !isExist {
+			// 如果文件不存在，创建文件后重新载入命令
+			if fp, err := os.Create(engine.DataFolder() + todayFile); kitten.Check(err) {
+				fp.WriteString("[]")
+				defer fp.Close()
+				goto re
 			} else {
-				// 如果文件不存在，创建文件后重新载入命令
-				if !isExist {
-					fp, err := os.Create(engine.DataFolder() + todayFile)
-					if kitten.Check(err) {
-						fp.WriteString("[]")
-						defer fp.Close()
-						goto re
-					} else {
-						doNotKnow(ctx)
-					}
-				}
+				doNotKnow(ctx)
 			}
 		}
 	})
@@ -223,25 +217,20 @@ func init() {
 			if !isGet {
 				doNotKnow(ctx)
 			}
-		} else {
-			isExist, err := kitten.PathExists(engine.DataFolder() + statFile)
+		} else if isExist, err := kitten.PathExists(engine.DataFolder() + statFile); !kitten.Check(err) {
 			// 如果不确定文件存在
-			if !kitten.Check(err) {
-				doNotKnow(ctx)
+			doNotKnow(ctx)
+		} else if !isExist {
+			// 如果文件不存在，创建文件后重新载入命令
+			if fp, err := os.Create(engine.DataFolder() + statFile); kitten.Check(err) {
+				fp.WriteString("[]")
+				defer fp.Close()
+				goto re
 			} else {
-				// 如果文件不存在，创建文件后重新载入命令
-				if !isExist {
-					fp, err := os.Create(engine.DataFolder() + statFile)
-					if kitten.Check(err) {
-						fp.WriteString("[]")
-						defer fp.Close()
-						goto re
-					} else {
-						doNotKnow(ctx)
-					}
-				}
+				doNotKnow(ctx)
 			}
 		}
+
 	})
 }
 

@@ -17,17 +17,17 @@ re:
 	isExist, err := kitten.PathExists(e.DataFolder() + configFile)
 	// 如果确定文件是否存在
 	if kitten.Check(err) {
-		// 如果文件不存在，创建文件后重新载入命令
-		if !isExist {
+		if isExist {
+			// 如果文件存在
+			yaml.Unmarshal(kitten.FileReadDirect(e.DataFolder()+configFile), &cf)
+		} else {
+			// 如果文件不存在，创建文件后重新载入命令
 			fp, err := os.Create(e.DataFolder() + configFile)
 			if kitten.Check(err) {
 				fp.WriteString("[]")
 				defer fp.Close()
 				goto re
 			}
-		} else {
-			// 如果文件存在
-			yaml.Unmarshal(kitten.FileReadDirect(e.DataFolder()+configFile), &cf)
 		}
 	}
 	return
