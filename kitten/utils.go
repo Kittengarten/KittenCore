@@ -73,6 +73,21 @@ func LoadConfig() (config Config) {
 	return
 }
 
+// PathExists 判断文件是否存在，path 为要判断的文件路径，不确定存在的情况下报错
+func PathExists(path string) (bool, error) {
+	_, err := os.Stat(path)
+	// 当为空文件或文件夹存在
+	if Check(err) {
+		return true, nil
+	}
+	// os.IsNotExist(err)为true，文件或文件夹不存在
+	if os.IsNotExist(err) {
+		return false, nil
+	}
+	// 其它类型，不确定是否存在
+	return false, err
+}
+
 // （私有）判断路径是否文件夹
 func isDir(path string) bool {
 	s, err := os.Stat(path)

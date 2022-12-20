@@ -50,6 +50,7 @@ func init() {
 	)
 
 	engine.OnCommand(fmt.Sprintf("%s今天吃什么", name)).Handle(func(ctx *zero.Ctx) {
+	re:
 		var (
 			today, err = kitten.FileRead(engine.DataFolder() + todayFile)
 			todayData  Today
@@ -175,11 +176,28 @@ func init() {
 				kitten.FileWrite(engine.DataFolder()+statFile, stat)
 			}
 		} else {
-			doNotKnow(ctx)
+			isExist, err := kitten.PathExists(engine.DataFolder() + todayFile)
+			// 如果不确定文件存在
+			if !kitten.Check(err) {
+				doNotKnow(ctx)
+			} else {
+				// 如果文件不存在，创建文件后重新载入命令
+				if !isExist {
+					fp, err := os.Create(engine.DataFolder() + todayFile)
+					if kitten.Check(err) {
+						fp.WriteString("[]")
+						defer fp.Close()
+						goto re
+					} else {
+						doNotKnow(ctx)
+					}
+				}
+			}
 		}
 	})
 
 	engine.OnCommand("查询被吃次数").Handle(func(ctx *zero.Ctx) {
+	re:
 		var (
 			stat, err = kitten.FileRead(engine.DataFolder() + statFile)
 			statData  Stat
@@ -206,7 +224,23 @@ func init() {
 				doNotKnow(ctx)
 			}
 		} else {
-			doNotKnow(ctx)
+			isExist, err := kitten.PathExists(engine.DataFolder() + statFile)
+			// 如果不确定文件存在
+			if !kitten.Check(err) {
+				doNotKnow(ctx)
+			} else {
+				// 如果文件不存在，创建文件后重新载入命令
+				if !isExist {
+					fp, err := os.Create(engine.DataFolder() + statFile)
+					if kitten.Check(err) {
+						fp.WriteString("[]")
+						defer fp.Close()
+						goto re
+					} else {
+						doNotKnow(ctx)
+					}
+				}
+			}
 		}
 	})
 }
