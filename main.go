@@ -133,7 +133,7 @@ func init() {
 			// 与最新的日志文件建立软链接
 			logf.WithLinkName(logName),
 			// 分割日志文件间隔
-			logf.WithRotationTime(time.Duration(int(time.Hour)*24*logF)),
+			logf.WithRotationTime(24*time.Duration(int(time.Hour)*logF)),
 			// 禁用清理
 			logf.WithMaxAge(-1),
 		)

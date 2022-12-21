@@ -181,7 +181,7 @@ func getCPUTemperature() (CPUTemperature string) {
 // 返回状态等级
 func getPerf(cpu float64, mem float64, t string) int {
 	if tt := float64(kitten.Atoi(t)); 0 < tt && 100 > tt {
-		perf := (cpu + mem) * tt / 20000
+		perf := 0.00005 * (cpu + mem) * tt
 		log.Tracef("%s的负荷评分是 %f……", zero.BotConfig.NickName[0], perf)
 		switch {
 		case 0.1 > perf:

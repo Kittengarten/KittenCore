@@ -11,7 +11,7 @@ import (
 )
 
 var (
-	poke     = rate.NewManager[int64](time.Minute*5, 9) // 戳一戳
+	poke     = rate.NewManager[int64](5*time.Minute, 9) // 戳一戳
 	nickname = LoadConfig().NickName[0]                 // 昵称
 	// Bot 实例
 	Bot *zero.Ctx

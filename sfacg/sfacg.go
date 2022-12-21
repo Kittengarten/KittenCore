@@ -210,7 +210,7 @@ func track(e *control.Engine) {
 		data, err = loadConfig(e)
 		content   = strings.Join([]string{
 			line,
-			"* OneBot + ZeroBot + Golang",
+			"* OneBot + ZeroBot + Go",
 			fmt.Sprintf("一共有 %d 本小说", len(data)),
 			"=======================================================",
 		}, "\n")
