@@ -22,8 +22,8 @@ var (
 )
 
 const (
-	randMax = 100           // 随机数上限（不包含）
-	path    = "config.yaml" // 配置文件名
+	randMax      = 100           // 随机数上限（不包含）
+	path    Path = "config.yaml" // 配置文件名
 )
 
 func init() {
@@ -38,19 +38,19 @@ func init() {
 	zero.On("notice/notify/poke", zero.OnlyToMe).SetBlock(false).
 		Handle(func(ctx *zero.Ctx) {
 			var (
-				gID = ctx.Event.GroupID // 本群的群号
-				uID = ctx.Event.UserID  // 发出 poke 的 QQ 号
+				g = ctx.Event.GroupID // 本群的群号
+				u = ctx.Event.UserID  // 发出 poke 的 QQ 号
 			)
 			switch {
-			case poke.Load(gID).AcquireN(5):
-				// 5分钟共8块命令牌 一次消耗5块命令牌
-				ctx.SendChain(message.Poke(uID))
-			case poke.Load(gID).AcquireN(3):
-				// 5分钟共8块命令牌 一次消耗3块命令牌
-				ctx.SendChain(message.At(uID), TextOf("请不要拍%s >_<", nickname))
-			case poke.Load(gID).Acquire():
-				// 5分钟共8块命令牌 一次消耗1块命令牌
-				ctx.SendChain(message.At(uID), TextOf("喂(#`O′) 拍%s干嘛！（好感 - %d）", nickname, rand.Intn(randMax)+1))
+			case poke.Load(g).AcquireN(5):
+				// 5 分钟共 8 块命令牌 一次消耗 5 块命令牌
+				ctx.SendChain(message.Poke(u))
+			case poke.Load(g).AcquireN(3):
+				// 5 分钟共 8 块命令牌 一次消耗 3 块命令牌
+				ctx.SendChain(message.At(u), TextOf("请不要拍%s >_<", nickname))
+			case poke.Load(g).Acquire():
+				// 5 分钟共 8 块命令牌 一次消耗 1 块命令牌
+				ctx.SendChain(message.At(u), TextOf("喂(#`O′) 拍%s干嘛！（好感 - %d）", nickname, rand.Intn(randMax)+1))
 			default:
 				// 频繁触发，不回复
 			}

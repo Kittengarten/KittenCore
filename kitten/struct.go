@@ -4,7 +4,7 @@ type (
 	// Config 是来自 Bot 的配置文件的数据集
 	Config struct {
 		NickName      []string        // 昵称
-		SelfID        int64           // Bot自身ID
+		SelfID        int64           // Bot 自身 ID
 		SuperUsers    []int64         // 管理员账号
 		CommandPrefix string          // 指令前缀
 		WebSocket     WebSocketConfig // WebSocket 配置
@@ -13,9 +13,12 @@ type (
 
 	// WebSocketConfig 是一个 WebSocket 链接的配置
 	WebSocketConfig struct {
-		URL         string // WebSocket 链接
+		URL         URL    // WebSocket 链接
 		AccessToken string // WebSocket 密钥
 	}
+
+	// URL 代表 URL 的字符串
+	URL string
 
 	// LogConfig 是一个日志的配置
 	LogConfig struct {
@@ -24,8 +27,17 @@ type (
 		Days  int    // 单段分割文件记录的天数
 	}
 
-	// Choice 是一个随机项目的抽象接口
-	Choice interface {
+	// IntString 是一个可转换为 int 的字符串
+	IntString string
+
+	// Path 是一个表示文件路径的字符串
+	Path string
+
+	// QQ 是一个表示 QQ 的 int64
+	QQ int64
+
+	// Choices 是由随机项目的抽象接口组成的数组
+	Choices []interface {
 		GetInformation() string // 该项目的信息
 		GetChance() int         // 该项目的权重
 	}

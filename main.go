@@ -139,15 +139,18 @@ func init() {
 		)
 	)
 	if !kitten.Check(err) {
-		log.Errorf("配置分割日志文件失败：%v", err)
+		log.Errorf("主函数配置分割日志文件失败喵！\n%v", err)
+		return
 	}
-	log.SetFormatter(&LogFormat{}) // 设置日志输出样式
+	// 设置日志输出样式
+	log.SetFormatter(&LogFormat{})
 	if mw := io.MultiWriter(os.Stdout, writer); kitten.Check(err) {
 		log.SetOutput(mw)
 	} else {
-		log.Warn("写入日志失败了喵！")
+		log.Warn("主函数写入日志失败了喵！")
 	}
-	log.SetLevel(log.TraceLevel) // 设置最低日志等级
+	// 设置最低日志等级
+	log.SetLevel(config.Log.GetLogLevel())
 
 }
 
@@ -155,10 +158,11 @@ func main() {
 	// 处理 panic，防止程序崩溃
 	defer func() {
 		if err := recover(); !kitten.Check(err) {
-			log.Errorf("main 函数有 Bug：%s，喵！", err)
+			log.Errorf("主函数有 Bug 喵！\n%v", err)
 		}
 	}()
-	rand.Seed(time.Now().UnixNano()) // 全局重置随机数种子，插件无须再次使用
+	// 全局重置随机数种子，插件无须再次使用
+	rand.Seed(time.Now().UnixNano())
 	zero.RunAndBlock(&zero.Config{
 		NickName:      config.NickName,
 		CommandPrefix: config.CommandPrefix,
@@ -166,7 +170,7 @@ func main() {
 		Driver: []zero.Driver{
 			&driver.WSClient{
 				// OneBot 正向 WS 默认使用 6700 端口
-				Url:         config.WebSocket.URL,
+				Url:         string(config.WebSocket.URL),
 				AccessToken: config.WebSocket.AccessToken,
 			},
 		},

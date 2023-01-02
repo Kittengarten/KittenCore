@@ -2,7 +2,7 @@ package eekda
 
 import (
 	"fmt"
-	"io/ioutil"
+	"io"
 	"math/rand"
 	"os"
 	"sort"
@@ -52,7 +52,7 @@ func init() {
 	engine.OnCommand(fmt.Sprintf("%s今天吃什么", name)).Handle(func(ctx *zero.Ctx) {
 	re:
 		var (
-			today, err = kitten.FileRead(engine.DataFolder() + todayFile)
+			today, err = kitten.Path(engine.DataFolder() + todayFile).Read()
 			todayData  Today
 		)
 		if kitten.Check(err) {
@@ -68,31 +68,37 @@ func init() {
 				list = list[math.Max(0, len(list)-50):]
 				nums := generateRandomNumber(0, len((list)), 5)
 				todayData.Time = time.Now()
-				todayData.Breakfast = int64(list[nums[0]].Get("user_id").Int())
-				todayData.Lunch = int64(list[nums[1]].Get("user_id").Int())
-				todayData.LowTea = int64(list[nums[2]].Get("user_id").Int())
-				todayData.Dinner = int64(list[nums[3]].Get("user_id").Int())
-				todayData.Supper = int64(list[nums[4]].Get("user_id").Int())
-				today, _ = yaml.Marshal(todayData)
-				kitten.FileWrite(engine.DataFolder()+todayFile, today)
+				todayData.Breakfast = kitten.QQ(list[nums[0]].Get("user_id").Int())
+				todayData.Lunch = kitten.QQ(list[nums[1]].Get("user_id").Int())
+				todayData.LowTea = kitten.QQ(list[nums[2]].Get("user_id").Int())
+				todayData.Dinner = kitten.QQ(list[nums[3]].Get("user_id").Int())
+				todayData.Supper = kitten.QQ(list[nums[4]].Get("user_id").Int())
+				today, err1 := yaml.Marshal(todayData)
+				err2 := kitten.Path(engine.DataFolder() + todayFile).Write(today)
+				if !kitten.Check(err1) || !kitten.Check(err2) {
+					log.Errorf("生成今天吃什么发生错误：\n%v\n%v", err1, err2)
+				}
 				report(todayData, name, ctx)
 
 				// 存储饮食统计数据
 				var (
-					stat     = kitten.FileReadDirect(engine.DataFolder() + statFile)
-					statData Stat
-					isNew    = map[string]bool{
+					stat, err = kitten.Path(engine.DataFolder() + statFile).Read()
+					statData  Stat
+					isNew     = map[string]bool{
 						"Breakfast": true,
 						"Lunch":     true,
 						"LowTea":    true,
 						"Dinner":    true,
 						"Supper":    true,
 					}
-					statMap = make(map[int64]Kitten) // QQ:猫猫集合
+					statMap = make(map[kitten.QQ]Kitten) // QQ:猫猫集合
 				)
 				if !kitten.Check(yaml.Unmarshal(stat, &statData)) {
 					log.Warn("饮食统计数据损坏了喵！")
+				} else if !kitten.Check(err) {
+					log.Error("饮食统计数据无法访问喵！")
 				}
+				// 加载数据
 				for _, v := range statData {
 					statMap[v.ID] = v
 				}
@@ -108,21 +114,31 @@ func init() {
 					"Dinner":    !dok,
 					"Supper":    !sok,
 				}
+				// 修改数据
 				switch true {
 				case bfok:
 					bf.Breakfast++
+					statMap[todayData.Breakfast] = bf
 					fallthrough
 				case lok:
 					l.Lunch++
+					statMap[todayData.Lunch] = l
 					fallthrough
 				case ltok:
 					lt.LowTea++
+					statMap[todayData.LowTea] = lt
 					fallthrough
 				case dok:
 					d.Dinner++
+					statMap[todayData.Dinner] = d
 					fallthrough
 				case sok:
 					s.Supper++
+					statMap[todayData.Supper] = s
+				}
+				// 回写修改的数据
+				for k, v := range statData {
+					statData[k] = statMap[v.ID]
 				}
 				for k, v := range isNew {
 					var new Kitten
@@ -172,10 +188,13 @@ func init() {
 						statData = append(statData, new)
 					}
 				}
-				stat, _ = yaml.Marshal(statData)
-				kitten.FileWrite(engine.DataFolder()+statFile, stat)
+				stat, err3 := yaml.Marshal(statData)
+				err4 := kitten.Path(engine.DataFolder() + statFile).Write(stat)
+				if !kitten.Check(err3) || !kitten.Check(err4) {
+					log.Errorf("写入饮食统计数据发生错误：\n%v\n%v", err1, err2)
+				}
 			}
-		} else if isExist, err := kitten.PathExists(engine.DataFolder() + todayFile); !kitten.Check(err) {
+		} else if isExist, err := kitten.Path(engine.DataFolder() + todayFile).Exists(); !kitten.Check(err) {
 			// 如果不确定文件存在
 			doNotKnow(ctx)
 		} else if !isExist {
@@ -193,7 +212,7 @@ func init() {
 	engine.OnCommand("查询被吃次数").Handle(func(ctx *zero.Ctx) {
 	re:
 		var (
-			stat, err = kitten.FileRead(engine.DataFolder() + statFile)
+			stat, err = kitten.Path(engine.DataFolder() + statFile).Read()
 			statData  Stat
 			isGet     bool
 		)
@@ -202,8 +221,8 @@ func init() {
 				doNotKnow(ctx)
 			}
 			for i, v := range statData {
-				if ctx.Event.UserID == v.ID {
-					report := strings.Join([]string{fmt.Sprintf("\n%s的被吃次数", getLine(ctx.Event.UserID, ctx)),
+				if kitten.QQ(ctx.Event.UserID) == v.ID {
+					report := strings.Join([]string{fmt.Sprintf("\n%s的被吃次数", getLine(kitten.QQ(ctx.Event.UserID), ctx)),
 						fmt.Sprintf("早餐：%d 次", statData[i].Breakfast),
 						fmt.Sprintf("午餐：%d 次", statData[i].Lunch),
 						fmt.Sprintf("下午茶：%d 次", statData[i].LowTea),
@@ -217,7 +236,7 @@ func init() {
 			if !isGet {
 				doNotKnow(ctx)
 			}
-		} else if isExist, err := kitten.PathExists(engine.DataFolder() + statFile); !kitten.Check(err) {
+		} else if isExist, err := kitten.Path(engine.DataFolder() + statFile).Exists(); !kitten.Check(err) {
 			// 如果不确定文件存在
 			doNotKnow(ctx)
 		} else if !isExist {
@@ -238,19 +257,23 @@ func init() {
 func getName() string {
 	res, err := os.Open(namePath)
 	if !kitten.Check(err) {
-		log.Warn(fmt.Sprintf("打开文件 %s 失败了喵！", namePath))
+		log.Warnf("打开文件 %s 失败了喵！\n%v", namePath, err)
 	} else {
 		defer res.Close()
 	}
-	data, _ := ioutil.ReadAll(res)
-	return string(data)
+	data, err := io.ReadAll(res)
+	if kitten.Check(err) {
+		return string(data)
+	}
+	log.Warnf("打开文件 %s 失败了喵！\n%v", namePath, err)
+	return ""
 }
 
-// 获取条目，u 为用户 ID
-func getLine(u int64, ctx *zero.Ctx) string {
+// 获取条目，u 为 QQ
+func getLine(u kitten.QQ, ctx *zero.Ctx) string {
 	info := Kitten{
 		ID:   u,
-		Name: kitten.GetTitle(*ctx, u) + ctx.CardOrNickName(u),
+		Name: u.GetTitle(*ctx) + ctx.CardOrNickName(int64(u)),
 	}
 	return fmt.Sprintf("%s（%d）", info.Name, info.ID)
 }

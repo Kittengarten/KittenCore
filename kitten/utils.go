@@ -2,13 +2,14 @@ package kitten
 
 import (
 	"fmt"
-	"io/ioutil"
+	"io"
 	"math/rand"
 	"os"
 	"strconv"
 	"strings"
 	"time"
 
+	"github.com/go-ping/ping"
 	"github.com/tidwall/gjson"
 	"gopkg.in/yaml.v3"
 
@@ -20,60 +21,65 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-// Atoi 将字符串转换为数字
-func Atoi(str string) (num int) {
-	num, _ = strconv.Atoi(str)
+// Int 将字符串转换为数字
+func (str IntString) Int() (num int) {
+	num, _ = strconv.Atoi(string(str))
 	return
 }
 
-// FileReadDirect 文件读取
-func FileReadDirect(path string) (data []byte) {
-	res, err := os.Open(path)
+// GetLogLevel 从日志配置获取日志等级
+func (lc LogConfig) GetLogLevel() log.Level {
+	switch lc.Level {
+	case log.PanicLevel.String():
+		return log.PanicLevel
+	case log.FatalLevel.String():
+		return log.FatalLevel
+	case log.ErrorLevel.String():
+		return log.ErrorLevel
+	case log.WarnLevel.String():
+		return log.WarnLevel
+	case log.InfoLevel.String():
+		return log.InfoLevel
+	case log.DebugLevel.String():
+		return log.DebugLevel
+	case log.TraceLevel.String():
+		return log.TraceLevel
+	default:
+		return log.WarnLevel
+	}
+}
+
+// Read 文件读取
+func (path Path) Read() (data []byte, err error) {
+	res, err := os.Open(string(path))
 	if !Check(err) {
-		log.Warn(fmt.Sprintf("读取文件 %s 失败了喵！", path))
+		log.Warnf("读取文件 %s 失败了喵！", path)
 	} else {
 		defer res.Close()
 	}
-	data, _ = ioutil.ReadAll(res)
-	return
-}
-
-// FileRead 文件读取
-func FileRead(path string) (data []byte, err error) {
-	res, err := os.Open(path)
-	if !Check(err) {
-		log.Warn(fmt.Sprintf("读取文件 %s 失败了喵！", path))
-	} else {
-		defer res.Close()
-	}
-	data, _ = ioutil.ReadAll(res)
-	return
-}
-
-// FileWrite 文件写入
-func FileWrite(path string, data []byte) (err error) {
-	res, err := os.Open(path)
-	if !Check(err) {
-		log.Warn(fmt.Sprintf("写入文件 %s 失败了喵！", path))
-	} else {
-		defer res.Close()
-	}
-	err = ioutil.WriteFile(path, data, 0666)
-	return
-}
-
-// LoadConfig 加载配置
-func LoadConfig() (config Config) {
-	if err := yaml.Unmarshal(FileReadDirect(path), &config); !Check(err) {
-		log.Fatal(fmt.Sprintf("打开 %s 失败了喵！", path), err)
+	data, err = io.ReadAll(res)
+	if Check(err) {
 		return
 	}
+	log.Warnf("打开文件 %s 失败了喵！\n%v", path, err)
 	return
 }
 
-// PathExists 判断文件是否存在，path 为要判断的文件路径，不确定存在的情况下报错
-func PathExists(path string) (bool, error) {
-	_, err := os.Stat(path)
+// Write 文件写入
+func (path Path) Write(data []byte) (err error) {
+	res, err := os.Open(string(path))
+	if !Check(err) {
+		log.Warnf("写入文件 %s 失败了喵！", path)
+	} else {
+		defer res.Close()
+	}
+	err = os.WriteFile(string(path), data, 0666)
+	return
+}
+
+// Exists 判断文件是否存在，不确定存在的情况下报错
+func (path Path) Exists() (bool, error) {
+	_, err := os.Stat(string(path))
 	// 当为空文件或文件夹存在
 	if Check(err) {
 		return true, nil
@@ -87,32 +93,32 @@ func PathExists(path string) (bool, error) {
 }
 
 // （私有）判断路径是否文件夹
-func isDir(path string) bool {
-	s, err := os.Stat(path)
+func (path Path) isDir() bool {
+	s, err := os.Stat(string(path))
 	if !Check(err) {
 		return Check(err)
 	}
 	return s.IsDir()
 }
 
-// （私有）加载图片路径
-func loadImagePath(path string) string {
-	res, err := os.Open(path)
-	if !Check(err) {
-		log.Warn(fmt.Sprintf("打开文件 %s 失败了喵！", path))
-	} else {
+// （私有）加载文件中保存的路径
+func (path Path) loadPath() Path {
+	res, err := os.Open(string(path))
+	if Check(err) {
 		defer res.Close()
+	} else {
+		log.Warnf("打开文件 %s 失败了喵！", path)
 	}
-	data, _ := ioutil.ReadAll(res)
-	return string(data)
+	data, _ := io.ReadAll(res)
+	return Path(data)
 }
 
-// GetImage 加载图片，path 参数可以是保存路径的文件，也可以是路径本身（绝对路径）
-func GetImage(path, name string) message.MessageSegment {
-	if isDir(path) {
-		return message.Image(path + name)
+// GetImage 从保存图片路径的文件，或图片的绝对路径加载图片
+func (path Path) GetImage(name string) message.MessageSegment {
+	if path.isDir() {
+		return message.Image(string(path) + name)
 	}
-	return message.Image(loadImagePath(path) + name)
+	return message.Image(string(path.loadPath()) + name)
 }
 
 // Check 处理错误，没有错误则返回 True
@@ -124,20 +130,20 @@ func Check(err interface{}) bool {
 }
 
 // Choose 按权重抽取一个项目的序号 i，有可能返回-1（这种情况代表项目列表为空，需要处理以免报错）
-func Choose(choices []Choice) int {
-	var choiceAll, choiceNum = 0, 0
-	for i := range choices {
-		choiceAll += choices[i].GetChance()
+func (cs Choices) Choose() int {
+	var cAll, cNum = 0, 0
+	for i := range cs {
+		cAll += cs[i].GetChance()
 	}
-	if 0 < choiceAll {
-		choiceNum = rand.Intn(choiceAll)
+	if 0 < cAll {
+		cNum = rand.Intn(cAll)
 	}
-	for i := range choices {
-		if choiceNum -= choices[i].GetChance(); 0 > choiceNum {
+	for i := range cs {
+		if cNum -= cs[i].GetChance(); 0 > cNum {
 			return i
 		}
 	}
-	return len(choices) - 1
+	return len(cs) - 1
 }
 
 // IsSameDate 判断两个时间是否是同一天
@@ -173,13 +179,25 @@ func TextOf(format string, a ...any) message.MessageSegment {
 	return message.Text(fmt.Sprintf(format, a...))
 }
 
-// GetTitle 从 UID 获取【头衔】
-func GetTitle(ctx zero.Ctx, uid int64) (title string) {
-	gmi := ctx.GetGroupMemberInfo(ctx.Event.GroupID, uid, true)
+// GetTitle 从 QQ 获取【头衔】
+func (u QQ) GetTitle(ctx zero.Ctx) (title string) {
+	gmi := ctx.GetGroupMemberInfo(ctx.Event.GroupID, int64(u), true)
 	if titleStr := gjson.Get(gmi.Raw, "title").Str; titleStr == "" {
 		title = titleStr
 	} else {
 		title = fmt.Sprintf("【%s】", gjson.Get(gmi.Raw, "title").Str)
+	}
+	return
+}
+
+// LoadConfig 加载配置
+func LoadConfig() (config Config) {
+	d, err1 := path.Read()
+	if !Check(err1) {
+		log.Fatalf("加载配置失败喵！\n%v", err1)
+	} else if err2 := yaml.Unmarshal(d, &config); !Check(err2) {
+		log.Fatalf("打开 %s 失败了喵！\n%v", path, err2)
+		return
 	}
 	return
 }
@@ -191,4 +209,20 @@ func GetWTAAnno() (str string, flower string, elemental string, imagery string, 
 	str = fmt.Sprintf("%s　%d:%0*d:%0*d", str, anno.Hour, 2, anno.Minute, 2, anno.Second)
 	flower, elemental, imagery = anno.Flower, anno.Elemental, anno.Imagery
 	return
+}
+
+// CheckServer 检查连接状况，错误则返回 -1，正常则返回延迟的毫秒数
+func (s URL) CheckServer() int64 {
+	s1 := GetMidText("//", ":", string(s))
+	log.Tracef("正在 Ping %s 喵……", s1)
+	pinger, err := ping.NewPinger(s1)
+	if Check(err) {
+		pinger.Count = 1             // 检测 1 次
+		pinger.Timeout = time.Second // 超时为 1 秒
+		pinger.SetPrivileged(true)
+		pinger.Run() // 直到完成之前，阻塞
+		return pinger.Statistics().AvgRtt.Milliseconds()
+	}
+	log.Warnf("Ping 出现错误了喵！\n%v", err)
+	return -1
 }

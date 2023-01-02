@@ -56,7 +56,7 @@ func init() {
 				_              = ctx.GetGroupMessageHistory(ctx.Event.GroupID, msID.Int())
 				ms             = ctx.GetMessage(message.NewMessageIDFromInteger(msID.Int()))
 				report         = make(message.Message, len(ms.Elements))
-				reportText     = kitten.TextOf("【精华消息】\n%s（%d）:\n", kitten.GetTitle(*ctx, ID.Int())+nickname.String(), ID.Int())
+				reportText     = kitten.TextOf("【精华消息】\n%s（%d）:\n", kitten.QQ(ID.Int()).GetTitle(*ctx)+nickname.String(), ID.Int())
 			)
 			log.Tracef("获得了 %d 条精华消息喵！", essenceCount)
 			log.Trace(essenceMessage)

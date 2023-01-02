@@ -182,14 +182,13 @@ func init() {
 func getNovel(ctx *zero.Ctx) (nv Novel) {
 	ag := ctx.State["args"].(string)
 	if !isInt(ag) {
-		var chk bool
-		ag, chk = findBookID(ag)
+		ag, chk := keyWord(ag).findBookID()
 		if !chk {
 			ctx.Send(ag)
 			return
 		}
 	}
-	nv.init(ag)
+	nv.init(string(ag))
 	return nv
 }
 
@@ -198,7 +197,7 @@ func track(e *control.Engine) {
 	// 处理 panic，防止程序崩溃
 	defer func() {
 		if err := recover(); !kitten.Check(err) {
-			log.Errorf("报更协程出现了错误：%s", err)
+			log.Errorf("报更协程出现错误喵！\n%v", ReplyServiceName, err)
 		}
 	}()
 
@@ -218,7 +217,7 @@ func track(e *control.Engine) {
 	)
 
 	if !kitten.Check(err) {
-		log.Errorf("载入配置文件出现了错误：%s", err)
+		log.Errorf("%s 载入配置文件出现错误喵！\n%v", err)
 	}
 
 	fmt.Println(content)
@@ -272,12 +271,12 @@ func track(e *control.Engine) {
 		if !updateError && update {
 			var (
 				updateConfig, err1 = yaml.Marshal(dataNew)
-				err2               = kitten.FileWrite(e.DataFolder()+configFile, updateConfig)
+				err2               = kitten.Path(e.DataFolder() + configFile).Write(updateConfig)
 			)
 			if kitten.Check(err1) && kitten.Check(err2) {
-				log.Info(fmt.Sprintf("记录 %s 成功喵！", e.DataFolder()+configFile))
+				log.Infof("记录 %s 成功喵！", e.DataFolder()+configFile)
 			} else {
-				log.Warn(fmt.Sprintf("记录 %s 失败喵！", e.DataFolder()+configFile))
+				log.Warnf("记录 %s 失败喵！", e.DataFolder()+configFile)
 			}
 		}
 		select {

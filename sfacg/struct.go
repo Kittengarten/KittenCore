@@ -50,4 +50,6 @@ type (
 		RecordURL  string  `yaml:"recordurl"`  // 上次更新链接
 		UpdateTime string  `yaml:"updatetime"` // 上次更新时间
 	}
+
+	keyWord string // 搜索关键词
 )

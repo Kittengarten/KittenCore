@@ -26,7 +26,7 @@ func (nv *Novel) init(bookID string) {
 		if doc, _ := goquery.NewDocumentFromReader(req.Body); strings.EqualFold(doc.Find("title").Text(), "出错了") ||
 			strings.EqualFold(doc.Find("title").Text(), "糟糕,页面找不到了") ||
 			43 > len(doc.Find("title").Text()) { // 防止网页炸了导致问题
-			log.Info(fmt.Sprintf("书号 %s 没有喵！", bookID))
+			log.Infof("书号 %s 没有喵！", bookID)
 		} else {
 			nv.IsGet = true
 			nv.Name = doc.Find("h1.title").Find("span.text").Text()             // 获取书名
@@ -75,14 +75,14 @@ func (nv *Novel) init(bookID string) {
 
 			if nvNewChapterURL == "" {
 				nv.NewChapter.IsGet = false // 防止更新章节炸了跳转到网站首页引起程序报错
-				log.Warn(fmt.Sprintf("%s 获取更新链接失败了喵！", nv.URL))
+				log.Warnf("%s 获取更新链接失败了喵！", nv.URL)
 			} else {
 				nvNewChapterURL = "https://book.sfacg.com" + nvNewChapterURL
 				nv.NewChapter.init(nvNewChapterURL) // 获取新章节链接
 			}
 		}
 	} else {
-		log.Warn(fmt.Sprintf("书号 %s 获取网页失败了喵！", bookID))
+		log.Warnf("书号 %s 获取网页失败了喵！", bookID)
 	}
 }
 
@@ -96,12 +96,12 @@ func (cp *Chapter) init(URL string) {
 		if cp.URL != cp.BookURL {
 			if strings.EqualFold(doc.Find("title").Text(), "出错了") ||
 				strings.EqualFold(doc.Find("title").Text(), "糟糕,页面找不到了") {
-				log.Info(fmt.Sprintf("章节【%s】没有喵！", cp.URL))
+				log.Infof("章节 %s 没有喵！", cp.URL)
 			} else {
 				cp.IsGet = true
 				desc := doc.Find("div.article-desc").Find("span")
 				if 9 < len(desc.Eq(2).Text()) {
-					cp.WordNum = kitten.Atoi(desc.Eq(2).Text()[9:]) // 获取新章节字数
+					cp.WordNum = kitten.IntString(desc.Eq(2).Text()[9:]).Int() // 获取新章节字数
 				}
 				if 15 < len(desc.Eq(1).Text()) {
 					loc, _ := time.LoadLocation("Local")
@@ -115,10 +115,10 @@ func (cp *Chapter) init(URL string) {
 				cp.NextURL = "https://book.sfacg.com" + cp.NextURL // 获取下一章链接
 			}
 		} else {
-			log.Warn(fmt.Sprintf("%s更新异常喵！", URL)) // 防止章节炸了导致获取新章节跳转引发panic
+			log.Warnf("%s 更新异常喵！", URL) // 防止章节炸了导致获取新章节跳转引发panic
 		}
 	} else {
-		log.Warn(fmt.Sprintf("%s 获取更新网页失败了喵！", URL))
+		log.Warnf("%s 获取更新网页失败了喵！", URL)
 	}
 }
 
@@ -165,7 +165,7 @@ func (nv *Novel) information() (str string) {
 }
 
 // 用关键词搜索书号，如失败，返回值为失败信息
-func findBookID(key string) (string, bool) {
+func (key keyWord) findBookID() (string, bool) {
 	var (
 		searchURL = fmt.Sprintf("http://s.sfacg.com/?Key=%s&S=1&SS=0", key)
 		req, err  = http.Get(searchURL)
@@ -194,7 +194,7 @@ func (nv *Novel) update() (str string) {
 		timeGap = cm.TimeGap.String()
 	)
 	if cm.TimeGap == 0 {
-		log.Warning("更新异常喵！")
+		log.Warn("更新异常喵！")
 		return "更新异常喵！"
 	}
 	timeGap = strings.Replace(timeGap, "h", "小时", 1)

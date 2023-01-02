@@ -14,12 +14,17 @@ import (
 // 加载配置
 func loadConfig(e *control.Engine) (cf Config, err error) {
 re:
-	isExist, err := kitten.PathExists(e.DataFolder() + configFile)
+	isExist, err := kitten.Path(e.DataFolder() + configFile).Exists()
 	// 如果确定文件是否存在
 	if kitten.Check(err) {
 		if isExist {
 			// 如果文件存在
-			yaml.Unmarshal(kitten.FileReadDirect(e.DataFolder()+configFile), &cf)
+			d, err := kitten.Path(e.DataFolder() + configFile).Read()
+			if kitten.Check(err) {
+				yaml.Unmarshal(d, &cf)
+			} else {
+				log.Fatalf("%s 配置文件存在但加载失败喵！", ReplyServiceName)
+			}
 		} else {
 			// 如果文件不存在，创建文件后重新载入命令
 			fp, err := os.Create(e.DataFolder() + configFile)
@@ -37,7 +42,7 @@ re:
 func saveConfig(cf Config, e *control.Engine) (ok bool) {
 	var (
 		data, err1 = yaml.Marshal(cf)
-		err2       = kitten.FileWrite(e.DataFolder()+configFile, data)
+		err2       = kitten.Path(e.DataFolder() + configFile).Write(data)
 	)
 	ok = kitten.Check(err1) && kitten.Check(err2)
 	if !ok {
@@ -50,7 +55,7 @@ func saveConfig(cf Config, e *control.Engine) (ok bool) {
 	return
 }
 
-// 判断字符串是否为整数（可用于判断是书号还是搜索关键词）
+// 判断字符串是否为整数（可用于判断是书号还是关键词）
 func isInt(str string) bool {
 	match, _ := regexp.MatchString("^[0-9]+$", str)
 	return match
