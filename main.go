@@ -28,7 +28,6 @@ import (
 	_ "github.com/FloatTech/ZeroBot-Plugin/plugin/aipaint"
 	_ "github.com/FloatTech/ZeroBot-Plugin/plugin/aiwife"
 	_ "github.com/FloatTech/ZeroBot-Plugin/plugin/alipayvoice"
-	_ "github.com/FloatTech/ZeroBot-Plugin/plugin/autowithdraw"
 	_ "github.com/FloatTech/ZeroBot-Plugin/plugin/b14"
 	_ "github.com/FloatTech/ZeroBot-Plugin/plugin/baidu"
 	_ "github.com/FloatTech/ZeroBot-Plugin/plugin/base64gua"
