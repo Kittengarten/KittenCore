@@ -23,7 +23,7 @@ re:
 			if kitten.Check(err) {
 				yaml.Unmarshal(d, &cf)
 			} else {
-				log.Fatalf("%s 配置文件存在但加载失败喵！", ReplyServiceName)
+				log.Fatalf("%s 配置文件存在但加载失败喵！\n%v", ReplyServiceName, err)
 			}
 		} else {
 			// 如果文件不存在，创建文件后重新载入命令

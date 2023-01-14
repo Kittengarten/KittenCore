@@ -11,6 +11,7 @@ import (
 
 	ctrl "github.com/FloatTech/zbpctrl"
 	"github.com/FloatTech/zbputils/control"
+	"github.com/FloatTech/zbputils/ctxext"
 	zero "github.com/wdvxdr1123/ZeroBot"
 	"github.com/wdvxdr1123/ZeroBot/message"
 
@@ -48,13 +49,14 @@ func init() {
 			Brief:             brief,
 			Help:              help,
 			PrivateDataFolder: "sfacg",
-		})
+		}).ApplySingle(ctxext.DefaultSingle)
 	)
 
 	go track(engine)
 
 	// 测试小说报更功能
-	engine.OnCommand("更新测试").Handle(func(ctx *zero.Ctx) {
+	engine.OnCommand("更新测试").SetBlock(true).
+		Limit(ctxext.NewLimiterManager(time.Minute, 1).LimitByGroup).Handle(func(ctx *zero.Ctx) {
 		var (
 			novel  = getNovel(ctx)
 			report = novel.update()
@@ -63,7 +65,8 @@ func init() {
 	})
 
 	// 预览小说更新功能
-	engine.OnCommand("更新预览").Handle(func(ctx *zero.Ctx) {
+	engine.OnCommand("更新预览").SetBlock(true).
+		Limit(ctxext.NewLimiterManager(time.Minute, 1).LimitByGroup).Handle(func(ctx *zero.Ctx) {
 		var (
 			novel  = getNovel(ctx)
 			report = novel.Preview
@@ -76,113 +79,116 @@ func init() {
 	})
 
 	// 小说信息功能
-	engine.OnCommand("小说").Handle(func(ctx *zero.Ctx) {
+	engine.OnCommand("小说").SetBlock(true).
+		Limit(ctxext.NewLimiterManager(time.Minute, 1).LimitByGroup).Handle(func(ctx *zero.Ctx) {
 		novel := getNovel(ctx)
 		ctx.SendChain(message.Image(novel.CoverURL), message.Text(novel.information()))
 	})
 
 	// 设置报更
-	engine.OnCommand("添加报更", zero.AdminPermission).Handle(func(ctx *zero.Ctx) {
-		var (
-			novel    = getNovel(ctx)
-			cf, err  = loadConfig(engine)
-			track    = make(Config, 1)
-			hasGroup bool
-			groupSet = make(map[string]mapset.Set) // 书号:群号集合
-		)
-		if kitten.Check(err) {
-			cfi := make([]interface{}, len(cf)) // 书号接口数组
-			for k, v := range cf {
-				cfi[k] = v.BookID
-				gi := make([]interface{}, len(v.GroupID))
-				for i, g := range v.GroupID {
-					gi[i] = g
+	engine.OnCommand("添加报更", zero.OnlyGroup, zero.AdminPermission).SetBlock(true).
+		Handle(func(ctx *zero.Ctx) {
+			var (
+				novel    = getNovel(ctx)
+				cf, err  = loadConfig(engine)
+				track    = make(Config, 1)
+				hasGroup bool
+				groupSet = make(map[string]mapset.Set) // 书号:群号集合
+			)
+			if kitten.Check(err) {
+				cfi := make([]interface{}, len(cf)) // 书号接口数组
+				for k, v := range cf {
+					cfi[k] = v.BookID
+					gi := make([]interface{}, len(v.GroupID))
+					for i, g := range v.GroupID {
+						gi[i] = g
+					}
+					groupSet[v.BookID] = mapset.NewSetFromSlice(gi) // 群号集合
 				}
-				groupSet[v.BookID] = mapset.NewSetFromSlice(gi) // 群号集合
+				cfs := mapset.NewSetFromSlice(cfi) // 书号集合
+				if cfs.Contains(novel.ID) {
+					if groupSet[novel.ID].Add(ctx.Event.GroupID) {
+						for k, v := range cf {
+							gi := groupSet[v.BookID].ToSlice()
+							gs := make([]int64, len(v.GroupID)+1)
+							for i, g := range gi {
+								gs[i] = g.(int64)
+							}
+							cf[k].GroupID = gs
+						}
+					} else {
+						hasGroup = true // 已经存在此群
+					}
+				} else {
+					track[0].BookID = novel.ID
+					track[0].BookName = novel.Name
+					track[0].GroupID = []int64{ctx.Event.GroupID}
+					cf = append(cf, track[0])
+				}
+				if saveConfig(cf, engine) {
+					ctx.Send(fmt.Sprintf("添加《%s》报更成功喵！", novel.Name))
+				} else if hasGroup {
+					ctx.Send(fmt.Sprintf("《%s》已经添加报更了喵！", novel.Name))
+				} else {
+					ctx.Send(fmt.Sprintf("添加《%s》报更失败喵！", novel.Name))
+				}
+			} else {
+				ctx.Send(fmt.Sprintf("添加《%s》报更出现错误喵！\n错误：%s", novel.Name, err))
 			}
-			cfs := mapset.NewSetFromSlice(cfi) // 书号集合
-			if cfs.Contains(novel.ID) {
-				if groupSet[novel.ID].Add(ctx.Event.GroupID) {
+
+		})
+
+	// 移除报更
+	engine.OnCommand("取消报更", zero.OnlyGroup, zero.AdminPermission).SetBlock(true).
+		Handle(func(ctx *zero.Ctx) {
+			var (
+				novel    = getNovel(ctx)
+				cf, err  = loadConfig(engine)
+				groupSet = make(map[string]mapset.Set) // 书号:群号集合
+				ok       bool
+			)
+			if kitten.Check(err) && 0 < len(cf) {
+				cfi := make([]interface{}, len(cf)) // 书号接口数组
+				for k, v := range cf {
+					cfi[k] = v.BookID
+					gi := make([]interface{}, len(v.GroupID))
+					for i, g := range v.GroupID {
+						gi[i] = g
+					}
+					groupSet[v.BookID] = mapset.NewSetFromSlice(gi) // 群号集合
+					l := groupSet[v.BookID].Cardinality()
+					groupSet[v.BookID].Remove(ctx.Event.GroupID)
+					ok = l != groupSet[v.BookID].Cardinality()
 					for k, v := range cf {
 						gi := groupSet[v.BookID].ToSlice()
-						gs := make([]int64, len(v.GroupID)+1)
+						gs := make([]int64, len(v.GroupID)-1)
 						for i, g := range gi {
 							gs[i] = g.(int64)
 						}
 						cf[k].GroupID = gs
 					}
-				} else {
-					hasGroup = true // 已经存在此群
-				}
-			} else {
-				track[0].BookID = novel.ID
-				track[0].BookName = novel.Name
-				track[0].GroupID = []int64{ctx.Event.GroupID}
-				cf = append(cf, track[0])
-			}
-			if saveConfig(cf, engine) {
-				ctx.Send(fmt.Sprintf("添加《%s》报更成功喵！", novel.Name))
-			} else if hasGroup {
-				ctx.Send(fmt.Sprintf("《%s》已经添加报更了喵！", novel.Name))
-			} else {
-				ctx.Send(fmt.Sprintf("添加《%s》报更失败喵！", novel.Name))
-			}
-		} else {
-			ctx.Send(fmt.Sprintf("添加《%s》报更出现错误喵！\n错误：%s", novel.Name, err))
-		}
-
-	})
-
-	// 移除报更
-	engine.OnCommand("取消报更", zero.AdminPermission).Handle(func(ctx *zero.Ctx) {
-		var (
-			novel    = getNovel(ctx)
-			cf, err  = loadConfig(engine)
-			groupSet = make(map[string]mapset.Set) // 书号:群号集合
-			ok       bool
-		)
-		if kitten.Check(err) && 0 < len(cf) {
-			cfi := make([]interface{}, len(cf)) // 书号接口数组
-			for k, v := range cf {
-				cfi[k] = v.BookID
-				gi := make([]interface{}, len(v.GroupID))
-				for i, g := range v.GroupID {
-					gi[i] = g
-				}
-				groupSet[v.BookID] = mapset.NewSetFromSlice(gi) // 群号集合
-				l := groupSet[v.BookID].Cardinality()
-				groupSet[v.BookID].Remove(ctx.Event.GroupID)
-				ok = l != groupSet[v.BookID].Cardinality()
-				for k, v := range cf {
-					gi := groupSet[v.BookID].ToSlice()
-					gs := make([]int64, len(v.GroupID)-1)
-					for i, g := range gi {
-						gs[i] = g.(int64)
+					if 0 >= len(cf[k].GroupID) {
+						cf = append(cf[:k], cf[k+1:]...)
 					}
-					cf[k].GroupID = gs
-				}
-				if 0 >= len(cf[k].GroupID) {
-					cf = append(cf[:k], cf[k+1:]...)
 				}
 			}
-		}
-		if ok {
-			if saveConfig(cf, engine) {
-				ctx.Send(fmt.Sprintf("取消《%s》报更成功喵！", novel.Name))
+			if ok {
+				if saveConfig(cf, engine) {
+					ctx.Send(fmt.Sprintf("取消《%s》报更成功喵！", novel.Name))
+				} else {
+					ctx.Send(fmt.Sprintf("取消《%s》报更成功喵！", novel.Name))
+				}
 			} else {
-				ctx.Send(fmt.Sprintf("取消《%s》报更成功喵！", novel.Name))
+				ctx.Send("本书不存在或不在追更列表，也许有其它错误喵～")
 			}
-		} else {
-			ctx.Send("本书不存在或不在追更列表，也许有其它错误喵～")
-		}
-	})
+		})
 }
 
 // 获取小说（如果传入值不为书号，则先获取书号）
 func getNovel(ctx *zero.Ctx) (nv Novel) {
-	ag := ctx.State["args"].(string)
+	ag, chk := ctx.State["args"].(string), true
 	if !isInt(ag) {
-		ag, chk := keyWord(ag).findBookID()
+		ag, chk = keyWord(ag).findBookID()
 		if !chk {
 			ctx.Send(ag)
 			return
@@ -203,7 +209,7 @@ func track(e *control.Engine) {
 
 	var (
 		novel     Novel
-		bot       = <-kitten.Botchan
+		bot       = <-kitten.BotSFACGchan
 		name      = zero.BotConfig.NickName[0]
 		line      = "======================[" + name + "]======================"
 		data, err = loadConfig(e)

@@ -11,3 +11,5 @@
 可以双击机器人头像（戳一戳）触发响应。
 
 包含的插件可用于任何基于 [ZeroBot](https://github.com/wdvxdr1123/ZeroBot) 的程序，但在一些环境中可能需要部分修改。部分功能需要通过其它程序实现。
+
+本程序也可以 `import` 的方式添加任何 [ZeroBot](https://github.com/wdvxdr1123/ZeroBot) 的插件。

@@ -4,11 +4,13 @@ import (
 	"fmt"
 	"math/rand"
 	"strings"
+	"time"
 
 	"github.com/tidwall/gjson"
 
 	ctrl "github.com/FloatTech/zbpctrl"
 	"github.com/FloatTech/zbputils/control"
+	"github.com/FloatTech/zbputils/ctxext"
 	zero "github.com/wdvxdr1123/ZeroBot"
 	"github.com/wdvxdr1123/ZeroBot/message"
 
@@ -38,7 +40,8 @@ func init() {
 		})
 	)
 
-	engine.OnCommand("精华").Handle(func(ctx *zero.Ctx) {
+	engine.OnFullMatch("精华", zero.OnlyGroup).SetBlock(true).
+		Limit(ctxext.NewLimiterManager(time.Minute, 1).LimitByGroup).Handle(func(ctx *zero.Ctx) {
 		var (
 			essenceList  = ctx.GetThisGroupEssenceMessageList()
 			essenceCount = len(essenceList.Array())
@@ -53,16 +56,21 @@ func init() {
 				ID             = gjson.Get(essenceMessage.Raw, "sender_id")
 				nickname       = gjson.Get(essenceMessage.Raw, "sender_nick")
 				msID           = gjson.Get(essenceMessage.Raw, "message_id")
-				_              = ctx.GetGroupMessageHistory(ctx.Event.GroupID, msID.Int())
+				msH            = ctx.GetGroupMessageHistory(ctx.Event.GroupID, msID.Int()).Array()[0].String()
 				ms             = ctx.GetMessage(message.NewMessageIDFromInteger(msID.Int()))
 				report         = make(message.Message, len(ms.Elements))
 				reportText     = kitten.TextOf("【精华消息】\n%s（%d）:\n", kitten.QQ(ID.Int()).GetTitle(*ctx)+nickname.String(), ID.Int())
 			)
 			log.Tracef("获得了 %d 条精华消息喵！", essenceCount)
 			log.Trace(essenceMessage)
+			log.Trace(msH)
 			log.Trace(ms)
 			report = append(report, reportText)
-			report = append(report, ms.Elements...)
+			if !kitten.Check(msH) {
+				report = append(report, message.Text(msH))
+			} else if !kitten.Check(ms) {
+				report = append(report, ms.Elements...)
+			}
 			ctx.Send(report)
 		}
 	})

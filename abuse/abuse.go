@@ -2,14 +2,15 @@
 package abuse
 
 import (
-	"fmt"
 	"math/rand"
 	"strings"
+	"time"
 
 	"gopkg.in/yaml.v3"
 
 	ctrl "github.com/FloatTech/zbpctrl"
 	"github.com/FloatTech/zbputils/control"
+	"github.com/FloatTech/zbputils/ctxext"
 	zero "github.com/wdvxdr1123/ZeroBot"
 	"github.com/wdvxdr1123/ZeroBot/message"
 
@@ -36,7 +37,7 @@ func init() {
 	go load()
 	var (
 		help = strings.Join([]string{"发送",
-			fmt.Sprintf("%s骂我 或 %s挨骂", kitten.Configs.CommandPrefix, kitten.Configs.CommandPrefix),
+			"骂我 或 挨骂",
 			"在线挨骂，如果担心被冒犯到，请勿使用，否则后果自负",
 		}, "\n")
 		// 注册插件
@@ -45,10 +46,10 @@ func init() {
 			Brief:            brief,
 			Help:             help,
 		})
-		command = []string{"骂我", "挨骂"}
 	)
 
-	engine.OnCommandGroup(command).Handle(func(ctx *zero.Ctx) {
+	engine.OnFullMatchGroup([]string{"骂我", "挨骂"}).SetBlock(true).
+		Limit(ctxext.NewLimiterManager(time.Minute, 1).LimitByUser).Handle(func(ctx *zero.Ctx) {
 		var (
 			i             = abuseResponses.Choose()
 			messageToSend message.MessageSegment

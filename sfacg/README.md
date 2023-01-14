@@ -1,9 +1,9 @@
-# KittenSFACGBP（SFACG报更）
+# SF轻小说报更
 
 ## 简介
 
 基于 [sfacgTrack](https://github.com/DawnNights/sfacgTrack) 开发的 [SF轻小说](https://book.sfacg.com) QQ 群报更机器人插件
-（仅保留文本功能）
+（仅保留图文功能）
 
 ## 使用方法
 

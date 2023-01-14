@@ -21,9 +21,12 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-// Int 将字符串转换为数字
+// Int 将字符串转换为数字，转换失败则返回 0（建议不要用于转换 0）
 func (str IntString) Int() (num int) {
-	num, _ = strconv.Atoi(string(str))
+	num, err := strconv.Atoi(string(str))
+	if !Check(err) {
+		num = 0
+	}
 	return
 }
 
@@ -101,15 +104,18 @@ func (path Path) isDir() bool {
 	return s.IsDir()
 }
 
-// （私有）加载文件中保存的路径
-func (path Path) loadPath() Path {
+// LoadPath 加载文件中保存的路径
+func (path Path) LoadPath() Path {
 	res, err := os.Open(string(path))
 	if Check(err) {
 		defer res.Close()
 	} else {
-		log.Warnf("打开文件 %s 失败了喵！", path)
+		log.Warnf("打开文件 %s 失败了喵！\n%v", path, err)
 	}
-	data, _ := io.ReadAll(res)
+	data, err := io.ReadAll(res)
+	if !Check(err) {
+		log.Warnf("打开文件 %s 失败了喵！\n%v", path, err)
+	}
 	return Path(data)
 }
 
@@ -118,7 +124,7 @@ func (path Path) GetImage(name string) message.MessageSegment {
 	if path.isDir() {
 		return message.Image(string(path) + name)
 	}
-	return message.Image(string(path.loadPath()) + name)
+	return message.Image(string(path.LoadPath()) + name)
 }
 
 // Check 处理错误，没有错误则返回 True

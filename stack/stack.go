@@ -14,6 +14,7 @@ import (
 
 	ctrl "github.com/FloatTech/zbpctrl"
 	"github.com/FloatTech/zbputils/control"
+	"github.com/FloatTech/zbputils/ctxext"
 	zero "github.com/wdvxdr1123/ZeroBot"
 	"github.com/wdvxdr1123/ZeroBot/message"
 
@@ -58,7 +59,8 @@ func init() {
 	go autoExit(dataFile, stackConfig, engine)
 	go autoExit(exitFile, stackConfig, engine)
 
-	engine.OnCommand("叠猫猫").Handle(func(ctx *zero.Ctx) {
+	engine.OnCommand("叠猫猫").SetBlock(true).
+		Limit(ctxext.NewLimiterManager(time.Minute, 5).LimitByGroup).Handle(func(ctx *zero.Ctx) {
 		mu.RLock()
 		defer mu.RUnlock()
 		var (
@@ -137,7 +139,7 @@ func (data Data) in(esc Data, stackConfig Config, ctx *zero.Ctx, e *control.Engi
 				// 如果有猫猫被压坏
 				if 0 <= exitLabel {
 					exitData := data[:exitLabel+1]
-					reports = strings.Join(reverse(exitData), "\n")
+					reports = strings.Join(exitData.reverse(), "\n")
 					// 将被压坏的的猫猫记录至退出日志
 					for _, kitten := range exitData {
 						logExit(kitten.ID, ctx, e)
@@ -181,7 +183,7 @@ func (data Data) in(esc Data, stackConfig Config, ctx *zero.Ctx, e *control.Engi
 			data = data[:len(data)-exitCount]
 			save(data, kitten.Path(e.DataFolder()+dataFile))
 			report = fmt.Sprintf("叠猫猫失败，上面 %d 只猫猫摔下来了喵！需要休息 %d 小时。\n%s",
-				exitCount, stackConfig.GapTime, strings.Join(reverse(exitData), "\n"))
+				exitCount, stackConfig.GapTime, strings.Join(exitData.reverse(), "\n"))
 			permit = false
 			log.Info(strconv.FormatInt(ID, 10) + report)
 			logExit(ID, ctx, e) // 将叠猫猫失败的猫猫记录至退出日志
@@ -237,7 +239,7 @@ func (data Data) exit(ctx *zero.Ctx, e *control.Engine) {
 func (data Data) view(ctx *zero.Ctx) {
 	const report = "【叠猫猫队列】"
 	var (
-		dataString = reverse(data)                                                 // 反序查看
+		dataString = data.reverse()                                                // 反序查看
 		reports    = fmt.Sprintf("%s\n%s", report, strings.Join(dataString, "\n")) // 生成播报
 	)
 	if 0 >= len(data) {
@@ -247,20 +249,18 @@ func (data Data) view(ctx *zero.Ctx) {
 }
 
 // 叠猫猫队列反序并写为字符串数组
-func reverse(data Data) []string {
-	var dataStringReverse []string
+func (data Data) reverse() (s []string) {
 	for i := len(data) - 1; 0 <= i; i-- {
-		dataStringReverse = append(dataStringReverse,
-			fmt.Sprintf("%s（%d）", data[i].Name, data[i].ID))
+		s = append(s, fmt.Sprintf("%s（%d）", data[i].Name, data[i].ID))
 	}
-	return dataStringReverse
+	return
 }
 
 // 叠猫猫数据文件存储，成功则返回 True
 func save(data Data, path kitten.Path) (ok bool) {
 	var (
-		stackData, err1 = yaml.Marshal(data)
-		err2            = path.Write(stackData)
+		d, err1 = yaml.Marshal(data)
+		err2    = path.Write(d)
 	)
 	ok = kitten.Check(err1) && kitten.Check(err2)
 	if !ok {

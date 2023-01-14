@@ -10,6 +10,7 @@ import (
 
 	ctrl "github.com/FloatTech/zbpctrl"
 	"github.com/FloatTech/zbputils/control"
+	"github.com/FloatTech/zbputils/ctxext"
 	zero "github.com/wdvxdr1123/ZeroBot"
 	"github.com/wdvxdr1123/ZeroBot/message"
 
@@ -57,11 +58,12 @@ func init() {
 			DisableOnDefault: false,
 			Brief:            brief,
 			Help:             help,
-		})
+		}).ApplySingle(ctxext.DefaultSingle)
 	)
 
 	// 查看功能
-	engine.OnCommand("查看").Handle(func(ctx *zero.Ctx) {
+	engine.OnCommand("查看").SetBlock(true).
+		Limit(ctxext.NewLimiterManager(time.Minute, 1).LimitByGroup).Handle(func(ctx *zero.Ctx) {
 		var (
 			who              = ctx.State["args"].(string)
 			str, pingMessage string
@@ -102,8 +104,8 @@ func init() {
 				reportAnno,
 			}, "\n")
 			report = message.Message{imagePath.GetImage(strconv.Itoa(getPerf(cpu, mem, t)) + ".png"), message.Text(str)}
+			ctx.Send(report)
 		}
-		ctx.Send(report)
 	})
 }
 

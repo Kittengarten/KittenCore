@@ -14,6 +14,7 @@ import (
 	"github.com/FloatTech/floatbox/math"
 	ctrl "github.com/FloatTech/zbpctrl"
 	"github.com/FloatTech/zbputils/control"
+	"github.com/FloatTech/zbputils/ctxext"
 	zero "github.com/wdvxdr1123/ZeroBot"
 	"github.com/wdvxdr1123/ZeroBot/message"
 
@@ -35,7 +36,7 @@ func init() {
 	var (
 		name = getName()
 		help = strings.Join([]string{"发送",
-			fmt.Sprintf("%s%s今天吃什么", kitten.Configs.CommandPrefix, name),
+			fmt.Sprintf("%s今天吃什么", name),
 			fmt.Sprintf("获取%s今日食谱", name),
 			fmt.Sprintf("%s查询被吃次数", kitten.Configs.CommandPrefix),
 			"查询本人被吃次数",
@@ -46,10 +47,11 @@ func init() {
 			Brief:             brief,
 			Help:              help,
 			PrivateDataFolder: "eekda",
-		})
+		}).ApplySingle(ctxext.DefaultSingle)
 	)
 
-	engine.OnCommand(fmt.Sprintf("%s今天吃什么", name)).Handle(func(ctx *zero.Ctx) {
+	engine.OnFullMatch(fmt.Sprintf("%s今天吃什么", name), zero.OnlyGroup).SetBlock(true).
+		Limit(ctxext.NewLimiterManager(time.Minute, 1).LimitByGroup).Handle(func(ctx *zero.Ctx) {
 	re:
 		var (
 			today, err = kitten.Path(engine.DataFolder() + todayFile).Read()
@@ -209,7 +211,8 @@ func init() {
 		}
 	})
 
-	engine.OnCommand("查询被吃次数").Handle(func(ctx *zero.Ctx) {
+	engine.OnFullMatchGroup([]string{"查询被吃次数", "查看被吃次数"}, zero.OnlyGroup).SetBlock(true).
+		Limit(ctxext.NewLimiterManager(time.Minute, 1).LimitByUser).Handle(func(ctx *zero.Ctx) {
 	re:
 		var (
 			stat, err = kitten.Path(engine.DataFolder() + statFile).Read()

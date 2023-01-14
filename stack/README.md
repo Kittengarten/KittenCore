@@ -1,4 +1,4 @@
-# KittenStackBP（叠猫猫）
+# 叠猫猫
 
 ## 简介
 
