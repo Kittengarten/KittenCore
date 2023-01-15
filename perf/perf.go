@@ -42,7 +42,7 @@ const (
 	// YiB 表示 YiB 所含字节数的变量
 	YiB
 	// ReplyServiceName 插件名
-	ReplyServiceName             = "查看"
+	ReplyServiceName             = "perf"
 	brief                        = "查看运行状况"
 	filePath                     = "C:\\Program Files (x86)\\MSI Afterburner\\HardwareMonitoring.hml" // 温度配置文件路径
 	imagePath        kitten.Path = "perf/path.txt"                                                    // 保存图片路径的文件

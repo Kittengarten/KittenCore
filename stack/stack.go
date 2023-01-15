@@ -25,7 +25,7 @@ import (
 
 const (
 	// ReplyServiceName 插件名
-	ReplyServiceName             = "叠猫猫"
+	ReplyServiceName             = "stack"
 	brief                        = "一起来玩叠猫猫"
 	imagePath        kitten.Path = "image/path.txt" // 保存图片路径的文件
 	dataFile                     = "data.yaml"      // 叠猫猫数据文件

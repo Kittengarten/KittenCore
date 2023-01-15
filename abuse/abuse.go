@@ -21,7 +21,7 @@ import (
 
 const (
 	// ReplyServiceName 插件名
-	ReplyServiceName             = "挨骂"
+	ReplyServiceName             = "abuse"
 	brief                        = "在线挨骂"
 	filePath         kitten.Path = "abuse/config.yaml" // 配置文件路径
 	imagePath        kitten.Path = "abuse/path.txt"    // 保存图片路径的文件

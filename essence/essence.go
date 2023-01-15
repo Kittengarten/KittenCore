@@ -21,7 +21,7 @@ import (
 
 const (
 	// ReplyServiceName 插件名
-	ReplyServiceName = "精华消息"
+	ReplyServiceName = "essence"
 	brief            = "获取精华消息"
 	fail             = "获取精华消息失败喵！"
 )
