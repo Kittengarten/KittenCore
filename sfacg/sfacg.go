@@ -125,10 +125,10 @@ func init() {
 					track[0].GroupID = []int64{ctx.Event.GroupID}
 					cf = append(cf, track[0])
 				}
-				if saveConfig(cf, engine) {
-					ctx.Send(fmt.Sprintf("添加《%s》报更成功喵！", novel.Name))
-				} else if hasGroup {
+				if hasGroup {
 					ctx.Send(fmt.Sprintf("《%s》已经添加报更了喵！", novel.Name))
+				} else if saveConfig(cf, engine) {
+					ctx.Send(fmt.Sprintf("添加《%s》报更成功喵！", novel.Name))
 				} else {
 					ctx.Send(fmt.Sprintf("添加《%s》报更失败喵！", novel.Name))
 				}
@@ -157,13 +157,14 @@ func init() {
 					}
 					groupSet[v.BookID] = mapset.NewSetFromSlice(gi) // 群号集合
 					l := groupSet[v.BookID].Cardinality()
-					groupSet[v.BookID].Remove(ctx.Event.GroupID)
-					// 如果群号集合为空集
-					if 0 >= groupSet[v.BookID].Cardinality() {
-						cf[k].GroupID = nil
-					} else {
-						ok = l != groupSet[v.BookID].Cardinality()
-						for k, v := range cf {
+					if novel.ID == v.BookID {
+						groupSet[v.BookID].Remove(ctx.Event.GroupID)
+						// 如果群号集合为空集
+						if 0 >= groupSet[v.BookID].Cardinality() {
+							cf[k].GroupID = nil
+							ok = true
+						} else {
+							ok = l != groupSet[v.BookID].Cardinality()
 							gi := groupSet[v.BookID].ToSlice()
 							gs := make([]int64, len(v.GroupID)-1)
 							for i, g := range gi {
@@ -171,9 +172,9 @@ func init() {
 							}
 							cf[k].GroupID = gs
 						}
-					}
-					if 0 >= len(cf[k].GroupID) {
-						cf = append(cf[:k], cf[k+1:]...)
+						if 0 >= len(cf[k].GroupID) {
+							cf = append(cf[:k], cf[k+1:]...)
+						}
 					}
 				}
 			}
@@ -181,7 +182,7 @@ func init() {
 				if saveConfig(cf, engine) {
 					ctx.Send(fmt.Sprintf("取消《%s》报更成功喵！", novel.Name))
 				} else {
-					ctx.Send(fmt.Sprintf("取消《%s》报更成功喵！", novel.Name))
+					ctx.Send(fmt.Sprintf("取消《%s》报更失败喵！", novel.Name))
 				}
 			} else {
 				ctx.Send("本书不存在或不在追更列表，也许有其它错误喵～")
