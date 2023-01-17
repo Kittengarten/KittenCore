@@ -1,4 +1,4 @@
-// Package sfacg SF轻小说更新播报、小说信息查询、小说更新查询
+// Package sfacg SF 轻小说更新播报、小说信息查询、小说更新查询
 package sfacg
 
 import (
@@ -23,7 +23,7 @@ import (
 const (
 	// ReplyServiceName 插件名
 	ReplyServiceName     = "SFACG"
-	brief                = "获取SF小说信息"
+	brief                = "SF 轻小说更新播报、信息查询、更新查询"
 	configFile           = "config.yaml" // 配置文件名
 	ag                   = "参数"
 	commandNovel         = "小说"
@@ -41,7 +41,7 @@ func init() {
 			fmt.Sprintf("%s%s [%s]，可测试报更功能", cpf, commandUpdateTest, ag),
 			fmt.Sprintf("%s%s [%s]，可预览更新内容", cpf, commandUpdatePreview, ag),
 			fmt.Sprintf("%s%s [%s]，可添加小说自动报更", cpf, commandAddUpadte, ag),
-			fmt.Sprintf("%s%s [%s]，可取消小说自动报更", cpf, commandAddUpadte, ag),
+			fmt.Sprintf("%s%s [%s]，可取消小说自动报更", cpf, commandCancelUpadte, ag),
 		}, "\n")
 		// 注册插件
 		engine = control.Register(ReplyServiceName, &ctrl.Options[*zero.Ctx]{
@@ -99,7 +99,7 @@ func init() {
 				cfi := make([]interface{}, len(cf)) // 书号接口数组
 				for k, v := range cf {
 					cfi[k] = v.BookID
-					gi := make([]interface{}, len(v.GroupID))
+					gi := make([]interface{}, len(v.GroupID)) // 群号接口数组
 					for i, g := range v.GroupID {
 						gi[i] = g
 					}
@@ -151,21 +151,26 @@ func init() {
 				cfi := make([]interface{}, len(cf)) // 书号接口数组
 				for k, v := range cf {
 					cfi[k] = v.BookID
-					gi := make([]interface{}, len(v.GroupID))
+					gi := make([]interface{}, len(v.GroupID)) // 群号接口数组
 					for i, g := range v.GroupID {
 						gi[i] = g
 					}
 					groupSet[v.BookID] = mapset.NewSetFromSlice(gi) // 群号集合
 					l := groupSet[v.BookID].Cardinality()
 					groupSet[v.BookID].Remove(ctx.Event.GroupID)
-					ok = l != groupSet[v.BookID].Cardinality()
-					for k, v := range cf {
-						gi := groupSet[v.BookID].ToSlice()
-						gs := make([]int64, len(v.GroupID)-1)
-						for i, g := range gi {
-							gs[i] = g.(int64)
+					// 如果群号集合为空集
+					if 0 >= groupSet[v.BookID].Cardinality() {
+						cf[k].GroupID = nil
+					} else {
+						ok = l != groupSet[v.BookID].Cardinality()
+						for k, v := range cf {
+							gi := groupSet[v.BookID].ToSlice()
+							gs := make([]int64, len(v.GroupID)-1)
+							for i, g := range gi {
+								gs[i] = g.(int64)
+							}
+							cf[k].GroupID = gs
 						}
-						cf[k].GroupID = gs
 					}
 					if 0 >= len(cf[k].GroupID) {
 						cf = append(cf[:k], cf[k+1:]...)
