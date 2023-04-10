@@ -21,10 +21,10 @@ import (
 
 const (
 	// ReplyServiceName 插件名
-	ReplyServiceName             = "abuse"
-	brief                        = "在线挨骂"
-	filePath         kitten.Path = "abuse/config.yaml" // 配置文件路径
-	imagePath        kitten.Path = "abuse/path.txt"    // 保存图片路径的文件
+	ReplyServiceName             = `abuse`
+	brief                        = `在线挨骂`
+	filePath         kitten.Path = `abuse/config.yaml` // 配置文件路径
+	imagePath        kitten.Path = `abuse/path.txt`    // 保存图片路径的文件
 	randMax                      = 100                 // 随机数上限（不包含）
 )
 
@@ -36,9 +36,9 @@ var (
 func init() {
 	go load()
 	var (
-		help = strings.Join([]string{"发送",
-			"骂我 或 挨骂",
-			"在线挨骂，如果担心被冒犯到，请勿使用，否则后果自负",
+		help = strings.Join([]string{`发送`,
+			`骂我 或 挨骂`,
+			`在线挨骂，如果担心被冒犯到，请勿使用，否则后果自负`,
 		}, "\n")
 		// 注册插件
 		engine = control.Register(ReplyServiceName, &ctrl.Options[*zero.Ctx]{
@@ -48,16 +48,16 @@ func init() {
 		})
 	)
 
-	engine.OnFullMatchGroup([]string{"骂我", "挨骂"}).SetBlock(true).
+	engine.OnFullMatchGroup([]string{`骂我`, `挨骂`}).SetBlock(true).
 		Limit(ctxext.NewLimiterManager(time.Minute, 1).LimitByUser).Handle(func(ctx *zero.Ctx) {
 		var (
 			i             = abuseResponses.Choose()
 			messageToSend message.MessageSegment
 		)
-		if abuseConfig[i].String == "" {
-			if abuseConfig[i].Image == "" {
-				log.Warnf("获取不到 %s 信息喵！", ReplyServiceName)
-				messageToSend = kitten.TextOf("喵喵不想理你（好感 - %d）", rand.Intn(randMax)+1)
+		if abuseConfig[i].String == `` {
+			if abuseConfig[i].Image == `` {
+				log.Warnf(`获取不到 %s 信息喵！`, ReplyServiceName)
+				messageToSend = kitten.TextOf(`喵喵不想理你（好感 - %d）`, rand.Intn(randMax)+1)
 			} else {
 				messageToSend = imagePath.GetImage(abuseConfig[i].GetInformation())
 			}
@@ -74,7 +74,7 @@ func loadConfig() (cf []Response) {
 	if kitten.Check(err) {
 		yaml.Unmarshal(b, &cf)
 	} else {
-		log.Errorf("加载 %s 配置失败喵！", ReplyServiceName)
+		log.Errorf(`加载 %s 配置失败喵！`, ReplyServiceName)
 	}
 	return
 }

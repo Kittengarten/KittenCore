@@ -41,4 +41,13 @@ type (
 		GetInformation() string // 该项目的信息
 		GetChance() int         // 该项目的权重
 	}
+
+	// Pingstr 是延迟毫秒数对应的语言描述
+	Pingstr struct {
+		Min    string // 最小延迟
+		Avg    string // 平均延迟
+		Max    string // 最大延迟
+		StdDev string // 延迟抖动
+		Loss   string // 丢包率
+	}
 )

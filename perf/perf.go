@@ -4,6 +4,7 @@ package perf
 import (
 	"fmt"
 	"os"
+	"runtime"
 	"strconv"
 	"strings"
 	"time"
@@ -11,6 +12,7 @@ import (
 	ctrl "github.com/FloatTech/zbpctrl"
 	"github.com/FloatTech/zbputils/control"
 	"github.com/FloatTech/zbputils/ctxext"
+	probing "github.com/prometheus-community/pro-bing"
 	zero "github.com/wdvxdr1123/ZeroBot"
 	"github.com/wdvxdr1123/ZeroBot/message"
 
@@ -42,16 +44,17 @@ const (
 	// YiB 表示 YiB 所含字节数的变量
 	YiB
 	// ReplyServiceName 插件名
-	ReplyServiceName             = "perf"
-	brief                        = "查看运行状况"
-	filePath                     = "C:\\Program Files (x86)\\MSI Afterburner\\HardwareMonitoring.hml" // 温度配置文件路径
-	imagePath        kitten.Path = "perf/path.txt"                                                    // 保存图片路径的文件
+	ReplyServiceName             = `perf`
+	brief                        = `查看运行状况`
+	filePath         kitten.Path = `perf/file.txt` // 保存温度配置文件路径的文件
+	imagePath        kitten.Path = `perf/path.txt` // 保存图片路径的文件
+	webPath          kitten.Path = `perf/web.txt`  // 保存官网的文件
 )
 
 func init() {
 	var (
-		help = strings.Join([]string{"发送",
-			fmt.Sprintf("%s查看%s，可获取服务器运行状况", kitten.Configs.CommandPrefix, kitten.Configs.NickName[0]),
+		help = strings.Join([]string{`发送`,
+			fmt.Sprintf(`%s查看%s，可获取服务器运行状况`, kitten.Configs.CommandPrefix, kitten.Configs.NickName[0]),
 		}, "\n")
 		// 注册插件
 		engine = control.Register(ReplyServiceName, &ctrl.Options[*zero.Ctx]{
@@ -62,50 +65,119 @@ func init() {
 	)
 
 	// 查看功能
-	engine.OnCommand("查看").SetBlock(true).
-		Limit(ctxext.NewLimiterManager(time.Minute, 1).LimitByGroup).Handle(func(ctx *zero.Ctx) {
+	engine.OnCommand(`查看`).SetBlock(true).
+		Limit(ctxext.NewLimiterManager(3*time.Minute, 1).LimitByGroup).Handle(func(ctx *zero.Ctx) {
 		var (
-			who              = ctx.State["args"].(string)
-			str, pingMessage string
-			report           message.Message
+			who    = ctx.State[`args`].(string)
+			str    string
+			report message.Message
 		)
 		switch who {
 		case zero.BotConfig.NickName[0]:
 			var (
 				cpu                                      = getCPUPercent()
 				mem                                      = getMemPercent()
-				t                                        = getCPUTemperature()
-				ping                                     = kitten.LoadConfig().WebSocket.URL.CheckServer()
+				t                                        kitten.IntString
 				annoStr, flower, elemental, imagery, err = kitten.GetWTAAnno()
 				reportAnno                               string
 			)
-			if 0 >= ping {
-				pingMessage = "连接超时喵！"
-			} else if 1 > ping {
-				pingMessage = "延迟：< 1 ms"
-			} else {
-				pingMessage = fmt.Sprintf("延迟：%d ms", ping)
-			}
 			// 查看性能页
 			if !kitten.Check(err) {
 				log.Errorf("报时失败喵！\n%v", err)
-				reportAnno = "喵？"
+				reportAnno = `喵？`
 			} else {
-				reportAnno = strings.Join([]string{fmt.Sprintf("%s报时：现在是%s", zero.BotConfig.NickName[0], annoStr),
-					fmt.Sprintf("花卉：%s", flower),
-					fmt.Sprintf("～%s元灵之%s～", elemental, imagery),
+				reportAnno = strings.Join([]string{fmt.Sprintf(`%s报时：现在是%s`, zero.BotConfig.NickName[0], annoStr),
+					fmt.Sprintf(`花卉：%s`, flower),
+					fmt.Sprintf(`～%s元灵之%s～`, elemental, imagery),
 				}, "\n")
 			}
-			str = strings.Join([]string{fmt.Sprintf("CPU 使用率：%.2f%%", cpu),
-				fmt.Sprintf("内存使用：%.0f%%（%s）", mem, getMemUsed()),
-				fmt.Sprintf("系统盘使用：%.2f%%（%s）", getDiskPercent(), getDiskUsed()),
-				fmt.Sprintf("体温：%s℃", t),
-				pingMessage,
-				reportAnno,
-			}, "\n")
-			report = message.Message{imagePath.GetImage(strconv.Itoa(getPerf(cpu, mem, t)) + ".png"), message.Text(str)}
+			switch runtime.GOOS {
+			case `windows`:
+				t = getCPUTemperatureOnWindows()
+				str = strings.Join([]string{fmt.Sprintf(`CPU 使用率：%.2f%%`, cpu),
+					fmt.Sprintf(`内存使用：%.0f%%（%s）`, mem, getMemUsed()),
+					fmt.Sprintf(`系统盘使用：%.2f%%（%s）`, getDiskPercent(), getDiskUsed()),
+					fmt.Sprintf(`体温：%s℃`, t),
+					reportAnno,
+				}, "\n")
+				break
+			case `linux`:
+				t = kitten.IntString(`45`)
+				str = strings.Join([]string{fmt.Sprintf(`CPU 使用率：%.2f%%`, cpu),
+					fmt.Sprintf(`内存使用：%.0f%%（%s）`, mem, getMemUsed()),
+					fmt.Sprintf(`系统盘使用：%.2f%%（%s）`, getDiskPercent(), getDiskUsed()),
+					reportAnno,
+				}, "\n")
+				break
+			default:
+				t = kitten.IntString(`45`)
+				str = strings.Join([]string{fmt.Sprintf(`CPU 使用率：%.2f%%`, cpu),
+					fmt.Sprintf(`内存使用：%.0f%%（%s）`, mem, getMemUsed()),
+					reportAnno,
+				}, "\n")
+				break
+			}
+			report = message.Message{imagePath.GetImage(strconv.Itoa(getPerf(cpu, mem, t)) + `.png`), message.Text(str)}
 			ctx.Send(report)
+			var (
+				ping        = kitten.URL(webPath.LoadPath()).CheckServer()
+				pingMessage = kitten.CheckPing(ping)
+			)
+			pingStr := strings.Join([]string{pingMessage.Min,
+				pingMessage.Avg,
+				pingMessage.Max,
+				pingMessage.StdDev,
+				pingMessage.Loss,
+			}, "\n")
+			ctx.Send(pingStr)
+			break
+		default:
+			kitten.DoNotKnow(ctx)
+			break
 		}
+	})
+
+	// Ping 功能
+	engine.OnCommand(`ping`).SetBlock(true).
+		Limit(ctxext.NewLimiterManager(time.Minute, 1).LimitByGroup).Handle(func(ctx *zero.Ctx) {
+		var (
+			pingURL    = ctx.State[`args`].(string)
+			reportAnno string
+			pingMsg    string
+			nbytes     int
+		)
+		pinger, err := probing.NewPinger(pingURL)
+		pinger.Count = 4 // 检测 4 次
+		if err != nil {
+			kitten.DoNotKnow(ctx)
+			return
+		}
+
+		pinger.OnRecv = func(pkt *probing.Packet) {
+			pingMsg = strings.Join([]string{pingMsg,
+				fmt.Sprintf(`来自 %s 的回复：字节=%d 时间=%v TTL=%v`, pkt.IPAddr, pkt.Nbytes, pkt.Rtt, pkt.TTL),
+			}, "\n")
+			nbytes = pkt.Nbytes
+		}
+
+		pinger.OnFinish = func(stats *probing.Statistics) {
+			reportAnno = strings.Join([]string{fmt.Sprintf(`正在 Ping %s [%s] 具有 %d 字节的数据：`, pingURL, stats.IPAddr, nbytes),
+				pingMsg,
+				``,
+				fmt.Sprintf(`%s 的 Ping 统计信息：`, stats.IPAddr),
+				fmt.Sprintf(`　　数据包：已发送 = %d，已接收 = %d，丢失 = %d（%v%% 丢失）`,
+					stats.PacketsSent, stats.PacketsRecv, stats.PacketsSent-stats.PacketsRecv, stats.PacketLoss),
+				`往返行程的估计时间：`,
+				fmt.Sprintf(`　　最短 = %v，最长 = %v，平均 = %v`, stats.MinRtt, stats.MaxRtt, stats.AvgRtt),
+			}, "\n")
+		}
+
+		err = pinger.Run()
+		if err != nil {
+			kitten.DoNotKnow(ctx)
+			log.Error(`Ping 出现错误：%v`, err)
+		}
+		ctx.Send(reportAnno)
 	})
 }
 
@@ -135,16 +207,16 @@ func getMemPercent() float64 {
 // 内存使用情况
 func getMemUsed() (str string) {
 	var (
-		used  = fmt.Sprintf("%.2f MiB", float64(getMem().Used)/MiB)
-		total = fmt.Sprintf("%.2f MiB", float64(getMem().Total)/MiB)
+		used  = fmt.Sprintf(`%.2f MiB`, float64(getMem().Used)/MiB)
+		total = fmt.Sprintf(`%.2f MiB`, float64(getMem().Total)/MiB)
 	)
-	str = used + "/" + total
+	str = used + `/` + total
 	return
 }
 
 // 磁盘使用调用
 func getDisk() (diskInfo *disk.UsageStat) {
-	parts, err1 := disk.Partitions(true)
+	parts, err1 := disk.Partitions(false)
 	diskInfo, err2 := disk.Usage(parts[0].Mountpoint)
 	if !(kitten.Check(err1) && kitten.Check(err2)) {
 		log.Warnf("获取磁盘使用失败了喵！\n%v\n%v", err1, err2)
@@ -160,18 +232,18 @@ func getDiskPercent() float64 {
 // 系统盘使用情况
 func getDiskUsed() (str string) {
 	var (
-		used  = fmt.Sprintf("%.2f GiB", float64(getDisk().Used)/GiB)
-		total = fmt.Sprintf("%.2f GiB", float64(getDisk().Total)/GiB)
+		used  = fmt.Sprintf(`%.2f GiB`, float64(getDisk().Used)/GiB)
+		total = fmt.Sprintf(`%.2f GiB`, float64(getDisk().Total)/GiB)
 	)
-	str = used + "/" + total
+	str = used + `/` + total
 	return
 }
 
-// 获取CPU温度
-func getCPUTemperature() (CPUTemperature kitten.IntString) {
-	os.Remove(filePath)
+// Windows 系统下获取 CPU 温度
+func getCPUTemperatureOnWindows() (CPUTemperature kitten.IntString) {
+	os.Remove(string(filePath.LoadPath()))
 	time.Sleep(1 * time.Second)
-	file, err := os.ReadFile(filePath)
+	file, err := os.ReadFile(string(filePath.LoadPath()))
 	if !kitten.Check(err) {
 		log.Warnf("获取 CPU 温度日志失败了喵！\n%v", err)
 	}
@@ -183,7 +255,7 @@ func getCPUTemperature() (CPUTemperature kitten.IntString) {
 func getPerf(cpu float64, mem float64, t kitten.IntString) int {
 	if tt := float64(t.Int()); 0 < tt && 100 > tt {
 		perf := 0.00005 * (cpu + mem) * tt
-		log.Tracef("%s的负荷评分是 %f……", zero.BotConfig.NickName[0], perf)
+		log.Tracef(`%s的负荷评分是 %f……`, zero.BotConfig.NickName[0], perf)
 		switch {
 		case 0.1 > perf:
 			return 0

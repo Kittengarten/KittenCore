@@ -23,7 +23,7 @@ var (
 
 const (
 	randMax      = 100           // 随机数上限（不包含）
-	path    Path = "config.yaml" // 配置文件名
+	path    Path = `config.yaml` // 配置文件名
 )
 
 func init() {
@@ -35,7 +35,7 @@ func init() {
 	}()
 
 	// 戳一戳
-	zero.On("notice/notify/poke", zero.OnlyToMe).SetBlock(true).Handle(func(ctx *zero.Ctx) {
+	zero.On(`notice/notify/poke`, zero.OnlyToMe).SetBlock(true).Handle(func(ctx *zero.Ctx) {
 		var (
 			// 本群的群号
 			g = ctx.Event.GroupID
@@ -48,7 +48,7 @@ func init() {
 			ctx.SendChain(message.Poke(u))
 		case poke.Load(g).AcquireN(3):
 			// 5 分钟共 8 块命令牌 一次消耗 3 块命令牌
-			ctx.SendChain(message.At(u), TextOf("请不要拍%s >_<", nickname))
+			ctx.SendChain(message.At(u), TextOf(`请不要拍%s >_<`, nickname))
 		case poke.Load(g).Acquire():
 			// 5 分钟共 8 块命令牌 一次消耗 1 块命令牌
 			ctx.SendChain(message.At(u), TextOf("喂(#`O′) 拍%s干嘛！（好感 - %d）", nickname, rand.Intn(randMax)+1))

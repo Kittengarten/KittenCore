@@ -29,7 +29,7 @@ re:
 			// 如果文件不存在，创建文件后重新载入命令
 			fp, err := os.Create(e.DataFolder() + configFile)
 			if kitten.Check(err) {
-				fp.WriteString("[]")
+				fp.WriteString(`[]`)
 				defer fp.Close()
 				goto re
 			}
@@ -49,7 +49,7 @@ func saveConfig(cf Config, e *control.Engine) (ok bool) {
 		log.Errorf("配置文件写入错误喵！\n%v\n%v", err1, err2)
 		reciver := kitten.Configs.SuperUsers[0]
 		if kitten.Bot != nil {
-			kitten.Bot.SendPrivateMessage(reciver, "追更配置文件写入错误，请检查日志喵！")
+			kitten.Bot.SendPrivateMessage(reciver, `追更配置文件写入错误，请检查日志喵！`)
 		}
 	}
 	return
@@ -57,6 +57,6 @@ func saveConfig(cf Config, e *control.Engine) (ok bool) {
 
 // 判断字符串是否为整数（可用于判断是书号还是关键词）
 func isInt(str string) bool {
-	match, _ := regexp.MatchString("^[0-9]+$", str)
+	match, _ := regexp.MatchString(`^[0-9]+$`, str)
 	return match
 }

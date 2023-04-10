@@ -25,6 +25,7 @@ import (
 	_ "github.com/FloatTech/ZeroBot-Plugin/plugin/manager"
 
 	_ "github.com/FloatTech/ZeroBot-Plugin/plugin/ahsai"
+	_ "github.com/FloatTech/ZeroBot-Plugin/plugin/ai_false"
 	_ "github.com/FloatTech/ZeroBot-Plugin/plugin/aipaint"
 	_ "github.com/FloatTech/ZeroBot-Plugin/plugin/aiwife"
 	_ "github.com/FloatTech/ZeroBot-Plugin/plugin/alipayvoice"
@@ -41,12 +42,14 @@ import (
 	_ "github.com/FloatTech/ZeroBot-Plugin/plugin/font"
 	_ "github.com/FloatTech/ZeroBot-Plugin/plugin/gif"
 	_ "github.com/FloatTech/ZeroBot-Plugin/plugin/github"
+	_ "github.com/FloatTech/ZeroBot-Plugin/plugin/hitokoto"
 	_ "github.com/FloatTech/ZeroBot-Plugin/plugin/image_finder"
 	_ "github.com/FloatTech/ZeroBot-Plugin/plugin/jiami"
-	_ "github.com/FloatTech/ZeroBot-Plugin/plugin/jikipedia"
 	_ "github.com/FloatTech/ZeroBot-Plugin/plugin/lolicon"
 	_ "github.com/FloatTech/ZeroBot-Plugin/plugin/midicreate"
 	_ "github.com/FloatTech/ZeroBot-Plugin/plugin/moegoe"
+	_ "github.com/FloatTech/ZeroBot-Plugin/plugin/moyu"
+	_ "github.com/FloatTech/ZeroBot-Plugin/plugin/moyu_calendar"
 	_ "github.com/FloatTech/ZeroBot-Plugin/plugin/music"
 	_ "github.com/FloatTech/ZeroBot-Plugin/plugin/nativewife"
 	_ "github.com/FloatTech/ZeroBot-Plugin/plugin/nbnhhsh"
@@ -61,6 +64,7 @@ import (
 	_ "github.com/FloatTech/ZeroBot-Plugin/plugin/wenben"
 	_ "github.com/FloatTech/ZeroBot-Plugin/plugin/wenxinAI"
 	_ "github.com/FloatTech/ZeroBot-Plugin/plugin/ymgal"
+	_ "github.com/Kittengarten/KittenCore/kokomi"
 
 	_ "github.com/FloatTech/ZeroBot-Plugin/plugin/ai_reply"
 
@@ -112,11 +116,11 @@ func (f LogFormat) Format(entry *log.Entry) ([]byte, error) {
 	buf := new(bytes.Buffer)
 	buf.WriteString(getLogLevelColorCode(entry.Level))
 	buf.WriteByte('[')
-	buf.WriteString(entry.Time.Format("2006-01-02 15:04:05"))
-	buf.WriteString("] ")
+	buf.WriteString(entry.Time.Format(`2006-01-02 15:04:05`))
+	buf.WriteString(`] `)
 	buf.WriteByte('[')
 	buf.WriteString(strings.ToUpper(entry.Level.String()))
-	buf.WriteString("]: ")
+	buf.WriteString(`]: `)
 	buf.WriteString(entry.Message)
 	buf.WriteString(" \n")
 	buf.WriteString(colorReset)
@@ -130,7 +134,7 @@ func init() {
 		// 配置分割日志文件
 		writer, err = logf.New(
 			// 分割日志文件命名规则
-			kitten.GetMidText("", ".txt", logName)+"-%Y-%m-%d.txt",
+			kitten.GetMidText(``, `.txt`, logName)+`-%Y-%m-%d.txt`,
 			// 与最新的日志文件建立软链接
 			logf.WithLinkName(logName),
 			// 分割日志文件间隔
@@ -148,7 +152,7 @@ func init() {
 	if mw := io.MultiWriter(os.Stdout, writer); kitten.Check(err) {
 		log.SetOutput(mw)
 	} else {
-		log.Warn("主函数写入日志失败了喵！")
+		log.Warn(`主函数写入日志失败了喵！`)
 	}
 	// 设置最低日志等级
 	log.SetLevel(config.Log.GetLogLevel())

@@ -9,7 +9,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/go-ping/ping"
+	probing "github.com/prometheus-community/pro-bing"
 	"github.com/tidwall/gjson"
 	"gopkg.in/yaml.v3"
 
@@ -56,7 +56,7 @@ func (lc LogConfig) GetLogLevel() log.Level {
 func (path Path) Read() (data []byte, err error) {
 	res, err := os.Open(string(path))
 	if !Check(err) {
-		log.Warnf("读取文件 %s 失败了喵！", path)
+		log.Warnf(`读取文件 %s 失败了喵！`, path)
 	} else {
 		defer res.Close()
 	}
@@ -64,7 +64,7 @@ func (path Path) Read() (data []byte, err error) {
 	if Check(err) {
 		return
 	}
-	log.Warnf("打开文件 %s 失败了喵！\n%v", path, err)
+	log.Warnf(`打开文件 %s 失败了喵！\n%v`, path, err)
 	return
 }
 
@@ -72,7 +72,7 @@ func (path Path) Read() (data []byte, err error) {
 func (path Path) Write(data []byte) (err error) {
 	res, err := os.Open(string(path))
 	if !Check(err) {
-		log.Warnf("写入文件 %s 失败了喵！", path)
+		log.Warnf(`写入文件 %s 失败了喵！`, path)
 	} else {
 		defer res.Close()
 	}
@@ -135,7 +135,7 @@ func Check(err interface{}) bool {
 	return true
 }
 
-// Choose 按权重抽取一个项目的序号 i，有可能返回-1（这种情况代表项目列表为空，需要处理以免报错）
+// Choose 按权重抽取一个项目的序号 i，有可能返回 -1（这种情况代表项目列表为空，需要处理以免报错）
 func (cs Choices) Choose() int {
 	var cAll, cNum = 0, 0
 	for i := range cs {
@@ -188,10 +188,10 @@ func TextOf(format string, a ...any) message.MessageSegment {
 // GetTitle 从 QQ 获取【头衔】
 func (u QQ) GetTitle(ctx zero.Ctx) (title string) {
 	gmi := ctx.GetGroupMemberInfo(ctx.Event.GroupID, int64(u), true)
-	if titleStr := gjson.Get(gmi.Raw, "title").Str; titleStr == "" {
+	if titleStr := gjson.Get(gmi.Raw, `title`).Str; titleStr == `` {
 		title = titleStr
 	} else {
-		title = fmt.Sprintf("【%s】", gjson.Get(gmi.Raw, "title").Str)
+		title = fmt.Sprintf(`【%s】`, gjson.Get(gmi.Raw, `title`).Str)
 	}
 	return
 }
@@ -212,23 +212,72 @@ func LoadConfig() (config Config) {
 func GetWTAAnno() (str string, flower string, elemental string, imagery string, err error) {
 	anno, err := wta.GetAnno()
 	str = anno.YearStr + anno.MonthStr + anno.DayStr
-	str = fmt.Sprintf("%s　%d:%0*d:%0*d", str, anno.Hour, 2, anno.Minute, 2, anno.Second)
+	str = fmt.Sprintf(`%s　%d:%0*d:%0*d`, str, anno.Hour, 2, anno.Minute, 2, anno.Second)
 	flower, elemental, imagery = anno.Flower, anno.Elemental, anno.Imagery
 	return
 }
 
 // CheckServer 检查连接状况，错误则返回 -1，正常则返回延迟的毫秒数
-func (s URL) CheckServer() int64 {
-	s1 := GetMidText("//", ":", string(s))
-	log.Tracef("正在 Ping %s 喵……", s1)
-	pinger, err := ping.NewPinger(s1)
+func (s URL) CheckServer() *probing.Statistics {
+	s1 := GetMidText(`//`, `:`, string(s))
+	log.Tracef(`正在 Ping %s 喵……`, s1)
+	pinger, err := probing.NewPinger(s1)
 	if Check(err) {
-		pinger.Count = 1             // 检测 1 次
-		pinger.Timeout = time.Second // 超时为 1 秒
-		pinger.SetPrivileged(true)
+		pinger.Timeout = 120 * time.Second // 超时为 120 秒
+		pinger.Count = 100                 // 检测 100 次
+		pinger.OnRecv = func(pkt *probing.Packet) {
+			log.Tracef("%d 字节来自 %s：icmp 顺序：%d 延迟：%v\n",
+				pkt.Nbytes, pkt.IPAddr, pkt.Seq, pkt.Rtt)
+		}
+		pinger.OnDuplicateRecv = func(pkt *probing.Packet) {
+			log.Tracef("%d 字节来自 %s：icmp 顺序：%d 延迟：%v TTL：%v (DUP!)\n",
+				pkt.Nbytes, pkt.IPAddr, pkt.Seq, pkt.Rtt, pkt.TTL)
+		}
+		pinger.OnFinish = func(stats *probing.Statistics) {
+			log.Tracef("\n--- %s Ping 统计 ---\n", stats.Addr)
+			log.Tracef("发出了 %d 个包，接收了 %d 个包，丢包率 %v%%\n",
+				stats.PacketsSent, stats.PacketsRecv, stats.PacketLoss)
+			log.Tracef("延迟 最小值 / 平均值 / 最大值 / 抖动 毫秒数 = %v / %v / %v / %v \n",
+				stats.MinRtt, stats.AvgRtt, stats.MaxRtt, stats.StdDevRtt)
+		}
 		pinger.Run() // 直到完成之前，阻塞
-		return pinger.Statistics().AvgRtt.Milliseconds()
+		return pinger.Statistics()
 	}
 	log.Warnf("Ping 出现错误了喵！\n%v", err)
-	return -1
+	return nil
+}
+
+// CheckPing 检查延迟，返回延迟毫秒数对应的语言描述
+func CheckPing(p *probing.Statistics) (ps Pingstr) {
+	if 0 > p.MinRtt {
+		ps.Min = `连接超时喵！`
+		return
+	} else if time.Microsecond > p.MinRtt {
+		ps.Min = `最小延迟：< 1 μs`
+	} else {
+		ps.Min = fmt.Sprintf(`最小延迟：%v`, p.MinRtt)
+	}
+	if 0 > p.AvgRtt {
+		ps.Avg = `连接超时喵！`
+		return
+	} else if time.Microsecond > p.AvgRtt {
+		ps.Avg = `平均延迟：< 1 μs`
+	} else {
+		ps.Avg = fmt.Sprintf(`平均延迟：%v`, p.AvgRtt)
+	}
+	if 0 > p.MaxRtt {
+		ps.Max = `连接超时喵！`
+	} else if time.Microsecond > p.MaxRtt {
+		ps.Max = `最大延迟：< 1 μs`
+	} else {
+		ps.Max = fmt.Sprintf(`最大延迟：%v`, p.MaxRtt)
+	}
+	ps.StdDev = fmt.Sprintf(`延迟抖动：%v`, p.StdDevRtt)
+	ps.Loss = fmt.Sprintf(`丢包率：%.0f%%`, p.PacketLoss)
+	return
+}
+
+// DoNotKnow 喵喵不知道哦
+func DoNotKnow(ctx *zero.Ctx) {
+	ctx.Send(fmt.Sprintf(`%s不知道哦`, zero.BotConfig.NickName[0]))
 }

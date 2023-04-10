@@ -25,32 +25,32 @@ import (
 
 const (
 	// ReplyServiceName 插件名
-	ReplyServiceName = "eekda"
-	brief            = "今天吃什么"
-	namePath         = "eekda/name.txt" // 保存名字的文件
-	todayFile        = "today.yaml"     // 保存今天吃什么的文件
-	statFile         = "stat.yaml"      // 保存统计数据的文件
+	ReplyServiceName = `eekda`
+	brief            = `今天吃什么`
+	namePath         = `eekda/name.txt` // 保存名字的文件
+	todayFile        = `today.yaml`     // 保存今天吃什么的文件
+	statFile         = `stat.yaml`      // 保存统计数据的文件
 )
 
 func init() {
 	var (
 		name = getName()
-		help = strings.Join([]string{"发送",
-			fmt.Sprintf("%s今天吃什么", name),
-			fmt.Sprintf("获取%s今日食谱", name),
-			fmt.Sprintf("%s查询被吃次数", kitten.Configs.CommandPrefix),
-			"查询本人被吃次数",
+		help = strings.Join([]string{`发送`,
+			fmt.Sprintf(`%s今天吃什么`, name),
+			fmt.Sprintf(`获取%s今日食谱`, name),
+			fmt.Sprintf(`%s查询被吃次数`, kitten.Configs.CommandPrefix),
+			`查询本人被吃次数`,
 		}, "\n")
 		// 注册插件
 		engine = control.Register(ReplyServiceName, &ctrl.Options[*zero.Ctx]{
 			DisableOnDefault:  true,
 			Brief:             brief,
 			Help:              help,
-			PrivateDataFolder: "eekda",
+			PrivateDataFolder: `eekda`,
 		}).ApplySingle(ctxext.DefaultSingle)
 	)
 
-	engine.OnFullMatch(fmt.Sprintf("%s今天吃什么", name), zero.OnlyGroup).SetBlock(true).
+	engine.OnFullMatch(fmt.Sprintf(`%s今天吃什么`, name), zero.OnlyGroup).SetBlock(true).
 		Limit(ctxext.NewLimiterManager(time.Minute, 1).LimitByGroup).Handle(func(ctx *zero.Ctx) {
 	re:
 		var (
@@ -65,16 +65,16 @@ func init() {
 				// 生成今天吃什么
 				list := ctx.GetThisGroupMemberListNoCache().Array()
 				sort.SliceStable(list, func(i, j int) bool {
-					return list[i].Get("last_sent_time").Int() < list[j].Get("last_sent_time").Int()
+					return list[i].Get(`last_sent_time`).Int() < list[j].Get(`last_sent_time`).Int()
 				})
 				list = list[math.Max(0, len(list)-50):]
 				nums := generateRandomNumber(0, len((list)), 5)
 				todayData.Time = time.Now()
-				todayData.Breakfast = kitten.QQ(list[nums[0]].Get("user_id").Int())
-				todayData.Lunch = kitten.QQ(list[nums[1]].Get("user_id").Int())
-				todayData.LowTea = kitten.QQ(list[nums[2]].Get("user_id").Int())
-				todayData.Dinner = kitten.QQ(list[nums[3]].Get("user_id").Int())
-				todayData.Supper = kitten.QQ(list[nums[4]].Get("user_id").Int())
+				todayData.Breakfast = kitten.QQ(list[nums[0]].Get(`user_id`).Int())
+				todayData.Lunch = kitten.QQ(list[nums[1]].Get(`user_id`).Int())
+				todayData.LowTea = kitten.QQ(list[nums[2]].Get(`user_id`).Int())
+				todayData.Dinner = kitten.QQ(list[nums[3]].Get(`user_id`).Int())
+				todayData.Supper = kitten.QQ(list[nums[4]].Get(`user_id`).Int())
 				today, err1 := yaml.Marshal(todayData)
 				err2 := kitten.Path(engine.DataFolder() + todayFile).Write(today)
 				if !kitten.Check(err1) || !kitten.Check(err2) {
@@ -87,18 +87,18 @@ func init() {
 					stat, err = kitten.Path(engine.DataFolder() + statFile).Read()
 					statData  Stat
 					isNew     = map[string]bool{
-						"Breakfast": true,
-						"Lunch":     true,
-						"LowTea":    true,
-						"Dinner":    true,
-						"Supper":    true,
+						`Breakfast`: true,
+						`Lunch`:     true,
+						`LowTea`:    true,
+						`Dinner`:    true,
+						`Supper`:    true,
 					}
 					statMap = make(map[kitten.QQ]Kitten) // QQ:猫猫集合
 				)
 				if !kitten.Check(yaml.Unmarshal(stat, &statData)) {
-					log.Warn("饮食统计数据损坏了喵！")
+					log.Warn(`饮食统计数据损坏了喵！`)
 				} else if !kitten.Check(err) {
-					log.Error("饮食统计数据无法访问喵！")
+					log.Error(`饮食统计数据无法访问喵！`)
 				}
 				// 加载数据
 				for _, v := range statData {
@@ -110,11 +110,11 @@ func init() {
 				d, dok := statMap[todayData.Dinner]
 				s, sok := statMap[todayData.Supper]
 				isNew = map[string]bool{
-					"Breakfast": !bfok,
-					"Lunch":     !lok,
-					"LowTea":    !ltok,
-					"Dinner":    !dok,
-					"Supper":    !sok,
+					`Breakfast`: !bfok,
+					`Lunch`:     !lok,
+					`LowTea`:    !ltok,
+					`Dinner`:    !dok,
+					`Supper`:    !sok,
 				}
 				// 修改数据
 				switch true {
@@ -145,7 +145,7 @@ func init() {
 				for k, v := range isNew {
 					var new Kitten
 					switch k {
-					case "Breakfast":
+					case `Breakfast`:
 						new = Kitten{
 							ID:   todayData.Breakfast,
 							Name: getLine(todayData.Breakfast, ctx),
@@ -153,7 +153,7 @@ func init() {
 						if v {
 							new.Breakfast = 1
 						}
-					case "Lunch":
+					case `Lunch`:
 						new = Kitten{
 							ID:   todayData.Lunch,
 							Name: getLine(todayData.Lunch, ctx),
@@ -161,7 +161,7 @@ func init() {
 						if v {
 							new.Lunch = 1
 						}
-					case "LowTea":
+					case `LowTea`:
 						new = Kitten{
 							ID:   todayData.LowTea,
 							Name: getLine(todayData.LowTea, ctx),
@@ -169,7 +169,7 @@ func init() {
 						if v {
 							new.LowTea = 1
 						}
-					case "Dinner":
+					case `Dinner`:
 						new = Kitten{
 							ID:   todayData.Dinner,
 							Name: getLine(todayData.Dinner, ctx),
@@ -177,7 +177,7 @@ func init() {
 						if v {
 							new.Dinner = 1
 						}
-					case "Supper":
+					case `Supper`:
 						new = Kitten{
 							ID:   todayData.Supper,
 							Name: getLine(todayData.Supper, ctx),
@@ -198,20 +198,20 @@ func init() {
 			}
 		} else if isExist, err := kitten.Path(engine.DataFolder() + todayFile).Exists(); !kitten.Check(err) {
 			// 如果不确定文件存在
-			doNotKnow(ctx)
+			kitten.DoNotKnow(ctx)
 		} else if !isExist {
 			// 如果文件不存在，创建文件后重新载入命令
 			if fp, err := os.Create(engine.DataFolder() + todayFile); kitten.Check(err) {
-				fp.WriteString("[]")
+				fp.WriteString(`[]`)
 				defer fp.Close()
 				goto re
 			} else {
-				doNotKnow(ctx)
+				kitten.DoNotKnow(ctx)
 			}
 		}
 	})
 
-	engine.OnFullMatchGroup([]string{"查询被吃次数", "查看被吃次数"}, zero.OnlyGroup).SetBlock(true).
+	engine.OnFullMatchGroup([]string{`查询被吃次数`, `查看被吃次数`}, zero.OnlyGroup).SetBlock(true).
 		Limit(ctxext.NewLimiterManager(time.Minute, 1).LimitByUser).Handle(func(ctx *zero.Ctx) {
 	re:
 		var (
@@ -221,35 +221,35 @@ func init() {
 		)
 		if kitten.Check(err) {
 			if !kitten.Check(yaml.Unmarshal(stat, &statData)) {
-				doNotKnow(ctx)
+				kitten.DoNotKnow(ctx)
 			}
 			for i, v := range statData {
 				if kitten.QQ(ctx.Event.UserID) == v.ID {
 					report := strings.Join([]string{fmt.Sprintf("\n%s的被吃次数", getLine(kitten.QQ(ctx.Event.UserID), ctx)),
-						fmt.Sprintf("早餐：%d 次", statData[i].Breakfast),
-						fmt.Sprintf("午餐：%d 次", statData[i].Lunch),
-						fmt.Sprintf("下午茶：%d 次", statData[i].LowTea),
-						fmt.Sprintf("晚餐：%d 次", statData[i].Dinner),
-						fmt.Sprintf("夜宵：%d 次", statData[i].Supper),
+						fmt.Sprintf(`早餐：%d 次`, statData[i].Breakfast),
+						fmt.Sprintf(`午餐：%d 次`, statData[i].Lunch),
+						fmt.Sprintf(`下午茶：%d 次`, statData[i].LowTea),
+						fmt.Sprintf(`晚餐：%d 次`, statData[i].Dinner),
+						fmt.Sprintf(`夜宵：%d 次`, statData[i].Supper),
 					}, "\n")
 					ctx.SendChain(message.At(ctx.Event.UserID), message.Text(report))
 					isGet = true
 				}
 			}
 			if !isGet {
-				doNotKnow(ctx)
+				kitten.DoNotKnow(ctx)
 			}
 		} else if isExist, err := kitten.Path(engine.DataFolder() + statFile).Exists(); !kitten.Check(err) {
 			// 如果不确定文件存在
-			doNotKnow(ctx)
+			kitten.DoNotKnow(ctx)
 		} else if !isExist {
 			// 如果文件不存在，创建文件后重新载入命令
 			if fp, err := os.Create(engine.DataFolder() + statFile); kitten.Check(err) {
-				fp.WriteString("[]")
+				fp.WriteString(`[]`)
 				defer fp.Close()
 				goto re
 			} else {
-				doNotKnow(ctx)
+				kitten.DoNotKnow(ctx)
 			}
 		}
 
@@ -269,7 +269,7 @@ func getName() string {
 		return string(data)
 	}
 	log.Warnf("打开文件 %s 失败了喵！\n%v", namePath, err)
-	return ""
+	return ``
 }
 
 // 获取条目，u 为 QQ
@@ -278,24 +278,19 @@ func getLine(u kitten.QQ, ctx *zero.Ctx) string {
 		ID:   u,
 		Name: u.GetTitle(*ctx) + ctx.CardOrNickName(int64(u)),
 	}
-	return fmt.Sprintf("%s（%d）", info.Name, info.ID)
+	return fmt.Sprintf(`%s（%d）`, info.Name, info.ID)
 }
 
 // 播报今天吃什么，t 为今日数据
 func report(t Today, name string, ctx *zero.Ctx) {
-	report := strings.Join([]string{fmt.Sprintf("【%s今天吃什么】", name),
-		fmt.Sprintf("早餐：%s", getLine(t.Breakfast, ctx)),
-		fmt.Sprintf("午餐：%s", getLine(t.Lunch, ctx)),
-		fmt.Sprintf("下午茶：%s", getLine(t.LowTea, ctx)),
-		fmt.Sprintf("晚餐：%s", getLine(t.Dinner, ctx)),
-		fmt.Sprintf("夜宵：%s", getLine(t.Supper, ctx)),
+	report := strings.Join([]string{fmt.Sprintf(`【%s今天吃什么】`, name),
+		fmt.Sprintf(`早餐：%s`, getLine(t.Breakfast, ctx)),
+		fmt.Sprintf(`午餐：%s`, getLine(t.Lunch, ctx)),
+		fmt.Sprintf(`下午茶：%s`, getLine(t.LowTea, ctx)),
+		fmt.Sprintf(`晚餐：%s`, getLine(t.Dinner, ctx)),
+		fmt.Sprintf(`夜宵：%s`, getLine(t.Supper, ctx)),
 	}, "\n")
 	ctx.Send(report)
-}
-
-// 喵喵不知道哦
-func doNotKnow(ctx *zero.Ctx) {
-	ctx.Send(fmt.Sprintf("%s不知道哦", zero.BotConfig.NickName[0]))
 }
 
 // 生成 count 个 [start, end) 范围的不重复的随机数
@@ -304,26 +299,24 @@ func generateRandomNumber(start int, end int, count int) []int {
 	if end < start || (end-start) < count {
 		return nil
 	}
-	// 存放结果的 slice
-	nums := make([]int, 0)
+	var (
+		// 存放结果的集合（不重复）
+		set = make(map[int]bool)
+		// 存放结果的数组
+		nums []int
+		// 数组初始下标
+		i = 0
+	)
 	// 随机数生成器，加入时间戳保证每次生成的随机数不一样
 	r := rand.New(rand.NewSource(time.Now().UnixNano()))
-	for len(nums) < count {
-		var (
-			// 生成随机数
-			num = r.Intn((end - start)) + start
-			// 查重
-			exist bool
-		)
-		for _, v := range nums {
-			if v == num {
-				exist = true
-				break
-			}
-		}
-		if !exist {
-			nums = append(nums, num)
-		}
+	for len(set) < count {
+		// 生成随机数
+		set[r.Intn((end-start))+start] = false
+	}
+	// 集合转换为数组
+	for k := range set {
+		nums[i] = k
+		i++
 	}
 	return nums
 }
