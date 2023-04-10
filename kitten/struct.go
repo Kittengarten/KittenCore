@@ -8,7 +8,8 @@ type (
 		SuperUsers    []int64         // 管理员账号
 		CommandPrefix string          // 指令前缀
 		WebSocket     WebSocketConfig // WebSocket 配置
-		Log           LogConfig
+		Log           LogConfig       // 日志配置
+		WebUI         WebUIConfig     // WebUI 配置
 	}
 
 	// WebSocketConfig 是一个 WebSocket 链接的配置
@@ -19,6 +20,11 @@ type (
 
 	// URL 代表 URL 的字符串
 	URL string
+
+	// WebUIConfig 是一个 WebUI 的配置
+	WebUIConfig struct {
+		URL URL // WebUI 链接
+	}
 
 	// LogConfig 是一个日志的配置
 	LogConfig struct {

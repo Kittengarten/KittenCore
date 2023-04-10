@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/FloatTech/floatbox/process"
+	webctrl "github.com/FloatTech/zbputils/control/web"
 	zero "github.com/wdvxdr1123/ZeroBot"
 	"github.com/wdvxdr1123/ZeroBot/driver"
 
@@ -156,7 +157,8 @@ func init() {
 	}
 	// 设置最低日志等级
 	log.SetLevel(config.Log.GetLogLevel())
-
+	// 启用 WebUI
+	go webctrl.RunGui(string(config.WebUI.URL))
 }
 
 func main() {

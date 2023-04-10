@@ -1,16 +1,18 @@
 # 需要重命名为 config.yaml 以生效
-nickname: # 昵称，首个显示在日志中
+nickname:          # 昵称，首个显示在日志中
   - 喵喵   
   - 幼喵园
 selfid: 1234567890 # Bot 账号
-superusers: # 管理员账号
+superusers:        # 管理员账号
   - 114514
   - 1919810
-commandprefix: / # 指令前缀
-websocket:                      # WebSocket 配置
+commandprefix: /   # 指令前缀
+websocket:                   # WebSocket
   url: ws://example.com:6700 # WebSocket 链接
-  accesstoken: Example     # WebSocket 密钥
+  accesstoken: Example       # WebSocket 密钥
 log:                  # 日志
-  level: trace      # 日志等级
-  path: log/log.txt # 日志路径
+  level: trace        # 日志等级
+  path: log/log.txt   # 日志路径
   days: 1             # 单段分割文件记录的天数 
+webui:                # WebUI 配置
+  url: 127.0.0.1:3000 # WebUI 链接
