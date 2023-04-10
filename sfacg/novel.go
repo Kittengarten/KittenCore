@@ -259,9 +259,14 @@ func (nv *Novel) update() (str string, t time.Time) {
 	var (
 		cm      = nv.makeCompare()
 		wordNum = fmt.Sprintf(`%d 字`, nv.NewChapter.WordNum)
-		timeGap = cm.TimeGap.String()
+		timeGap string
 	)
-	if cm.TimeGap == 0 {
+	if cm.TimeGap < 144*time.Hour {
+		timeGap = cm.TimeGap.String()
+	} else {
+		timeGap = `不明`
+	}
+	if 0 > cm.TimeGap {
 		log.Warn(`更新异常喵！`)
 		return `更新异常喵！`, time.Now()
 	}

@@ -264,7 +264,7 @@ func track(e *control.Engine) {
 			}
 
 			// 防止更新异常信息发到群里
-			if report, t := novel.update(); time.Now().After(t.Add(time.Minute)) {
+			if report, t := novel.update(); time.Since(t) < time.Minute {
 				updateError = true
 				log.Warn(novel.NewChapter.BookURL + report)
 			} else {
