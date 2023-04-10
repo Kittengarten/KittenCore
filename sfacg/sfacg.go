@@ -58,8 +58,8 @@ func init() {
 	engine.OnCommand(`更新测试`).SetBlock(true).
 		Limit(ctxext.NewLimiterManager(time.Minute, 1).LimitByGroup).Handle(func(ctx *zero.Ctx) {
 		var (
-			novel  = getNovel(ctx)
-			report = novel.update()
+			novel     = getNovel(ctx)
+			report, _ = novel.update()
 		)
 		ctx.SendChain(message.Image(novel.HeadURL), message.Text(report))
 	})
@@ -264,7 +264,7 @@ func track(e *control.Engine) {
 			}
 
 			// 防止更新异常信息发到群里
-			if report := novel.update(); report == `更新异常喵！` {
+			if report, t := novel.update(); time.Now().After(t.Add(time.Minute)) {
 				updateError = true
 				log.Warn(novel.NewChapter.BookURL + report)
 			} else {

@@ -255,7 +255,7 @@ func (key keyWord) findBookID() (string, bool) {
 }
 
 // 更新信息
-func (nv *Novel) update() (str string) {
+func (nv *Novel) update() (str string, t time.Time) {
 	var (
 		cm      = nv.makeCompare()
 		wordNum = fmt.Sprintf(`%d 字`, nv.NewChapter.WordNum)
@@ -263,7 +263,7 @@ func (nv *Novel) update() (str string) {
 	)
 	if cm.TimeGap == 0 {
 		log.Warn(`更新异常喵！`)
-		return `更新异常喵！`
+		return `更新异常喵！`, time.Now()
 	}
 	timeGap = strings.Replace(timeGap, `h`, ` 小时 `, 1)
 	timeGap = strings.Replace(timeGap, `m`, ` 分钟 `, 1)
@@ -274,5 +274,6 @@ func (nv *Novel) update() (str string) {
 		`间隔时间：` + timeGap,
 		fmt.Sprintf(`当日第 %d 更`, cm.Times),
 	}, `，`)
+	t = nv.NewChapter.Time
 	return
 }
