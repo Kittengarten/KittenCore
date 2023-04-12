@@ -68,7 +68,7 @@ func init() {
 					return list[i].Get(`last_sent_time`).Int() < list[j].Get(`last_sent_time`).Int()
 				})
 				list = list[math.Max(0, len(list)-50):]
-				nums := generateRandomNumber(0, len((list)), 5)
+				nums := generateRandomNumber(0, len(list), 5)
 				todayData.Time = time.Now()
 				todayData.Breakfast = kitten.QQ(list[nums[0]].Get(`user_id`).Int())
 				todayData.Lunch = kitten.QQ(list[nums[1]].Get(`user_id`).Int())
@@ -303,15 +303,15 @@ func generateRandomNumber(start int, end int, count int) []int {
 		// 存放结果的集合（不重复）
 		set = make(map[int]bool)
 		// 存放结果的数组
-		nums []int
-		// 数组初始下标
-		i = 0
+		nums []int = make([]int, count)
+		// 数组下标
+		i int
 	)
 	// 随机数生成器，加入时间戳保证每次生成的随机数不一样
 	r := rand.New(rand.NewSource(time.Now().UnixNano()))
 	for len(set) < count {
 		// 生成随机数
-		set[r.Intn((end-start))+start] = false
+		set[r.Intn(end-start)+start] = false
 	}
 	// 集合转换为数组
 	for k := range set {

@@ -6,6 +6,7 @@ import (
 	"io"
 	"math/rand"
 	"os"
+	"runtime"
 	"strings"
 	"time"
 
@@ -65,7 +66,7 @@ import (
 	_ "github.com/FloatTech/ZeroBot-Plugin/plugin/wenben"
 	_ "github.com/FloatTech/ZeroBot-Plugin/plugin/wenxinAI"
 	_ "github.com/FloatTech/ZeroBot-Plugin/plugin/ymgal"
-	_ "github.com/Kittengarten/KittenCore/kokomi"
+	_ "github.com/Kittengarten/KittenCore/plugin/kokomi"
 
 	_ "github.com/FloatTech/ZeroBot-Plugin/plugin/ai_reply"
 
@@ -168,8 +169,10 @@ func main() {
 			log.Errorf("主函数有 Bug 喵！\n%v", err)
 		}
 	}()
-	// 全局重置随机数种子，插件无须再次使用
-	rand.Seed(time.Now().UnixNano())
+	// Go 1.20 之前版本需要全局重置随机数种子，插件无须再次使用
+	if !strings.Contains(runtime.Version(), "go1.2") {
+		rand.Seed(time.Now().UnixNano())
+	}
 	zero.RunAndBlock(&zero.Config{
 		NickName:      config.NickName,
 		CommandPrefix: config.CommandPrefix,
