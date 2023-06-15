@@ -87,7 +87,7 @@ func loadConfig() (stackConfig Config) {
 	if kitten.Check(err) {
 		yaml.Unmarshal(d, &stackConfig)
 	} else {
-		log.Error("加载叠猫猫配置失败喵！\n%v", err)
+		log.Errorf("加载叠猫猫配置失败喵！\n%v", err)
 	}
 	return
 }
@@ -98,7 +98,7 @@ func loadData(path kitten.Path) (stackData Data) {
 	if kitten.Check(err) {
 		yaml.Unmarshal(d, &stackData)
 	} else {
-		log.Error("加载叠猫猫数据失败喵！\n%v", err)
+		log.Errorf("加载叠猫猫数据失败喵！\n%v", err)
 	}
 	return
 }
@@ -162,7 +162,7 @@ func (data Data) in(esc Data, stackConfig Config, ctx *zero.Ctx, e *control.Engi
 			// 如果叠猫猫成功
 			meow := Kitten{
 				ID:   ID,
-				Name: kitten.QQ(ID).GetTitle(*ctx) + ctx.CardOrNickName(ID),
+				Name: kitten.QQ(ID).GetTitle(ctx) + ctx.CardOrNickName(ID),
 				Time: time.Unix(ctx.Event.Time, 0),
 			}
 			data = append(data, meow)
@@ -321,7 +321,7 @@ func logExit(u int64, ctx *zero.Ctx, e *control.Engine) {
 		meowExit = Kitten{
 			ID:   u,
 			Time: time.Unix(ctx.Event.Time, 0),
-			Name: kitten.QQ(u).GetTitle(*ctx) + ctx.CardOrNickName(u),
+			Name: kitten.QQ(u).GetTitle(ctx) + ctx.CardOrNickName(u),
 		}
 	)
 	dataExit = append(dataExit, meowExit)

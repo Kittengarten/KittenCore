@@ -38,7 +38,7 @@ func init() {
 		help = strings.Join([]string{`发送`,
 			fmt.Sprintf(`%s今天吃什么`, name),
 			fmt.Sprintf(`获取%s今日食谱`, name),
-			fmt.Sprintf(`%s查询被吃次数`, kitten.Configs.CommandPrefix),
+			`查询被吃次数`,
 			`查询本人被吃次数`,
 		}, "\n")
 		// 注册插件
@@ -276,7 +276,7 @@ func getName() string {
 func getLine(u kitten.QQ, ctx *zero.Ctx) string {
 	info := Kitten{
 		ID:   u,
-		Name: u.GetTitle(*ctx) + ctx.CardOrNickName(int64(u)),
+		Name: u.GetTitle(ctx) + ctx.CardOrNickName(int64(u)),
 	}
 	return fmt.Sprintf(`%s（%d）`, info.Name, info.ID)
 }

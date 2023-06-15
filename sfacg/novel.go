@@ -46,11 +46,10 @@ func (nv *Novel) init(bookID string) {
 
 			// 头像链接是否存在
 			var he bool
-			// 获取头像链接
-			nv.HeadURL, he = doc.Find(`div.author-mask`).Find(`img`).Attr(`src`)
-			// 头像链接获取失败时使用报错图片
-			if !he {
+			// 获取头像链接，失败时使用报错图片
+			if nv.HeadURL, he = doc.Find(`div.author-mask`).Find(`img`).Attr(`src`); !he {
 				nv.HeadURL = string(imagePath.LoadPath()) + `no.png`
+				log.Error("头像链接获取失败喵！")
 			}
 
 			// 获取详细数字
@@ -100,11 +99,10 @@ func (nv *Novel) init(bookID string) {
 
 			// 封面链接是否存在
 			var ce bool
-			// 获取封面
-			nv.CoverURL, ce = doc.Find(`div.figure`).Find(`img`).Eq(0).Attr(`src`)
-			// 封面链接获取失败时使用报错图片
-			if !ce {
+			// 获取封面，失败时使用报错图片
+			if nv.CoverURL, ce = doc.Find(`div.figure`).Find(`img`).Eq(0).Attr(`src`); !ce {
 				nv.CoverURL = string(imagePath.LoadPath()) + `no.png`
+				log.Error("封面链接获取失败喵！")
 			}
 
 			// 获取收藏
@@ -201,7 +199,6 @@ func (nv *Novel) makeCompare() (cm Compare) {
 			cm.Times++
 		}
 	} else {
-		cm.Times = 0
 		cm.TimeGap = 1
 	} // 防止无限得不到更新章节循环
 	return

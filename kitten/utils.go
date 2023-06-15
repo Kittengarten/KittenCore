@@ -22,12 +22,11 @@ import (
 )
 
 // Int 将字符串转换为数字，转换失败则返回 0（建议不要用于转换 0）
-func (str IntString) Int() (num int) {
-	num, err := strconv.Atoi(string(str))
-	if !Check(err) {
-		num = 0
+func (str IntString) Int() int {
+	if num, err := strconv.Atoi(string(str)); Check(err) {
+		return num
 	}
-	return
+	return 0
 }
 
 // GetLogLevel 从日志配置获取日志等级
@@ -186,7 +185,7 @@ func TextOf(format string, a ...any) message.MessageSegment {
 }
 
 // GetTitle 从 QQ 获取【头衔】
-func (u QQ) GetTitle(ctx zero.Ctx) (title string) {
+func (u QQ) GetTitle(ctx *zero.Ctx) (title string) {
 	gmi := ctx.GetGroupMemberInfo(ctx.Event.GroupID, int64(u), true)
 	if titleStr := gjson.Get(gmi.Raw, `title`).Str; titleStr == `` {
 		title = titleStr

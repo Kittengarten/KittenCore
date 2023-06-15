@@ -61,7 +61,7 @@ func init() {
 			novel     = getNovel(ctx)
 			report, _ = novel.update()
 		)
-		ctx.SendChain(message.Image(novel.HeadURL), message.Text(report))
+		ctx.SendChain(message.Image(novel.CoverURL), message.Image(novel.HeadURL), message.Text(report))
 	})
 
 	// 预览小说更新功能
@@ -209,7 +209,7 @@ func track(e *control.Engine) {
 	// 处理 panic，防止程序崩溃
 	defer func() {
 		if err := recover(); !kitten.Check(err) {
-			log.Errorf("报更协程出现错误喵！\n%v", ReplyServiceName, err)
+			log.Errorf("%s 报更协程出现错误喵！\n%v", ReplyServiceName, err)
 		}
 	}()
 
@@ -229,7 +229,7 @@ func track(e *control.Engine) {
 	)
 
 	if !kitten.Check(err) {
-		log.Errorf("%s 载入配置文件出现错误喵！\n%v", err)
+		log.Errorf("%s 载入配置文件出现错误喵！\n%v", ReplyServiceName, err)
 	}
 
 	fmt.Println(content)

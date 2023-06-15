@@ -56,4 +56,9 @@ func init() {
 			// 频繁触发，不回复
 		}
 	})
+
+	// 图片
+	zero.OnCommand(`图片`, zero.AdminPermission).SetBlock(true).Handle(func(ctx *zero.Ctx) {
+		ctx.Send(message.Image(ctx.State[`args`].(string)))
+	})
 }
