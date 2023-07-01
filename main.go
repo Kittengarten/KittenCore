@@ -2,23 +2,24 @@
 package main
 
 import (
-	"bytes"
-	"io"
+	// 标准库
 	"math/rand"
-	"os"
 	"runtime"
 	"strings"
 	"time"
 
+	// KittenCore 的核心库
 	"github.com/Kittengarten/KittenCore/kitten"
 
+	// 以下为内部插件
 	// _ "github.com/Kittengarten/KittenCore/draw"
-	_ "github.com/Kittengarten/KittenCore/eekda"
+	_ "github.com/Kittengarten/KittenCore/eekda" // XX 今天吃什么
 	// _ "github.com/Kittengarten/KittenCore/essence"
-	_ "github.com/Kittengarten/KittenCore/perf"
-	_ "github.com/Kittengarten/KittenCore/sfacg"
-	_ "github.com/Kittengarten/KittenCore/stack"
+	_ "github.com/Kittengarten/KittenCore/perf"  // 查看 XX
+	_ "github.com/Kittengarten/KittenCore/sfacg" // SF 轻小说报更
+	_ "github.com/Kittengarten/KittenCore/stack" // 叠猫猫
 
+	// 以下为外部插件
 	_ "github.com/FloatTech/ZeroBot-Plugin/plugin/manager"
 
 	_ "github.com/FloatTech/ZeroBot-Plugin/plugin/ahsai"
@@ -77,99 +78,19 @@ import (
 
 	_ "github.com/FloatTech/ZeroBot-Plugin/plugin/thesaurus"
 
+	// 以下为核心依赖
 	"github.com/FloatTech/floatbox/process"
-	logf "github.com/lestrrat-go/file-rotatelogs"
 	log "github.com/sirupsen/logrus"
 	zero "github.com/wdvxdr1123/ZeroBot"
 	"github.com/wdvxdr1123/ZeroBot/driver"
 
+	// WebUI，不需要使用可以注释
 	webctrl "github.com/FloatTech/zbputils/control/web"
-)
-
-// 颜色代码常量
-const (
-	colorCodePanic = "\x1b[1;31m" // color.Style{color.Bold, color.Red}.String()
-	colorCodeFatal = "\x1b[1;31m" // color.Style{color.Bold, color.Red}.String()
-	colorCodeError = "\x1b[31m"   // color.Style{color.Red}.String()
-	colorCodeWarn  = "\x1b[33m"   // color.Style{color.Yellow}.String()
-	colorCodeInfo  = "\x1b[37m"   // color.Style{color.White}.String()
-	colorCodeDebug = "\x1b[32m"   // color.Style{color.Green}.String()
-	colorCodeTrace = "\x1b[36m"   // color.Style{color.Cyan}.String()
-	colorReset     = "\x1b[0m"
 )
 
 var config = kitten.LoadConfig()
 
-// 获取日志等级对应色彩代码
-func getLogLevelColorCode(level log.Level) string {
-	switch level {
-	case log.PanicLevel:
-		return colorCodePanic
-	case log.FatalLevel:
-		return colorCodeFatal
-	case log.ErrorLevel:
-		return colorCodeError
-	case log.WarnLevel:
-		return colorCodeWarn
-	case log.InfoLevel:
-		return colorCodeInfo
-	case log.DebugLevel:
-		return colorCodeDebug
-	case log.TraceLevel:
-		return colorCodeTrace
-	default:
-		return colorCodeInfo
-	}
-}
-
-// LogFormat 日志输出样式
-type LogFormat struct{}
-
-// Format 设置该日志输出样式的具体样式
-func (f LogFormat) Format(entry *log.Entry) ([]byte, error) {
-	buf := new(bytes.Buffer)
-	buf.WriteString(getLogLevelColorCode(entry.Level))
-	buf.WriteByte('[')
-	buf.WriteString(entry.Time.Format(`2006-01-02 15:04:05`))
-	buf.WriteString(`] `)
-	buf.WriteByte('[')
-	buf.WriteString(strings.ToUpper(entry.Level.String()))
-	buf.WriteString(`]: `)
-	buf.WriteString(entry.Message)
-	buf.WriteString(" \n")
-	buf.WriteString(colorReset)
-	return buf.Bytes(), nil
-}
-
 func init() {
-	var (
-		logName = config.Log.Path // 日志文件路径
-		logF    = config.Log.Days // 单段分割文件记录的天数
-		// 配置分割日志文件
-		writer, err = logf.New(
-			// 分割日志文件命名规则
-			kitten.GetMidText(``, `.txt`, logName)+`-%Y-%m-%d.txt`,
-			// 与最新的日志文件建立软链接
-			logf.WithLinkName(logName),
-			// 分割日志文件间隔
-			logf.WithRotationTime(24*time.Duration(int(time.Hour)*logF)),
-			// 禁用清理
-			logf.WithMaxAge(-1),
-		)
-	)
-	if !kitten.Check(err) {
-		log.Errorf("主函数配置分割日志文件失败喵！\n%v", err)
-		return
-	}
-	// 设置日志输出样式
-	log.SetFormatter(&LogFormat{})
-	if mw := io.MultiWriter(os.Stdout, writer); kitten.Check(err) {
-		log.SetOutput(mw)
-	} else {
-		log.Warn(`主函数写入日志失败了喵！`)
-	}
-	// 设置最低日志等级
-	log.SetLevel(config.Log.GetLogLevel())
 	// 启用 WebUI
 	go webctrl.RunGui(string(config.WebUI.URL))
 }

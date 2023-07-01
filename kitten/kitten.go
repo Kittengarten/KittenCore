@@ -61,7 +61,7 @@ func init() {
 		}
 	})
 
-	// 图片
+	// 图片，用于让 Bot 发送图片，可通过 CQ 码、链接等，为防止滥用，仅管理员可用
 	zero.OnCommand(`图片`, zero.AdminPermission).SetBlock(true).Handle(func(ctx *zero.Ctx) {
 		ctx.Send(message.Image(ctx.State[`args`].(string)))
 	})

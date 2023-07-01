@@ -29,9 +29,10 @@ type (
 
 	// LogConfig 是一个日志的配置
 	LogConfig struct {
-		Level string // 日志等级
-		Path  string // 日志路径
-		Days  int    // 单段分割文件记录的天数
+		Level  string // 日志等级
+		Path   string // 日志路径
+		Days   int    // 单段分割文件记录的天数
+		Expire int    // 日志文件的过期天数，大于该天数前的日志文件会被清理。设置为 -1 可以禁用。
 	}
 
 	// IntString 是一个可转换为 int 的字符串

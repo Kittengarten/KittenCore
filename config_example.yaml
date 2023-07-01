@@ -14,6 +14,7 @@ websocket:                   # WebSocket
 log:                  # 日志
   level: trace        # 日志等级
   path: log/log.txt   # 日志路径
-  days: 1             # 单段分割文件记录的天数 
+  days: 1             # 单段分割文件记录的天数
+  expire: 7           # 日志文件的过期天数，大于该天数前的日志文件会被清理。设置为 -1 可以禁用。 
 webui:                # WebUI 配置
   url: "127.0.0.1:3000" # WebUI 链接
