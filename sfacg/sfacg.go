@@ -218,7 +218,7 @@ func track(e *control.Engine) {
 			log.Errorf("%s 报更协程出现错误喵！\n%v", ReplyServiceName, err)
 		}
 	}()
-	kitten.InitFile(kitten.Path(e.DataFolder())+configFile, `[]`)
+	kitten.InitFile(kitten.FilePath(kitten.Path(e.DataFolder()), configFile), `[]`)
 	var (
 		novel     Novel
 		bot       = <-kitten.BotSFACGchan
@@ -285,11 +285,9 @@ func track(e *control.Engine) {
 		if !done {
 			continue
 		}
-		var (
-			updateConfig, err1 = yaml.Marshal(dataNew)
-			err2               = kitten.Path(e.DataFolder() + configFile).Write(updateConfig)
-		)
-		if kitten.Check(err1) && kitten.Check(err2) {
+		updateConfig, err := yaml.Marshal(dataNew)
+		kitten.FilePath(kitten.Path(e.DataFolder()), configFile).Write(updateConfig)
+		if kitten.Check(err) {
 			log.Infof(`记录 %s 成功喵！`, e.DataFolder()+configFile)
 		} else {
 			log.Warnf(`记录 %s 失败喵！`, e.DataFolder()+configFile)

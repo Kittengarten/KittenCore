@@ -49,7 +49,7 @@ const (
 	filePath         kitten.Path = `file.txt` // 保存微星小飞机温度配置文件路径的文件，非 Windows 系统或不使用可以忽略
 )
 
-var imagePath kitten.Path = kitten.Path(kitten.Configs.Path + ReplyServiceName + `/image/`) // 图片路径
+var imagePath = kitten.FilePath(kitten.Configs.Path, ReplyServiceName, `image`) // 图片路径
 
 func init() {
 	var (

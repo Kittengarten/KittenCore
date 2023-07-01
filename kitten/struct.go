@@ -7,7 +7,7 @@ type (
 		SelfID        int64           `yaml:"selfid"`        // Bot 自身 ID
 		SuperUsers    []int64         `yaml:"superusers"`    // 亲妈账号
 		CommandPrefix string          `yaml:"commandprefix"` // 指令前缀
-		Path          string          `yaml:"path"`          // 资源文件路径
+		Path          Path            `yaml:"path"`          // 资源文件路径
 		WebSocket     WebSocketConfig `yaml:"websocket"`     // WebSocket 配置
 		Log           LogConfig       `yaml:"log"`           // 日志配置
 		WebUI         WebUIConfig     `yaml:"webui"`         // WebUI 配置

@@ -6,6 +6,7 @@ import (
 	"io"
 	"math/rand"
 	"os"
+	"path/filepath"
 	"strconv"
 	"strings"
 	"time"
@@ -52,31 +53,45 @@ func (lc LogConfig) GetLogLevel() log.Level {
 	}
 }
 
+// FilePath 文件路径构建
+func FilePath(elem ...Path) Path {
+	var s = make([]string, len(elem))
+	for k, v := range elem {
+		s[k] = string(v)
+	}
+	return Path(filepath.Join([]string(s)...))
+}
+
 // Read 文件读取
-func (path Path) Read() (data []byte, err error) {
-	res, err := os.Open(string(path))
-	if !Check(err) {
-		log.Warnf(`读取文件 %s 失败了喵！`, path)
+func (path Path) Read() (data []byte) {
+	res, err1 := os.Open(string(path))
+	if !Check(err1) {
+		log.Infof("读取：文件 %s 无法读取或不存在喵，试图新建。\n%v", path, err1)
 	} else {
 		defer res.Close()
 	}
-	data, err = io.ReadAll(res)
-	if Check(err) {
-		return
+	data, err2 := io.ReadAll(res)
+	if !Check(err2) {
+		log.Warnf("打开文件 %s 失败了喵！\n%v", path, err2)
 	}
-	log.Warnf(`打开文件 %s 失败了喵！\n%v`, path, err)
 	return
 }
 
 // Write 文件写入
-func (path Path) Write(data []byte) (err error) {
-	res, err := os.Open(string(path))
-	if !Check(err) {
-		log.Warnf(`写入文件 %s 失败了喵！`, path)
+func (path Path) Write(data []byte) {
+	if e, _ := path.Exists(); !e {
+		os.MkdirAll(filepath.Dir(string(path)), os.ModeDir)
+	}
+	res, err1 := os.Open(string(path))
+	if !Check(err1) {
+		log.Infof("写入：文件 %s 无法读取或不存在喵，试图新建。\n%v", path, err1)
 	} else {
 		defer res.Close()
 	}
-	err = os.WriteFile(string(path), data, 0666)
+	err2 := os.WriteFile(string(path), data, 0666)
+	if !Check(err2) {
+		log.Warnf("写入文件 %s 失败了喵！\n%v", path, err2)
+	}
 	return
 }
 
@@ -106,15 +121,15 @@ func (path Path) isDir() bool {
 
 // LoadPath 加载文件中保存的路径
 func (path Path) LoadPath() Path {
-	res, err := os.Open(string(path))
-	if Check(err) {
+	res, err1 := os.Open(string(path))
+	if Check(err1) {
 		defer res.Close()
 	} else {
-		log.Warnf("打开文件 %s 失败了喵！\n%v", path, err)
+		log.Warnf("打开文件 %s 失败了喵！\n%v", path, err1)
 	}
-	data, err := io.ReadAll(res)
-	if !Check(err) {
-		log.Warnf("打开文件 %s 失败了喵！\n%v", path, err)
+	data, err2 := io.ReadAll(res)
+	if !Check(err2) {
+		log.Warnf("打开文件 %s 失败了喵！\n%v", path, err2)
 	}
 	return Path(data)
 }
@@ -122,27 +137,24 @@ func (path Path) LoadPath() Path {
 // GetImage 从保存图片路径的文件，或图片的绝对路径加载图片
 func (path Path) GetImage(name Path) message.MessageSegment {
 	if path.isDir() {
-		return message.Image(string(path + name))
+		return message.Image(string(FilePath(path, name)))
 	}
-	return message.Image(string(path.LoadPath() + name))
+	return message.Image(string(FilePath(path.LoadPath(), name)))
 }
 
 // InitFile 初始化文本文件
-func InitFile(name Path, text string) (err error) {
+func InitFile(name Path, text string) {
 	e, _ := name.Exists()
 	if !e {
-		err = name.Write([]byte(text))
+		name.Write([]byte(text))
 	}
 	return
 }
 
 // LoadMainConfig 加载主配置
 func LoadMainConfig() (config Config) {
-	d, err1 := path.Read()
-	if !Check(err1) {
-		log.Fatalf("加载配置失败喵！\n%v", err1)
-	} else if err2 := yaml.Unmarshal(d, &config); !Check(err2) {
-		log.Fatalf("打开 %s 失败了喵！\n%v", path, err2)
+	if err := yaml.Unmarshal(path.Read(), &config); !Check(err) {
+		log.Fatalf("打开 %s 失败了喵！\n%v", path, err)
 		return
 	}
 	return
@@ -291,7 +303,7 @@ func DoNotKnow(ctx *zero.Ctx) {
 	ctx.Send(fmt.Sprintf(`%s不知道哦`, zero.BotConfig.NickName[0]))
 }
 
-// 获取信息
+// （私有）获取信息
 func (u QQ) getInfo(ctx *zero.Ctx) gjson.Result {
 	return ctx.GetStrangerInfo(int64(u), true)
 }

@@ -12,23 +12,17 @@ import (
 
 // 加载配置
 func loadConfig(configFile kitten.Path) (c Config, err error) {
-	if d, err := (configFile).Read(); kitten.Check(err) {
-		yaml.Unmarshal(d, &c)
-	} else {
-		log.Errorf("%s 配置文件加载失败喵！\n%v", ReplyServiceName, err)
-	}
+	yaml.Unmarshal(configFile.Read(), &c)
 	return
 }
 
 // 保存配置，成功则返回 True
 func saveConfig(c Config, e *control.Engine) (ok bool) {
-	var (
-		data, err1 = yaml.Marshal(c)
-		err2       = kitten.Path(e.DataFolder() + configFile).Write(data)
-	)
-	ok = kitten.Check(err1) && kitten.Check(err2)
+	data, err := yaml.Marshal(c)
+	kitten.FilePath(kitten.Path(e.DataFolder()), configFile).Write(data)
+	ok = kitten.Check(err)
 	if !ok {
-		log.Errorf("配置文件写入错误喵！\n%v\n%v", err1, err2)
+		log.Errorf("配置文件写入错误喵！\n%v", err)
 		reciver := kitten.Configs.SuperUsers[0]
 		if kitten.Bot != nil {
 			kitten.Bot.SendPrivateMessage(reciver, `追更配置文件写入错误，请检查日志喵！`)
