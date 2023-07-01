@@ -24,7 +24,7 @@ type (
 		Count int       `yaml:"count"` // 被压次数
 	}
 
-	// DataPath 叠猫猫数据 + 存储路径
+	// DataPath 叠猫猫数据及其存储路径
 	DataPath struct {
 		Data
 		Path string

@@ -12,7 +12,7 @@ import (
 )
 
 // 加载配置
-func loadConfig(e *control.Engine) (cf Config, err error) {
+func loadConfig(e *control.Engine) (c Config, err error) {
 re:
 	isExist, err := kitten.Path(e.DataFolder() + configFile).Exists()
 	// 如果确定文件是否存在
@@ -21,7 +21,7 @@ re:
 			// 如果文件存在
 			d, err := kitten.Path(e.DataFolder() + configFile).Read()
 			if kitten.Check(err) {
-				yaml.Unmarshal(d, &cf)
+				yaml.Unmarshal(d, &c)
 			} else {
 				log.Fatalf("%s 配置文件存在但加载失败喵！\n%v", ReplyServiceName, err)
 			}
@@ -39,9 +39,9 @@ re:
 }
 
 // 保存配置，成功则返回 True
-func saveConfig(cf Config, e *control.Engine) (ok bool) {
+func saveConfig(c Config, e *control.Engine) (ok bool) {
 	var (
-		data, err1 = yaml.Marshal(cf)
+		data, err1 = yaml.Marshal(c)
 		err2       = kitten.Path(e.DataFolder() + configFile).Write(data)
 	)
 	ok = kitten.Check(err1) && kitten.Check(err2)

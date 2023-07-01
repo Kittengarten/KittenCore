@@ -3,10 +3,11 @@ nickname:          # 昵称，首个显示在日志中
   - 喵喵   
   - 幼喵园
 selfid: 1234567890 # Bot 账号
-superusers:        # 管理员账号
+superusers:        # 亲妈账号
   - 114514
   - 1919810
 commandprefix: /   # 指令前缀
+path: file:///home/ubuntu/Go-CQHTTP/数据/ # 资源文件路径
 websocket:                   # WebSocket
   url: ws://example.com:6700 # WebSocket 链接
   accesstoken: Example       # WebSocket 密钥

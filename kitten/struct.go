@@ -3,13 +3,14 @@ package kitten
 type (
 	// Config 是来自 Bot 的配置文件的数据集
 	Config struct {
-		NickName      []string        // 昵称
-		SelfID        int64           // Bot 自身 ID
-		SuperUsers    []int64         // 管理员账号
-		CommandPrefix string          // 指令前缀
-		WebSocket     WebSocketConfig // WebSocket 配置
-		Log           LogConfig       // 日志配置
-		WebUI         WebUIConfig     // WebUI 配置
+		NickName      []string        `yaml:"nickname"`      // 昵称
+		SelfID        int64           `yaml:"selfid"`        // Bot 自身 ID
+		SuperUsers    []int64         `yaml:"superusers"`    // 亲妈账号
+		CommandPrefix string          `yaml:"commandprefix"` // 指令前缀
+		Path          string          `yaml:"path"`          // 资源文件路径
+		WebSocket     WebSocketConfig `yaml:"websocket"`     // WebSocket 配置
+		Log           LogConfig       `yaml:"log"`           // 日志配置
+		WebUI         WebUIConfig     `yaml:"webui"`         // WebUI 配置
 	}
 
 	// WebSocketConfig 是一个 WebSocket 链接的配置

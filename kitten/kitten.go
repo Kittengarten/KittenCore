@@ -27,6 +27,7 @@ const (
 )
 
 func init() {
+	// 向 SFACG 插件传入 Bot 实例
 	go func() {
 		for Bot == nil {
 			Bot = zero.GetBot(Configs.SelfID)
@@ -37,11 +38,14 @@ func init() {
 	// 戳一戳
 	zero.On(`notice/notify/poke`, zero.OnlyToMe).SetBlock(true).Handle(func(ctx *zero.Ctx) {
 		var (
-			// 本群的群号
-			g = ctx.Event.GroupID
-			// 发出 poke 的 QQ 号
-			u = ctx.Event.UserID
+			g int64              // 本群的群号
+			u = ctx.Event.UserID // 发出 poke 的 QQ 号
 		)
+		if ctx.Event.DetailType == "private" {
+			g = -ctx.Event.UserID
+		} else {
+			g = ctx.Event.GroupID
+		}
 		switch {
 		case poke.Load(g).AcquireN(5):
 			// 5 分钟共 8 块命令牌 一次消耗 5 块命令牌

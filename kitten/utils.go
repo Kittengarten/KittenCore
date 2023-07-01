@@ -1,6 +1,7 @@
 package kitten
 
 import (
+	"bytes"
 	"fmt"
 	"io"
 	"math/rand"
@@ -86,7 +87,7 @@ func (path Path) Exists() (bool, error) {
 	if Check(err) {
 		return true, nil
 	}
-	// os.IsNotExist(err)为true，文件或文件夹不存在
+	// os.IsNotExist(err)为 true，文件或文件夹不存在
 	if os.IsNotExist(err) {
 		return false, nil
 	}
@@ -96,9 +97,9 @@ func (path Path) Exists() (bool, error) {
 
 // （私有）判断路径是否文件夹
 func (path Path) isDir() bool {
-	s, err := os.Stat(string(path))
+	s, err := os.Stat(fmt.Sprintf("%s", bytes.TrimPrefix([]byte(string(path)), []byte(`file://`))))
 	if !Check(err) {
-		return Check(err)
+		return false
 	}
 	return s.IsDir()
 }
@@ -119,15 +120,15 @@ func (path Path) LoadPath() Path {
 }
 
 // GetImage 从保存图片路径的文件，或图片的绝对路径加载图片
-func (path Path) GetImage(name string) message.MessageSegment {
+func (path Path) GetImage(name Path) message.MessageSegment {
 	if path.isDir() {
-		return message.Image(string(path) + name)
+		return message.Image(string(path + name))
 	}
-	return message.Image(string(path.LoadPath()) + name)
+	return message.Image(string(path.LoadPath() + name))
 }
 
 // Check 处理错误，没有错误则返回 True
-func Check(err interface{}) bool {
+func Check(err any) bool {
 	if err != nil {
 		return false
 	}
@@ -279,4 +280,25 @@ func CheckPing(p *probing.Statistics) (ps Pingstr) {
 // DoNotKnow 喵喵不知道哦
 func DoNotKnow(ctx *zero.Ctx) {
 	ctx.Send(fmt.Sprintf(`%s不知道哦`, zero.BotConfig.NickName[0]))
+}
+
+// 获取信息
+func (u QQ) getInfo(ctx *zero.Ctx) gjson.Result {
+	return ctx.GetStrangerInfo(int64(u), true)
+}
+
+// IsAdult 是成年人
+func (u QQ) IsAdult(ctx *zero.Ctx) bool {
+	if age := gjson.Get(u.getInfo(ctx).Raw, `age`).Int(); 18 < age {
+		return true
+	}
+	return false
+}
+
+// IsFemale 是女性
+func (u QQ) IsFemale(ctx *zero.Ctx) bool {
+	if sex := gjson.Get(u.getInfo(ctx).Raw, `sex`).String(); `female` == sex {
+		return true
+	}
+	return false
 }

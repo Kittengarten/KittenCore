@@ -25,7 +25,7 @@ require (
 
 require (
 	github.com/FloatTech/AnimeAPI v1.6.1-0.20230409024643-f25135dee0da // indirect
-	github.com/FloatTech/ZeroBot-Plugin-Webui v1.0.1-0.20230307153523-5c33f1700c1a // indirect
+	github.com/FloatTech/ZeroBot-Plugin-Webui v1.0.1-0.20230412164529-cfe878675931 // indirect
 	github.com/FloatTech/rendercard v0.0.10-0.20230223064326-45d29fa4ede9 // indirect
 	github.com/FloatTech/sqlite v1.6.3 // indirect
 	github.com/FloatTech/ttl v0.0.0-20230307105452-d6f7b2b647d1 // indirect
@@ -35,7 +35,7 @@ require (
 	github.com/andybalholm/cascadia v1.3.2 // indirect
 	github.com/antchfx/htmlquery v1.3.0 // indirect
 	github.com/antchfx/xpath v1.2.4 // indirect
-	github.com/bytedance/sonic v1.9.1 // indirect
+	github.com/bytedance/sonic v1.9.2 // indirect
 	github.com/chenzhuoyu/base64x v0.0.0-20221115062448-fe3a3abad311 // indirect
 	github.com/corona10/goimagehash v1.1.0 // indirect
 	github.com/disintegration/imaging v1.6.2 // indirect
@@ -87,7 +87,8 @@ require (
 	github.com/mattn/go-isatty v0.0.19 // indirect
 	github.com/modern-go/concurrent v0.0.0-20180306012644-bacd9c7ef1dd // indirect
 	github.com/modern-go/reflect2 v1.0.2 // indirect
-	github.com/onsi/ginkgo/v2 v2.10.0 // indirect
+	github.com/mroth/weightedrand v1.0.0
+	github.com/onsi/ginkgo/v2 v2.11.0 // indirect
 	github.com/patrickmn/go-cache v2.1.0+incompatible // indirect
 	github.com/pbnjay/memory v0.0.0-20210728143218-7b4eea64cf58 // indirect
 	github.com/pelletier/go-toml/v2 v2.0.8 // indirect
@@ -97,9 +98,10 @@ require (
 	github.com/quic-go/qpack v0.4.0 // indirect
 	github.com/quic-go/qtls-go1-19 v0.3.2 // indirect
 	github.com/quic-go/qtls-go1-20 v0.2.2 // indirect
-	github.com/quic-go/quic-go v0.35.1 // indirect
+	github.com/quic-go/quic-go v0.36.0 // indirect
 	github.com/remyoudompheng/bigfft v0.0.0-20230129092748-24d4a6f8daec // indirect
 	github.com/rogpeppe/go-internal v1.10.0 // indirect
+	github.com/sahilm/fuzzy v0.1.0
 	github.com/shoenig/go-m1cpu v0.1.6 // indirect
 	github.com/swaggo/files v1.0.1 // indirect
 	github.com/swaggo/gin-swagger v1.6.0 // indirect
@@ -110,12 +112,13 @@ require (
 	github.com/tklauser/numcpus v0.6.1 // indirect
 	github.com/twitchyliquid64/golang-asm v0.15.1 // indirect
 	github.com/ugorji/go/codec v1.2.11 // indirect
+	github.com/wcharczuk/go-chart/v2 v2.1.0 // indirect
 	github.com/yusufpapurcu/wmi v1.2.3 // indirect
 	gitlab.com/gomidi/midi/v2 v2.0.30 // indirect
 	golang.org/x/arch v0.3.0 // indirect
 	golang.org/x/crypto v0.10.0 // indirect
-	golang.org/x/exp v0.0.0-20230522175609-2e198f4a06a1 // indirect
-	golang.org/x/exp/shiny v0.0.0-20230522175609-2e198f4a06a1 // indirect
+	golang.org/x/exp v0.0.0-20230626212559-97b1e661b5df // indirect
+	golang.org/x/exp/shiny v0.0.0-20230626212559-97b1e661b5df // indirect
 	golang.org/x/mobile v0.0.0-20230531173138-3c911d8e3eda // indirect
 	golang.org/x/mod v0.11.0 // indirect
 	golang.org/x/net v0.11.0 // indirect
@@ -123,7 +126,7 @@ require (
 	golang.org/x/sys v0.9.0 // indirect
 	golang.org/x/text v0.10.0 // indirect
 	golang.org/x/tools v0.10.0 // indirect
-	google.golang.org/protobuf v1.30.0 // indirect
+	google.golang.org/protobuf v1.31.0 // indirect
 	modernc.org/libc v1.24.1 // indirect
 	modernc.org/mathutil v1.5.0 // indirect
 	modernc.org/memory v1.6.0 // indirect

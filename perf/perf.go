@@ -47,9 +47,10 @@ const (
 	ReplyServiceName             = `perf`
 	brief                        = `查看运行状况`
 	filePath         kitten.Path = `perf/file.txt` // 保存温度配置文件路径的文件
-	imagePath        kitten.Path = `perf/path.txt` // 保存图片路径的文件
 	webPath          kitten.Path = `perf/web.txt`  // 保存官网的文件
 )
+
+var imagePath kitten.Path = kitten.Path(kitten.Configs.Path + ReplyServiceName + `/image/`) // 图片路径
 
 func init() {
 	var (
@@ -66,7 +67,7 @@ func init() {
 
 	// 查看功能
 	engine.OnCommand(`查看`).SetBlock(true).
-		Limit(ctxext.NewLimiterManager(3*time.Minute, 1).LimitByGroup).Handle(func(ctx *zero.Ctx) {
+		Limit(ctxext.NewLimiterManager(time.Hour, 5).LimitByGroup).Handle(func(ctx *zero.Ctx) {
 		var (
 			who    = ctx.State[`args`].(string)
 			str    string
@@ -117,7 +118,7 @@ func init() {
 				}, "\n")
 				break
 			}
-			report = message.Message{imagePath.GetImage(strconv.Itoa(getPerf(cpu, mem, t)) + `.png`), message.Text(str)}
+			report = message.Message{imagePath.GetImage(kitten.Path(strconv.Itoa(getPerf(cpu, mem, t)) + `.png`)), message.Text(str)}
 			ctx.Send(report)
 			var (
 				ping        = kitten.URL(webPath.LoadPath()).CheckServer()
@@ -175,7 +176,7 @@ func init() {
 		err = pinger.Run()
 		if err != nil {
 			kitten.DoNotKnow(ctx)
-			log.Error(`Ping 出现错误：%v`, err)
+			log.Errorf(`Ping 出现错误：%v`, err)
 		}
 		ctx.Send(reportAnno)
 	})

@@ -25,15 +25,15 @@ import (
 
 const (
 	// ReplyServiceName 插件名
-	ReplyServiceName             = `stack`
-	brief                        = `一起来玩叠猫猫`
-	imagePath        kitten.Path = `image/path.txt` // 保存图片路径的文件
-	dataFile                     = `data.yaml`      // 叠猫猫数据文件
-	exitFile                     = `exit.yaml`      // 叠猫猫退出日志文件
+	ReplyServiceName = `stack`
+	brief            = `一起来玩叠猫猫`
+	dataFile         = `data.yaml` // 叠猫猫数据文件
+	exitFile         = `exit.yaml` // 叠猫猫退出日志文件
 )
 
 var (
-	stackConfig = loadConfig()
+	imagePath   kitten.Path = kitten.Path(kitten.Configs.Path + `image/`) // 图片路径
+	stackConfig             = loadConfig()
 	mu          sync.RWMutex
 )
 
@@ -61,8 +61,8 @@ func init() {
 
 	engine.OnCommand(`叠猫猫`).SetBlock(true).
 		Limit(ctxext.NewLimiterManager(time.Minute, 5).LimitByGroup).Handle(func(ctx *zero.Ctx) {
-		mu.RLock()
-		defer mu.RUnlock()
+		mu.Lock()
+		defer mu.Unlock()
 		var (
 			ag       = ctx.State[`args`].(string)
 			data     = loadData(kitten.Path(engine.DataFolder() + dataFile))
@@ -121,7 +121,7 @@ func (data Data) in(esc Data, stackConfig Config, ctx *zero.Ctx, e *control.Engi
 		if ID == meow.ID {
 			report = `已经加入叠猫猫了喵！`
 			permit = false
-			log.Info(strconv.FormatInt(ID, 10) + report)
+			log.Info(strconv.FormatInt(ID, 10) + ` ` + report)
 		}
 	}
 	if permit {
@@ -129,7 +129,7 @@ func (data Data) in(esc Data, stackConfig Config, ctx *zero.Ctx, e *control.Engi
 			report = stackConfig.OutOfStack
 			permit = false
 			// 压猫猫
-			if exitLabel := -1; checkStack(len(data)) {
+			if exitLabel := -1; checkStack(len(data) + 1) {
 				// 只有下半的猫猫会被压坏
 				for i := range data {
 					if data[i].Count++; data[i].Count > stackConfig.MaxCount && i < len(data)/2 {
@@ -145,20 +145,19 @@ func (data Data) in(esc Data, stackConfig Config, ctx *zero.Ctx, e *control.Engi
 						logExit(kitten.ID, ctx, e)
 					}
 					data = data[exitLabel+1:]
-				}
-				save(data, kitten.Path(e.DataFolder()+dataFile))
-				report += fmt.Sprintf("\n\n压猫猫成功，下面的猫猫对你的好感度下降了！你在 %d 小时内无法加入叠猫猫。", stackConfig.GapTime)
-				// 如果有猫猫被压坏
-				if 0 <= exitLabel {
+					save(data, kitten.Path(e.DataFolder()+dataFile))
+					report += fmt.Sprintf("\n\n压猫猫成功，下面的猫猫对你的好感度下降了！你在 %d 小时内无法加入叠猫猫。", stackConfig.GapTime)
 					report += fmt.Sprintf("\n\n有 %d 只猫猫被压坏了喵！需要休息 %d 小时。\n%s", exitLabel+1, stackConfig.GapTime, reports)
+				} else {
+					save(data, kitten.Path(e.DataFolder()+dataFile))
+					report += fmt.Sprintf("\n\n压猫猫成功，下面的猫猫对你的好感度下降了！你在 %d 小时内无法加入叠猫猫。", stackConfig.GapTime)
 				}
-				log.Info(strconv.FormatInt(ID, 10) + report)
-				logExit(ID, ctx, e) // 将压猫猫的猫猫记录至退出日志
 			} else {
-				report += "\n\n压猫猫失败了喵！"
-				log.Info(strconv.FormatInt(ID, 10) + report)
+				report += fmt.Sprintf("\n\n压猫猫失败了喵！你在 %d 小时内无法加入叠猫猫。", stackConfig.GapTime)
 			}
-		} else if checkStack(len(data)) {
+			log.Info(strconv.FormatInt(ID, 10) + report)
+			logExit(ID, ctx, e) // 将压猫猫的猫猫记录至退出日志
+		} else if checkStack(len(data) + 1) {
 			// 如果叠猫猫成功
 			meow := Kitten{
 				ID:   ID,
@@ -171,29 +170,31 @@ func (data Data) in(esc Data, stackConfig Config, ctx *zero.Ctx, e *control.Engi
 			log.Info(strconv.FormatInt(ID, 10) + report)
 		} else {
 			// 如果叠猫猫失败
-			exitCount := int(math.Ceil(float64(len(data)) * rand.Float64()))
-			if exitCount == 0 {
-				exitCount = 1
+			// 如果不是平地摔
+			if len(data) != 0 {
+				exitCount := int(math.Ceil(float64(len(data)) * rand.Float64()))
+				if exitCount == 0 {
+					exitCount = 1
+				}
+				exitData := data[len(data)-exitCount:]
+				// 将摔下来的的猫猫记录至退出日志
+				for _, kitten := range exitData {
+					logExit(kitten.ID, ctx, e)
+				}
+				data = data[:len(data)-exitCount]
+				save(data, kitten.Path(e.DataFolder()+dataFile))
+				report = fmt.Sprintf("叠猫猫失败，上面 %d 只猫猫摔下来了喵！需要休息 %d 小时。\n%s",
+					exitCount, stackConfig.GapTime, strings.Join(exitData.reverse(), "\n"))
+			} else {
+				// 如果是平地摔
+				report = fmt.Sprintf("叠猫猫失败，你平地摔了喵！需要休息 %d 小时。", stackConfig.GapTime)
 			}
-			exitData := data[len(data)-exitCount:]
-			// 将摔下来的的猫猫记录至退出日志
-			for _, kitten := range exitData {
-				logExit(kitten.ID, ctx, e)
-			}
-			data = data[:len(data)-exitCount]
-			save(data, kitten.Path(e.DataFolder()+dataFile))
-			report = fmt.Sprintf("叠猫猫失败，上面 %d 只猫猫摔下来了喵！需要休息 %d 小时。\n%s",
-				exitCount, stackConfig.GapTime, strings.Join(exitData.reverse(), "\n"))
 			permit = false
 			log.Info(strconv.FormatInt(ID, 10) + report)
 			logExit(ID, ctx, e) // 将叠猫猫失败的猫猫记录至退出日志
 		}
 	}
-	if permit {
-		ctx.SendChain(message.At(ID), message.Text(report))
-	} else {
-		ctx.SendChain(message.At(ID), imagePath.GetImage(`no.png`), message.Text(report))
-	}
+	send(ID, permit, ctx, report)
 }
 
 // 退出叠猫猫
@@ -227,11 +228,7 @@ func (data Data) exit(ctx *zero.Ctx, e *control.Engine) {
 			permit = false
 			log.Warn(strconv.FormatInt(ID, 10) + report)
 		}
-		if permit {
-			ctx.SendChain(message.At(ID), message.Text(report))
-		} else {
-			ctx.SendChain(message.At(ID), imagePath.GetImage(`no.png`), message.Text(report))
-		}
+		send(ID, permit, ctx, report)
 	}
 }
 
@@ -274,7 +271,7 @@ func save(data Data, path kitten.Path) (ok bool) {
 }
 
 // 自动退出队列
-func autoExit(f string, cf Config, e *control.Engine) {
+func autoExit(f string, c Config, e *control.Engine) {
 	// 处理 panic，防止程序崩溃
 	defer func() {
 		if err := recover(); !kitten.Check(err) {
@@ -284,9 +281,9 @@ func autoExit(f string, cf Config, e *control.Engine) {
 	var limitTime time.Duration = time.Hour
 	switch f {
 	case dataFile:
-		limitTime = time.Duration(cf.MaxTime) * time.Hour
+		limitTime = time.Duration(c.MaxTime) * time.Hour
 	case exitFile:
-		limitTime = time.Duration(cf.GapTime) * time.Hour
+		limitTime = time.Duration(c.GapTime) * time.Hour
 	}
 	for {
 		mu.RLock()
@@ -334,4 +331,21 @@ func checkStack(h int) bool {
 		return false
 	}
 	return true
+}
+
+// 发送叠猫猫结果
+func send(u int64, p bool, ctx *zero.Ctx, r string) {
+	if ctx.Event.DetailType == "private" {
+		if p {
+			ctx.Send(message.Text(r))
+		} else {
+			ctx.SendChain(imagePath.GetImage(`no.png`), message.Text(r))
+		}
+	} else {
+		if p {
+			ctx.SendChain(message.At(u), message.Text(r))
+		} else {
+			ctx.SendChain(message.At(u), imagePath.GetImage(`no.png`), message.Text(r))
+		}
+	}
 }

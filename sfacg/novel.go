@@ -13,7 +13,7 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-const imagePath kitten.Path = `image/path.txt` // 保存图片路径的文件
+var imagePath kitten.Path = kitten.Path(kitten.Configs.Path + `image/`) // 保存图片路径的文件
 
 // 小说网页信息获取
 func (nv *Novel) init(bookID string) {
@@ -192,6 +192,9 @@ func (nv *Novel) makeCompare() (cm Compare) {
 	if this = nv.NewChapter; this.IsGet {
 		last.init(this.LastURL)
 		cm.TimeGap = this.Time.Sub(last.Time)
+		if 0 > cm.TimeGap {
+			cm.TimeGap = 0
+		}
 		cm.Times = 1
 		for kitten.IsSameDate(last.Time, this.Time) {
 			this = last
@@ -252,7 +255,7 @@ func (key keyWord) findBookID() (string, bool) {
 }
 
 // 更新信息
-func (nv *Novel) update() (str string, t time.Time) {
+func (nv *Novel) update() (str string, ok bool) {
 	var (
 		cm      = nv.makeCompare()
 		wordNum = fmt.Sprintf(`%d 字`, nv.NewChapter.WordNum)
@@ -263,10 +266,6 @@ func (nv *Novel) update() (str string, t time.Time) {
 	} else {
 		timeGap = `不明`
 	}
-	if 0 > cm.TimeGap {
-		log.Warn(`更新异常喵！`)
-		return `更新异常喵！`, time.Now()
-	}
 	timeGap = strings.Replace(timeGap, `h`, ` 小时 `, 1)
 	timeGap = strings.Replace(timeGap, `m`, ` 分钟 `, 1)
 	timeGap = strings.Replace(timeGap, `s`, ` 秒`, 1)
@@ -276,6 +275,8 @@ func (nv *Novel) update() (str string, t time.Time) {
 		`间隔时间：` + timeGap,
 		fmt.Sprintf(`当日第 %d 更`, cm.Times),
 	}, `，`)
-	t = nv.NewChapter.Time
+	if time.Minute <= cm.TimeGap {
+		ok = true
+	}
 	return
 }

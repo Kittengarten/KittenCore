@@ -51,7 +51,7 @@ func init() {
 	)
 
 	engine.OnFullMatch(fmt.Sprintf(`%s今天吃什么`, name), zero.OnlyGroup).SetBlock(true).
-		Limit(ctxext.NewLimiterManager(time.Minute, 1).LimitByGroup).Handle(func(ctx *zero.Ctx) {
+		Limit(ctxext.NewLimiterManager(time.Hour, 1).LimitByGroup).Handle(func(ctx *zero.Ctx) {
 	re:
 		var (
 			today, err = kitten.Path(engine.DataFolder() + todayFile).Read()
@@ -81,7 +81,6 @@ func init() {
 					log.Errorf("生成今天吃什么发生错误：\n%v\n%v", err1, err2)
 				}
 				report(todayData, name, ctx)
-
 				// 存储饮食统计数据
 				var (
 					stat, err = kitten.Path(engine.DataFolder() + statFile).Read()
@@ -212,7 +211,7 @@ func init() {
 	})
 
 	engine.OnFullMatchGroup([]string{`查询被吃次数`, `查看被吃次数`}, zero.OnlyGroup).SetBlock(true).
-		Limit(ctxext.NewLimiterManager(time.Minute, 1).LimitByUser).Handle(func(ctx *zero.Ctx) {
+		Limit(ctxext.NewLimiterManager(time.Hour, 2).LimitByUser).Handle(func(ctx *zero.Ctx) {
 	re:
 		var (
 			stat, err = kitten.Path(engine.DataFolder() + statFile).Read()
