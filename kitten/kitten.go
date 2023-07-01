@@ -12,13 +12,13 @@ import (
 
 var (
 	poke     = rate.NewManager[int64](5*time.Minute, 9) // 戳一戳
-	nickname = LoadConfig().NickName[0]                 // 昵称
+	nickname = LoadMainConfig().NickName[0]             // 昵称
 	// Bot 实例
 	Bot *zero.Ctx
 	// BotSFACGchan 用于传送 Bot 实例的通道
 	BotSFACGchan = make(chan *zero.Ctx)
 	// Configs 来自 Bot 的配置文件
-	Configs = LoadConfig()
+	Configs = LoadMainConfig()
 )
 
 const (

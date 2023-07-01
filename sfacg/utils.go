@@ -1,7 +1,6 @@
 package sfacg
 
 import (
-	"os"
 	"regexp"
 
 	"gopkg.in/yaml.v3"
@@ -10,33 +9,6 @@ import (
 	"github.com/Kittengarten/KittenCore/kitten"
 	log "github.com/sirupsen/logrus"
 )
-
-// 加载配置
-func loadConfig(e *control.Engine) (c Config, err error) {
-re:
-	isExist, err := kitten.Path(e.DataFolder() + configFile).Exists()
-	// 如果确定文件是否存在
-	if kitten.Check(err) {
-		if isExist {
-			// 如果文件存在
-			d, err := kitten.Path(e.DataFolder() + configFile).Read()
-			if kitten.Check(err) {
-				yaml.Unmarshal(d, &c)
-			} else {
-				log.Fatalf("%s 配置文件存在但加载失败喵！\n%v", ReplyServiceName, err)
-			}
-		} else {
-			// 如果文件不存在，创建文件后重新载入命令
-			fp, err := os.Create(e.DataFolder() + configFile)
-			if kitten.Check(err) {
-				fp.WriteString(`[]`)
-				defer fp.Close()
-				goto re
-			}
-		}
-	}
-	return
-}
 
 // 保存配置，成功则返回 True
 func saveConfig(c Config, e *control.Engine) (ok bool) {

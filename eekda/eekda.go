@@ -25,11 +25,11 @@ import (
 
 const (
 	// ReplyServiceName 插件名
-	ReplyServiceName = `eekda`
-	brief            = `今天吃什么`
-	namePath         = `eekda/name.txt` // 保存名字的文件
-	todayFile        = `today.yaml`     // 保存今天吃什么的文件
-	statFile         = `stat.yaml`      // 保存统计数据的文件
+	ReplyServiceName             = `eekda`
+	brief                        = `今天吃什么`
+	namePath         kitten.Path = `eekda/name.txt` // 保存名字的文件
+	todayFile        kitten.Path = `today.yaml`     // 保存今天吃什么的文件
+	statFile         kitten.Path = `stat.yaml`      // 保存统计数据的文件
 )
 
 func init() {
@@ -54,7 +54,7 @@ func init() {
 		Limit(ctxext.NewLimiterManager(time.Hour, 1).LimitByGroup).Handle(func(ctx *zero.Ctx) {
 	re:
 		var (
-			today, err = kitten.Path(engine.DataFolder() + todayFile).Read()
+			today, err = (kitten.Path(engine.DataFolder()) + todayFile).Read()
 			todayData  Today
 		)
 		if kitten.Check(err) {
@@ -76,14 +76,14 @@ func init() {
 				todayData.Dinner = kitten.QQ(list[nums[3]].Get(`user_id`).Int())
 				todayData.Supper = kitten.QQ(list[nums[4]].Get(`user_id`).Int())
 				today, err1 := yaml.Marshal(todayData)
-				err2 := kitten.Path(engine.DataFolder() + todayFile).Write(today)
+				err2 := (kitten.Path(engine.DataFolder()) + todayFile).Write(today)
 				if !kitten.Check(err1) || !kitten.Check(err2) {
 					log.Errorf("生成今天吃什么发生错误：\n%v\n%v", err1, err2)
 				}
 				report(todayData, name, ctx)
 				// 存储饮食统计数据
 				var (
-					stat, err = kitten.Path(engine.DataFolder() + statFile).Read()
+					stat, err = (kitten.Path(engine.DataFolder()) + statFile).Read()
 					statData  Stat
 					isNew     = map[string]bool{
 						`Breakfast`: true,
@@ -190,17 +190,17 @@ func init() {
 					}
 				}
 				stat, err3 := yaml.Marshal(statData)
-				err4 := kitten.Path(engine.DataFolder() + statFile).Write(stat)
+				err4 := (kitten.Path(engine.DataFolder()) + statFile).Write(stat)
 				if !kitten.Check(err3) || !kitten.Check(err4) {
 					log.Errorf("写入饮食统计数据发生错误：\n%v\n%v", err1, err2)
 				}
 			}
-		} else if isExist, err := kitten.Path(engine.DataFolder() + todayFile).Exists(); !kitten.Check(err) {
+		} else if isExist, err := (kitten.Path(engine.DataFolder()) + todayFile).Exists(); !kitten.Check(err) {
 			// 如果不确定文件存在
 			kitten.DoNotKnow(ctx)
 		} else if !isExist {
 			// 如果文件不存在，创建文件后重新载入命令
-			if fp, err := os.Create(engine.DataFolder() + todayFile); kitten.Check(err) {
+			if fp, err := os.Create(engine.DataFolder() + string(todayFile)); kitten.Check(err) {
 				fp.WriteString(`[]`)
 				defer fp.Close()
 				goto re
@@ -214,7 +214,7 @@ func init() {
 		Limit(ctxext.NewLimiterManager(time.Hour, 2).LimitByUser).Handle(func(ctx *zero.Ctx) {
 	re:
 		var (
-			stat, err = kitten.Path(engine.DataFolder() + statFile).Read()
+			stat, err = (kitten.Path(engine.DataFolder()) + statFile).Read()
 			statData  Stat
 			isGet     bool
 		)
@@ -238,12 +238,12 @@ func init() {
 			if !isGet {
 				kitten.DoNotKnow(ctx)
 			}
-		} else if isExist, err := kitten.Path(engine.DataFolder() + statFile).Exists(); !kitten.Check(err) {
+		} else if isExist, err := (kitten.Path(engine.DataFolder()) + statFile).Exists(); !kitten.Check(err) {
 			// 如果不确定文件存在
 			kitten.DoNotKnow(ctx)
 		} else if !isExist {
 			// 如果文件不存在，创建文件后重新载入命令
-			if fp, err := os.Create(engine.DataFolder() + statFile); kitten.Check(err) {
+			if fp, err := os.Create(engine.DataFolder() + string(statFile)); kitten.Check(err) {
 				fp.WriteString(`[]`)
 				defer fp.Close()
 				goto re
@@ -257,7 +257,8 @@ func init() {
 
 // 获取名字
 func getName() string {
-	res, err := os.Open(namePath)
+	kitten.InitFile(namePath, `翼翼`) // 创建默认名字
+	res, err := os.Open(string(namePath))
 	if !kitten.Check(err) {
 		log.Warnf("打开文件 %s 失败了喵！\n%v", namePath, err)
 	} else {

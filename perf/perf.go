@@ -46,8 +46,7 @@ const (
 	// ReplyServiceName 插件名
 	ReplyServiceName             = `perf`
 	brief                        = `查看运行状况`
-	filePath         kitten.Path = `perf/file.txt` // 保存微星小飞机温度配置文件路径的文件，非 Windows 系统或不使用可以忽略
-	webPath          kitten.Path = `perf/web.txt`  // 保存 Ping 测试主机的文件
+	filePath         kitten.Path = `file.txt` // 保存微星小飞机温度配置文件路径的文件，非 Windows 系统或不使用可以忽略
 )
 
 var imagePath kitten.Path = kitten.Path(kitten.Configs.Path + ReplyServiceName + `/image/`) // 图片路径
@@ -99,7 +98,7 @@ func init() {
 			}
 			switch runtime.GOOS {
 			case `windows`:
-				t = getCPUTemperatureOnWindows()
+				t = getCPUTemperatureOnWindows(engine)
 				str = strings.Join([]string{fmt.Sprintf(`CPU 使用率：%.2f%%`, cpu),
 					fmt.Sprintf(`内存使用：%.0f%%（%s）`, mem, getMemUsed()),
 					fmt.Sprintf(`系统盘使用：%.2f%%（%s）`, getDiskPercent(), getDiskUsed()),
@@ -125,17 +124,6 @@ func init() {
 			}
 			report = message.Message{imagePath.GetImage(kitten.Path(strconv.Itoa(getPerf(cpu, mem, t)) + `.png`)), message.Text(str)}
 			ctx.Send(report)
-			var (
-				ping        = kitten.URL(webPath.LoadPath()).CheckServer()
-				pingMessage = kitten.CheckPing(ping)
-			)
-			pingStr := strings.Join([]string{pingMessage.Min,
-				pingMessage.Avg,
-				pingMessage.Max,
-				pingMessage.StdDev,
-				pingMessage.Loss,
-			}, "\n")
-			ctx.Send(pingStr)
 			break
 		default:
 			kitten.DoNotKnow(ctx)
@@ -144,13 +132,13 @@ func init() {
 	})
 
 	// Ping 功能
-	engine.OnCommand(`ping`).SetBlock(true).
+	engine.OnCommand(`ping`, zero.AdminPermission).SetBlock(true).
 		Limit(ctxext.NewLimiterManager(time.Minute, 1).LimitByGroup).Handle(func(ctx *zero.Ctx) {
 		var (
-			pingURL    = ctx.State[`args`].(string)
-			reportAnno string
-			pingMsg    string
-			nbytes     int
+			pingURL = ctx.State[`args`].(string)
+			report  string
+			pingMsg string
+			nbytes  int
 		)
 		pinger, err := probing.NewPinger(pingURL)
 		pinger.Count = 4 // 检测 4 次
@@ -167,7 +155,7 @@ func init() {
 		}
 
 		pinger.OnFinish = func(stats *probing.Statistics) {
-			reportAnno = strings.Join([]string{fmt.Sprintf(`正在 Ping %s [%s] 具有 %d 字节的数据：`, pingURL, stats.IPAddr, nbytes),
+			report = strings.Join([]string{fmt.Sprintf(`正在 Ping %s [%s] 具有 %d 字节的数据：`, pingURL, stats.IPAddr, nbytes),
 				pingMsg,
 				``,
 				fmt.Sprintf(`%s 的 Ping 统计信息：`, stats.IPAddr),
@@ -183,7 +171,7 @@ func init() {
 			kitten.DoNotKnow(ctx)
 			log.Errorf(`Ping 出现错误：%v`, err)
 		}
-		ctx.Send(reportAnno)
+		ctx.Send(report)
 	})
 }
 
@@ -246,7 +234,8 @@ func getDiskUsed() (str string) {
 }
 
 // Windows 系统下获取 CPU 温度，通过微星小飞机（需要自行安装配置，并确保温度在其 log 中的位置）
-func getCPUTemperatureOnWindows() (CPUTemperature kitten.IntString) {
+func getCPUTemperatureOnWindows(e *control.Engine) (CPUTemperature kitten.IntString) {
+	kitten.InitFile(kitten.Path(e.DataFolder())+filePath, `C:\Program Files (x86)\MSI Afterburner\HardwareMonitoring.hml`)
 	os.Remove(string(filePath.LoadPath()))
 	time.Sleep(1 * time.Second)
 	file, err := os.ReadFile(string(filePath.LoadPath()))

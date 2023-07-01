@@ -25,16 +25,17 @@ import (
 
 const (
 	// ReplyServiceName 插件名
-	ReplyServiceName = `stack`
-	brief            = `一起来玩叠猫猫`
-	dataFile         = `data.yaml` // 叠猫猫数据文件
-	exitFile         = `exit.yaml` // 叠猫猫退出日志文件
+	ReplyServiceName             = `stack`
+	brief                        = `一起来玩叠猫猫`
+	configFile       kitten.Path = `config.yaml` // 叠猫猫配置文件名
+	dataFile                     = `data.yaml`   // 叠猫猫数据文件
+	exitFile                     = `exit.yaml`   // 叠猫猫退出日志文件
 )
 
 var (
 	imagePath   kitten.Path = kitten.Path(kitten.Configs.Path + `image/`) // 图片路径
-	stackConfig             = loadConfig()
-	mu          sync.RWMutex
+	stackConfig Config                                                    // 叠猫猫配置文件
+	mu          sync.Mutex
 )
 
 func init() {
@@ -55,9 +56,18 @@ func init() {
 			PrivateDataFolder: `stack`,
 		})
 	)
-
-	go autoExit(dataFile, stackConfig, engine)
-	go autoExit(exitFile, stackConfig, engine)
+	kitten.InitFile(kitten.Path(engine.DataFolder())+configFile, `maxstack: 10 # 叠猫猫队列上限
+	maxtime: 2   # 叠猫猫时间上限（小时数）
+	gaptime: 1   # 叠猫猫主动退出或者被压坏后重新加入所需的时间（小时数）
+	outofstack: "不能再叠了，下面的猫猫会被压坏的喵！" # 叠猫猫队列已满的回复
+	maxcount: 5 # 被压次数上限
+	failpercent: 1 # 叠猫猫每层失败概率百分数`)
+	stackConfig, err := kitten.LoadConfig(engine, configFile, ReplyServiceName) // 加载叠猫猫配置文件
+	if kitten.Check(err) {
+		log.Errorf("%s 配置文件加载失败喵！\n%v", ReplyServiceName, err)
+	}
+	go autoExit(dataFile, stackConfig.(Config), engine)
+	go autoExit(exitFile, stackConfig.(Config), engine)
 
 	engine.OnCommand(`叠猫猫`).SetBlock(true).
 		Limit(ctxext.NewLimiterManager(time.Minute, 5).LimitByGroup).Handle(func(ctx *zero.Ctx) {
@@ -70,7 +80,7 @@ func init() {
 		)
 		switch ag {
 		case `加入`:
-			data.in(dataExit, stackConfig, ctx, engine)
+			data.in(dataExit, stackConfig.(Config), ctx, engine)
 		case `退出`:
 			data.exit(ctx, engine)
 		case `查看`:
@@ -79,17 +89,6 @@ func init() {
 			ctx.Send(help)
 		}
 	})
-}
-
-// 加载叠猫猫配置
-func loadConfig() (stackConfig Config) {
-	d, err := kitten.Path(`stack/config.yaml`).Read()
-	if kitten.Check(err) {
-		yaml.Unmarshal(d, &stackConfig)
-	} else {
-		log.Errorf("加载叠猫猫配置失败喵！\n%v", err)
-	}
-	return
 }
 
 // 加载叠猫猫数据
@@ -286,7 +285,7 @@ func autoExit(f string, c Config, e *control.Engine) {
 		limitTime = time.Duration(c.GapTime) * time.Hour
 	}
 	for {
-		mu.RLock()
+		mu.Lock()
 		var (
 			data     = loadData(kitten.Path(e.DataFolder() + f))
 			dataNew  = data
@@ -305,7 +304,7 @@ func autoExit(f string, c Config, e *control.Engine) {
 		if len(dataNew) != len(data) {
 			save(dataNew, kitten.Path(e.DataFolder()+f))
 		}
-		mu.RUnlock()
+		mu.Unlock()
 		log.Infof(`下次定时退出 %s 时间为：%s`, e.DataFolder()+f, nextTime.Format(`2006-01-02 15:04:05`))
 		time.Sleep(time.Until(nextTime))
 	}

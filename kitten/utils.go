@@ -10,6 +10,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/FloatTech/zbputils/control"
 	probing "github.com/prometheus-community/pro-bing"
 	"github.com/tidwall/gjson"
 	"gopkg.in/yaml.v3"
@@ -127,6 +128,37 @@ func (path Path) GetImage(name Path) message.MessageSegment {
 	return message.Image(string(path.LoadPath() + name))
 }
 
+// InitFile 初始化文本文件
+func InitFile(name Path, text string) (err error) {
+	e, _ := name.Exists()
+	if !e {
+		err = name.Write([]byte(text))
+	}
+	return
+}
+
+// LoadMainConfig 加载主配置
+func LoadMainConfig() (config Config) {
+	d, err1 := path.Read()
+	if !Check(err1) {
+		log.Fatalf("加载配置失败喵！\n%v", err1)
+	} else if err2 := yaml.Unmarshal(d, &config); !Check(err2) {
+		log.Fatalf("打开 %s 失败了喵！\n%v", path, err2)
+		return
+	}
+	return
+}
+
+// LoadConfig 加载配置
+func LoadConfig(e *control.Engine, configFile Path, ReplyServiceName string) (c any, err error) {
+	if d, err := (Path(e.DataFolder()) + configFile).Read(); Check(err) {
+		yaml.Unmarshal(d, &c)
+	} else {
+		log.Fatalf("%s 配置文件加载失败喵！\n%v", ReplyServiceName, err)
+	}
+	return
+}
+
 // Check 处理错误，没有错误则返回 True
 func Check(err any) bool {
 	if err != nil {
@@ -192,18 +224,6 @@ func (u QQ) GetTitle(ctx *zero.Ctx) (title string) {
 		title = titleStr
 	} else {
 		title = fmt.Sprintf(`【%s】`, gjson.Get(gmi.Raw, `title`).Str)
-	}
-	return
-}
-
-// LoadConfig 加载配置
-func LoadConfig() (config Config) {
-	d, err1 := path.Read()
-	if !Check(err1) {
-		log.Fatalf("加载配置失败喵！\n%v", err1)
-	} else if err2 := yaml.Unmarshal(d, &config); !Check(err2) {
-		log.Fatalf("打开 %s 失败了喵！\n%v", path, err2)
-		return
 	}
 	return
 }

@@ -22,6 +22,7 @@ import (
 	// 以下为外部插件
 	_ "github.com/FloatTech/ZeroBot-Plugin/plugin/manager"
 
+	// _ "github.com/Kittengarten/KittenCore/plugin/kokomi"
 	_ "github.com/FloatTech/ZeroBot-Plugin/plugin/ahsai"
 	_ "github.com/FloatTech/ZeroBot-Plugin/plugin/ai_false"
 	_ "github.com/FloatTech/ZeroBot-Plugin/plugin/aipaint"
@@ -72,7 +73,6 @@ import (
 	_ "github.com/FloatTech/ZeroBot-Plugin/plugin/wife"
 	_ "github.com/FloatTech/ZeroBot-Plugin/plugin/word_count"
 	_ "github.com/FloatTech/ZeroBot-Plugin/plugin/ymgal"
-	_ "github.com/Kittengarten/KittenCore/plugin/kokomi"
 
 	_ "github.com/FloatTech/ZeroBot-Plugin/plugin/ai_reply"
 
@@ -88,7 +88,7 @@ import (
 	webctrl "github.com/FloatTech/zbputils/control/web"
 )
 
-var config = kitten.LoadConfig()
+var config = kitten.LoadMainConfig()
 
 func init() {
 	// 启用 WebUI
