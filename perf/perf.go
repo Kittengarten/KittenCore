@@ -46,8 +46,8 @@ const (
 	// ReplyServiceName 插件名
 	ReplyServiceName             = `perf`
 	brief                        = `查看运行状况`
-	filePath         kitten.Path = `perf/file.txt` // 保存温度配置文件路径的文件
-	webPath          kitten.Path = `perf/web.txt`  // 保存官网的文件
+	filePath         kitten.Path = `perf/file.txt` // 保存微星小飞机温度配置文件路径的文件，非 Windows 系统或不使用可以忽略
+	webPath          kitten.Path = `perf/web.txt`  // 保存 Ping 测试主机的文件
 )
 
 var imagePath kitten.Path = kitten.Path(kitten.Configs.Path + ReplyServiceName + `/image/`) // 图片路径
@@ -73,8 +73,13 @@ func init() {
 			str    string
 			report message.Message
 		)
+		for _, v := range zero.BotConfig.NickName {
+			if who == v {
+				who = "喵喵"
+			}
+		}
 		switch who {
-		case zero.BotConfig.NickName[0]:
+		case "喵喵":
 			var (
 				cpu                                      = getCPUPercent()
 				mem                                      = getMemPercent()
@@ -240,7 +245,7 @@ func getDiskUsed() (str string) {
 	return
 }
 
-// Windows 系统下获取 CPU 温度
+// Windows 系统下获取 CPU 温度，通过微星小飞机（需要自行安装配置，并确保温度在其 log 中的位置）
 func getCPUTemperatureOnWindows() (CPUTemperature kitten.IntString) {
 	os.Remove(string(filePath.LoadPath()))
 	time.Sleep(1 * time.Second)
@@ -248,7 +253,7 @@ func getCPUTemperatureOnWindows() (CPUTemperature kitten.IntString) {
 	if !kitten.Check(err) {
 		log.Warnf("获取 CPU 温度日志失败了喵！\n%v", err)
 	}
-	CPUTemperature = kitten.IntString(file[329:331])
+	CPUTemperature = kitten.IntString(file[329:331]) // 此处为温度在微星小飞机 log 中的位置
 	return
 }
 
