@@ -7,7 +7,7 @@ superusers:        # 亲妈账号
   - 114514
   - 1919810
 commandprefix: /   # 指令前缀
-path: file:///home/ubuntu/Go-CQHTTP/数据/ # 资源文件路径
+path: /home/ubuntu/Go-CQHTTP/数据/ # 资源文件路径
 websocket:                   # WebSocket
   url: ws://example.com:6700 # WebSocket 链接
   accesstoken: Example       # WebSocket 密钥

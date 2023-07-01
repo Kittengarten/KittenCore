@@ -13,6 +13,9 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
+// LogFormat 日志输出样式
+type LogFormat struct{}
+
 // 颜色代码常量
 const (
 	colorCodePanic = "\x1b[1;31m" // color.Style{color.Bold, color.Red}.String()
@@ -25,10 +28,8 @@ const (
 	colorReset     = "\x1b[0m"
 )
 
-// LogFormat 日志输出样式
-type LogFormat struct{}
-
-func init() {
+// 日志配置
+func logConfig() {
 	var (
 		logName   = config.Log.Path   // 日志文件路径
 		logRotate = config.Log.Days   // 单段分割文件记录的天数
@@ -54,7 +55,7 @@ func init() {
 	if mw := io.MultiWriter(os.Stdout, writer); kitten.Check(err) {
 		log.SetOutput(mw)
 	} else {
-		log.Warn(`主函数写入日志失败了喵！`)
+		log.Error(`主函数写入日志失败了喵！`)
 	}
 	// 设置最低日志等级
 	log.SetLevel(config.Log.GetLogLevel())

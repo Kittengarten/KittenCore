@@ -1,7 +1,6 @@
 package kitten
 
 import (
-	"bytes"
 	"fmt"
 	"io"
 	"math/rand"
@@ -84,7 +83,7 @@ func (path Path) Write(data []byte) {
 	}
 	res, err1 := os.Open(string(path))
 	if !Check(err1) {
-		log.Infof("写入：文件 %s 无法读取或不存在喵，试图新建。\n%v", path, err1)
+		log.Infof("写入：文件 %s 无法读取或不存在喵，尝试新建。\n%v", path, err1)
 	} else {
 		defer res.Close()
 	}
@@ -112,7 +111,7 @@ func (path Path) Exists() (bool, error) {
 
 // （私有）判断路径是否文件夹
 func (path Path) isDir() bool {
-	s, err := os.Stat(fmt.Sprintf("%s", bytes.TrimPrefix([]byte(string(path)), []byte(`file://`))))
+	s, err := os.Stat(string(path))
 	if !Check(err) {
 		return false
 	}
@@ -137,9 +136,9 @@ func (path Path) LoadPath() Path {
 // GetImage 从保存图片路径的文件，或图片的绝对路径加载图片
 func (path Path) GetImage(name Path) message.MessageSegment {
 	if path.isDir() {
-		return message.Image(string(FilePath(path, name)))
+		return message.Image(`file://` + string(FilePath(path, name)))
 	}
-	return message.Image(string(FilePath(path.LoadPath(), name)))
+	return message.Image(`file://` + string(FilePath(path.LoadPath(), name)))
 }
 
 // InitFile 初始化文本文件

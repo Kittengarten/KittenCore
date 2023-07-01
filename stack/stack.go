@@ -32,9 +32,9 @@ const (
 )
 
 var (
-	configFile  = kitten.FilePath(`stack`, `config.yaml`)       // 叠猫猫配置文件名
-	imagePath   = kitten.FilePath(kitten.Configs.Path, `image`) // 图片路径
-	stackConfig Config                                          // 叠猫猫配置文件
+	configFile  = kitten.FilePath(`stack`, `config.yaml`)                    // 叠猫猫配置文件名
+	imagePath   = kitten.FilePath(kitten.Path(kitten.Configs.Path), `image`) // 图片路径
+	stackConfig Config                                                       // 叠猫猫配置文件
 	mu          sync.Mutex
 )
 

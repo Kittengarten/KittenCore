@@ -91,6 +91,7 @@ import (
 var config = kitten.LoadMainConfig()
 
 func init() {
+	logConfig()
 	// 启用 WebUI
 	go webctrl.RunGui(string(config.WebUI.URL))
 }
