@@ -10,7 +10,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/FloatTech/zbputils/control"
 	probing "github.com/prometheus-community/pro-bing"
 	"github.com/tidwall/gjson"
 	"gopkg.in/yaml.v3"
@@ -145,16 +144,6 @@ func LoadMainConfig() (config Config) {
 	} else if err2 := yaml.Unmarshal(d, &config); !Check(err2) {
 		log.Fatalf("打开 %s 失败了喵！\n%v", path, err2)
 		return
-	}
-	return
-}
-
-// LoadConfig 加载配置
-func LoadConfig(e *control.Engine, configFile Path, ReplyServiceName string) (c any, err error) {
-	if d, err := (Path(e.DataFolder()) + configFile).Read(); Check(err) {
-		yaml.Unmarshal(d, &c)
-	} else {
-		log.Fatalf("%s 配置文件加载失败喵！\n%v", ReplyServiceName, err)
 	}
 	return
 }

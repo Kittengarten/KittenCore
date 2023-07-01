@@ -89,7 +89,7 @@ func init() {
 	engine.OnCommand(`添加报更`).SetBlock(true).Handle(func(ctx *zero.Ctx) {
 		var (
 			novel    = getNovel(ctx)
-			c, err   = kitten.LoadConfig(engine, configFile, ReplyServiceName)
+			c, err   = loadConfig(kitten.Path(engine.DataFolder()) + configFile)
 			track    = make(Config, 1)
 			g        int64                         // 发送对象
 			hasg     bool                          // 是否有发送对象
@@ -99,8 +99,8 @@ func init() {
 			return
 		}
 		if kitten.Check(err) {
-			ci := make([]any, len(c.(Config))) // 书号接口数组
-			for k, v := range c.(Config) {
+			ci := make([]any, len(c)) // 书号接口数组
+			for k, v := range c {
 				ci[k] = v.BookID
 				gi := make([]any, len(v.GroupID)) // 群号接口数组
 				for i, g := range v.GroupID {
@@ -111,13 +111,13 @@ func init() {
 			cs := mapset.NewSetFromSlice(ci) // 书号集合
 			if cs.Contains(novel.ID) {
 				if groupSet[novel.ID].Add(g) {
-					for k, v := range c.(Config) {
+					for k, v := range c {
 						gi := groupSet[v.BookID].ToSlice()
 						gs := make([]int64, len(gi))
 						for i, g := range gi {
 							gs[i] = g.(int64)
 						}
-						c.(Config)[k].GroupID = gs
+						c[k].GroupID = gs
 					}
 				} else {
 					hasg = true // 已经存在此发送对象
@@ -126,11 +126,11 @@ func init() {
 				track[0].BookID = novel.ID
 				track[0].BookName = novel.Name
 				track[0].GroupID = []int64{g}
-				c = append(c.(Config), track[0])
+				c = append(c, track[0])
 			}
 			if hasg {
 				ctx.Send(fmt.Sprintf(`《%s》已经添加报更了喵！`, novel.Name))
-			} else if saveConfig(c.(Config), engine) {
+			} else if saveConfig(c, engine) {
 				ctx.Send(fmt.Sprintf(`添加《%s》报更成功喵！`, novel.Name))
 			} else {
 				ctx.Send(fmt.Sprintf(`添加《%s》报更失败喵！`, novel.Name))
@@ -145,7 +145,7 @@ func init() {
 		Handle(func(ctx *zero.Ctx) {
 			var (
 				novel    = getNovel(ctx)
-				c, err   = kitten.LoadConfig(engine, configFile, ReplyServiceName)
+				c, err   = loadConfig(kitten.Path(engine.DataFolder()) + configFile)
 				g        int64                         // 发送对象
 				groupSet = make(map[string]mapset.Set) // 书号:群号集合
 				ok       bool
@@ -153,9 +153,9 @@ func init() {
 			if g = getg(ctx); g == 0 {
 				return
 			}
-			if kitten.Check(err) && 0 < len(c.(Config)) {
-				ci := make([]any, len(c.(Config))) // 书号接口数组
-				for k, v := range c.(Config) {
+			if kitten.Check(err) && 0 < len(c) {
+				ci := make([]any, len(c)) // 书号接口数组
+				for k, v := range c {
 					ci[k] = v.BookID
 					gi := make([]any, len(v.GroupID)) // 群号接口数组
 					for i, g := range v.GroupID {
@@ -167,7 +167,7 @@ func init() {
 						groupSet[v.BookID].Remove(g)
 						// 如果群号集合为空集
 						if 0 >= groupSet[v.BookID].Cardinality() {
-							c.(Config)[k].GroupID = nil
+							c[k].GroupID = nil
 							ok = true
 						} else {
 							ok = l != groupSet[v.BookID].Cardinality()
@@ -176,16 +176,16 @@ func init() {
 							for i, g := range gi {
 								gs[i] = g.(int64)
 							}
-							c.(Config)[k].GroupID = gs
+							c[k].GroupID = gs
 						}
-						if 0 >= len(c.(Config)[k].GroupID) {
-							c = append(c.(Config)[:k], c.(Config)[k+1:]...)
+						if 0 >= len(c[k].GroupID) {
+							c = append(c[:k], c[k+1:]...)
 						}
 					}
 				}
 			}
 			if ok {
-				if saveConfig(c.(Config), engine) {
+				if saveConfig(c, engine) {
 					ctx.Send(fmt.Sprintf(`取消《%s》报更成功喵！`, novel.Name))
 				} else {
 					ctx.Send(fmt.Sprintf(`取消《%s》报更失败喵！`, novel.Name))
@@ -224,11 +224,11 @@ func track(e *control.Engine) {
 		bot       = <-kitten.BotSFACGchan
 		name      = zero.BotConfig.NickName[0]
 		line      = `======================[` + name + `]======================`
-		data, err = kitten.LoadConfig(e, configFile, ReplyServiceName)
+		data, err = loadConfig(kitten.Path(e.DataFolder()) + configFile)
 		content   = strings.Join([]string{
 			line,
 			`* OneBot + ZeroBot + Go`,
-			fmt.Sprintf(`一共有 %d 本小说`, len(data.(Config))),
+			fmt.Sprintf(`一共有 %d 本小说`, len(data)),
 			`=======================================================`,
 		}, "\n")
 		t = time.Tick(5 * time.Second) // 每 5 秒检测一次
@@ -246,7 +246,7 @@ func track(e *control.Engine) {
 	// 报更
 	for {
 		var (
-			data, err = kitten.LoadConfig(e, configFile, ReplyServiceName)
+			data, err = loadConfig(kitten.Path(e.DataFolder()) + configFile)
 			dataNew   = data
 			done      bool
 		)
@@ -257,16 +257,16 @@ func track(e *control.Engine) {
 			}
 			continue
 		}
-		for i := range data.(Config) {
-			novel.init(data.(Config)[i].BookID)
+		for i := range data {
+			novel.init(data[i].BookID)
 			// 更新判定，并防止误报
-			if novel.NewChapter.URL == data.(Config)[i].RecordURL ||
+			if novel.NewChapter.URL == data[i].RecordURL ||
 				!novel.IsGet || !novel.NewChapter.IsGet {
 				continue
 			}
 			// 防止更新异常信息发送
 			if report, ok := novel.update(); ok {
-				for _, groupID := range data.(Config)[i].GroupID {
+				for _, groupID := range data[i].GroupID {
 					if groupID > 0 {
 						bot.SendGroupMessage(groupID, message.Message{
 							message.Image(novel.CoverURL), message.Image(novel.HeadURL), message.Text(report)})
@@ -275,9 +275,9 @@ func track(e *control.Engine) {
 							message.Image(novel.CoverURL), message.Image(novel.HeadURL), message.Text(report)})
 					}
 				}
-				dataNew.(Config)[i].BookName = novel.Name
-				dataNew.(Config)[i].RecordURL = novel.NewChapter.URL
-				dataNew.(Config)[i].UpdateTime = novel.NewChapter.Time.Format(`2006年01月02日 15时04分05秒`)
+				dataNew[i].BookName = novel.Name
+				dataNew[i].RecordURL = novel.NewChapter.URL
+				dataNew[i].UpdateTime = novel.NewChapter.Time.Format(`2006年01月02日 15时04分05秒`)
 				done = true
 			}
 		}

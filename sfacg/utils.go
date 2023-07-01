@@ -10,6 +10,16 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
+// 加载配置
+func loadConfig(configFile kitten.Path) (c Config, err error) {
+	if d, err := (configFile).Read(); kitten.Check(err) {
+		yaml.Unmarshal(d, &c)
+	} else {
+		log.Errorf("%s 配置文件加载失败喵！\n%v", ReplyServiceName, err)
+	}
+	return
+}
+
 // 保存配置，成功则返回 True
 func saveConfig(c Config, e *control.Engine) (ok bool) {
 	var (
