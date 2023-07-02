@@ -318,7 +318,7 @@ func (u QQ) getInfo(ctx *zero.Ctx) gjson.Result {
 
 // IsAdult 是成年人
 func (u QQ) IsAdult(ctx *zero.Ctx) bool {
-	if age := gjson.Get(u.getInfo(ctx).Raw, `age`).Int(); 18 < age {
+	if age := gjson.Get(u.getInfo(ctx).Raw, `age`).Int(); 18 <= age {
 		return true
 	}
 	return false
