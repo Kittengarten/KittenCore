@@ -13,7 +13,7 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-var imagePath kitten.Path = kitten.Path(kitten.Configs.Path + `image/`) // 保存图片路径的文件
+var imagePath kitten.Path = kitten.Path(kitten.Configs.Path + `image/`) // 图片路径
 
 // 小说网页信息获取
 func (nv *Novel) init(bookID string) {

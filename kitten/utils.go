@@ -118,7 +118,7 @@ func (path Path) isDir() bool {
 	return s.IsDir()
 }
 
-// LoadPath 加载文件中保存的路径
+// LoadPath 加载文件中保存的相对路径或绝对路径
 func (path Path) LoadPath() Path {
 	res, err1 := os.Open(string(path))
 	if Check(err1) {
@@ -130,15 +130,24 @@ func (path Path) LoadPath() Path {
 	if !Check(err2) {
 		log.Warnf("打开文件 %s 失败了喵！\n%v", path, err2)
 	}
-	return Path(data)
+	if filepath.IsAbs(string(data)) {
+		return Path(`file://`) + FilePath(Path(data))
+	}
+	return FilePath(Path(data))
 }
 
-// GetImage 从保存图片路径的文件，或图片的绝对路径加载图片
+// GetImage 从图片的相对路径或绝对路径，或相对路径或绝对路径文件中保存的相对路径或绝对路径加载图片
 func (path Path) GetImage(name Path) message.MessageSegment {
-	if path.isDir() {
-		return message.Image(`file://` + string(FilePath(path, name)))
+	if filepath.IsAbs(string(FilePath(path))) {
+		if path.isDir() {
+			return message.Image(`file://` + string(FilePath(path, name)))
+		}
+		return message.Image(`file://` + string(FilePath(path.LoadPath(), name)))
 	}
-	return message.Image(`file://` + string(FilePath(path.LoadPath(), name)))
+	if path.isDir() {
+		return message.Image(string(FilePath(path, name)))
+	}
+	return message.Image(string(FilePath(path.LoadPath(), name)))
 }
 
 // InitFile 初始化文本文件
