@@ -132,7 +132,7 @@ func init() {
 	})
 
 	// Ping 功能
-	engine.OnCommand(`ping`, zero.AdminPermission).SetBlock(true).
+	engine.OnCommandGroup([]string{`Ping`, `ping`}, zero.AdminPermission).SetBlock(true).
 		Limit(ctxext.NewLimiterManager(time.Minute, 1).LimitByGroup).Handle(func(ctx *zero.Ctx) {
 		var (
 			pingURL = ctx.State[`args`].(string)
