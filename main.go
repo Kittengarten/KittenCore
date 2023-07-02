@@ -58,7 +58,6 @@ import (
 	_ "github.com/FloatTech/ZeroBot-Plugin/plugin/nativesetu"
 	_ "github.com/FloatTech/ZeroBot-Plugin/plugin/nativewife"
 	_ "github.com/FloatTech/ZeroBot-Plugin/plugin/nbnhhsh"
-	_ "github.com/FloatTech/ZeroBot-Plugin/plugin/quan"
 	_ "github.com/FloatTech/ZeroBot-Plugin/plugin/qzone"
 	_ "github.com/FloatTech/ZeroBot-Plugin/plugin/runcode"
 	_ "github.com/FloatTech/ZeroBot-Plugin/plugin/saucenao"
