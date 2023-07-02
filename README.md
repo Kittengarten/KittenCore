@@ -1,6 +1,6 @@
 # KittenCore
 
-基于 [ZeroBot](https://github.com/wdvxdr1123/ZeroBot) 开发的 QQ 群机器人程序
+基于 [ZeroBot](https://github.com/wdvxdr1123/ZeroBot) 开发的 QQ 机器人程序
 
 ## 使用方法
 
