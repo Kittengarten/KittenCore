@@ -141,7 +141,8 @@ func init() {
 			nbytes  int
 		)
 		pinger, err := probing.NewPinger(pingURL)
-		pinger.Count = 4 // 检测 4 次
+		pinger.Count = 4                  // 检测 4 次
+		pinger.Timeout = 16 * time.Second // 超时时间设置
 		if err != nil {
 			kitten.DoNotKnow(ctx)
 			return
