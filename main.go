@@ -90,7 +90,8 @@ import (
 var config = kitten.LoadMainConfig()
 
 func init() {
-	logConfig()
+	// 启用日志格式
+	kitten.LogConfigInit(config)
 	// 启用 WebUI
 	go webctrl.RunGui(string(config.WebUI.URL))
 }

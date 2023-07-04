@@ -1,5 +1,4 @@
-// KittenCore 的主函数所在包
-package main
+package kitten
 
 import (
 	"bytes"
@@ -8,7 +7,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/Kittengarten/KittenCore/kitten"
 	logf "github.com/lestrrat-go/file-rotatelogs"
 	log "github.com/sirupsen/logrus"
 )
@@ -28,8 +26,8 @@ const (
 	colorReset     = "\x1b[0m"
 )
 
-// 日志配置
-func logConfig() {
+// LogConfigInit 日志配置初始化
+func LogConfigInit(config Config) {
 	var (
 		logName   = config.Log.Path   // 日志文件路径
 		logRotate = config.Log.Days   // 单段分割文件记录的天数
@@ -37,7 +35,7 @@ func logConfig() {
 		// 配置分割日志文件
 		writer, err = logf.New(
 			// 分割日志文件命名规则
-			kitten.GetMidText(``, `.txt`, logName)+`-%Y-%m-%d.txt`,
+			GetMidText(``, `.txt`, logName)+`-%Y-%m-%d.txt`,
 			// 与最新的日志文件建立软链接
 			logf.WithLinkName(logName),
 			// 分割日志文件间隔
@@ -46,13 +44,13 @@ func logConfig() {
 			logf.WithMaxAge(24*time.Hour*time.Duration(logExpire)),
 		)
 	)
-	if !kitten.Check(err) {
+	if !Check(err) {
 		log.Errorf("主函数配置分割日志文件失败喵！\n%v", err)
 		return
 	}
 	// 设置日志输出样式
 	log.SetFormatter(&LogFormat{})
-	if mw := io.MultiWriter(os.Stdout, writer); kitten.Check(err) {
+	if mw := io.MultiWriter(os.Stdout, writer); Check(err) {
 		log.SetOutput(mw)
 	} else {
 		log.Error(`主函数写入日志失败了喵！`)
