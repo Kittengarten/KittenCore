@@ -71,10 +71,10 @@ func init() {
 			novel  = getNovel(ctx)
 			report = novel.Preview
 		)
-		if report == `` {
-			ctx.Send(`不存在的喵！`)
+		if `` == report {
+			kitten.SendTextOf(ctx, true, `不存在的喵！`)
 		} else {
-			ctx.Send(report)
+			kitten.SendTextOf(ctx, true, report)
 		}
 	})
 
@@ -95,7 +95,9 @@ func init() {
 			hasg     bool                          // 是否有发送对象
 			groupSet = make(map[string]mapset.Set) // 书号:群号集合
 		)
-		if g = getg(ctx); g == 0 {
+		if g = getg(ctx); 0 == g {
+			kitten.SendTextOf(ctx, false, `报更对象不支持喵～`)
+			log.Warnf(`添加报更对象不支持喵～`)
 			return
 		}
 		if kitten.Check(err) {
@@ -129,15 +131,17 @@ func init() {
 				c = append(c, track[0])
 			}
 			if hasg {
-				ctx.Send(fmt.Sprintf(`《%s》已经添加报更了喵！`, novel.Name))
-			} else if saveConfig(c, engine) {
-				ctx.Send(fmt.Sprintf(`添加《%s》报更成功喵！`, novel.Name))
-			} else {
-				ctx.Send(fmt.Sprintf(`添加《%s》报更失败喵！`, novel.Name))
+				kitten.SendTextOf(ctx, false, `《%s》已经添加报更了喵！`, novel.Name)
+				return
 			}
-		} else {
-			ctx.Send(fmt.Sprintf("添加《%s》报更出现错误喵！\n错误：%v", novel.Name, err))
+			if saveConfig(c, engine) {
+				kitten.SendTextOf(ctx, false, `添加《%s》报更成功喵！`, novel.Name)
+				return
+			}
+			kitten.SendTextOf(ctx, false, `添加《%s》报更失败喵！`, novel.Name)
+			return
 		}
+		kitten.SendTextOf(ctx, false, "添加《%s》报更出现错误喵！\n错误：%v", novel.Name, err)
 	})
 
 	// 移除报更
@@ -150,7 +154,9 @@ func init() {
 				groupSet = make(map[string]mapset.Set) // 书号:群号集合
 				ok       bool
 			)
-			if g = getg(ctx); g == 0 {
+			if g = getg(ctx); 0 == g {
+				kitten.SendTextOf(ctx, false, `报更对象不支持喵～`)
+				log.Warnf(`取消报更对象不支持喵～`)
 				return
 			}
 			if kitten.Check(err) && 0 < len(c) {
@@ -186,13 +192,13 @@ func init() {
 			}
 			if ok {
 				if saveConfig(c, engine) {
-					ctx.Send(fmt.Sprintf(`取消《%s》报更成功喵！`, novel.Name))
-				} else {
-					ctx.Send(fmt.Sprintf(`取消《%s》报更失败喵！`, novel.Name))
+					kitten.SendTextOf(ctx, false, `取消《%s》报更成功喵！`, novel.Name)
+					return
 				}
-			} else {
-				ctx.Send(`本书不存在或不在追更列表，也许有其它错误喵～`)
+				kitten.SendTextOf(ctx, false, `取消《%s》报更失败喵！`, novel.Name)
+				return
 			}
+			kitten.SendTextOf(ctx, false, `本书不存在或不在追更列表，也许有其它错误喵～`)
 		})
 }
 
@@ -202,7 +208,7 @@ func getNovel(ctx *zero.Ctx) (nv Novel) {
 	if !isInt(ag) {
 		ag, chk = keyWord(ag).findBookID()
 		if !chk {
-			ctx.Send(ag)
+			kitten.SendTextOf(ctx, false, ag)
 			return
 		}
 	}
@@ -233,12 +239,11 @@ func track(e *control.Engine) {
 		}, "\n")
 		t = time.Tick(5 * time.Second) // 每 5 秒检测一次
 	)
-
 	if !kitten.Check(err) {
 		log.Errorf("%s 载入配置文件出现错误喵！\n%v", ReplyServiceName, err)
 	}
 	fmt.Println(content)
-	if bot == nil {
+	if nil == bot {
 		log.Error(`报更没有获取到实例喵！`)
 	} else {
 		log.Info(`报更已经获取到实例了喵！`)
@@ -250,11 +255,13 @@ func track(e *control.Engine) {
 			dataNew   = data
 			done      bool
 		)
+
 		// 如果加载文件出错，则不进行后续步骤，直接重试
 		if !kitten.Check(err) {
 			select {
 			case <-t: // 阻塞协程，收到定时器信号则释放
 			}
+			log.Tracef("报更加载文件出错\n%v", err)
 			continue
 		}
 		for i := range data {
@@ -306,11 +313,11 @@ func getg(ctx *zero.Ctx) (g int64) {
 	case "group":
 		if zero.AdminPermission(ctx) {
 			g = ctx.Event.GroupID
-		} else {
-			ctx.Send("你没有管理员权限喵！")
+			return
 		}
+		ctx.SendChain(message.At(ctx.Event.UserID), message.Text("\n你没有管理员权限喵！"))
 	case "guild":
-		ctx.Send("暂不支持频道喵！")
+		ctx.Send(`暂不支持频道喵！`)
 	}
 	return
 }

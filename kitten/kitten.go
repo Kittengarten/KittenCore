@@ -11,14 +11,14 @@ import (
 )
 
 var (
-	poke     = rate.NewManager[int64](5*time.Minute, 9) // 戳一戳
-	nickname = LoadMainConfig().NickName[0]             // 昵称
+	poke = rate.NewManager[int64](5*time.Minute, 9) // 戳一戳
+	// Configs 来自 Bot 的配置文件
+	Configs  = LoadMainConfig()
+	nickname = Configs.NickName[0] // 昵称
 	// Bot 实例
 	Bot *zero.Ctx
 	// BotSFACGchan 用于传送 Bot 实例的通道
 	BotSFACGchan = make(chan *zero.Ctx)
-	// Configs 来自 Bot 的配置文件
-	Configs = LoadMainConfig()
 )
 
 const (
@@ -29,7 +29,7 @@ const (
 func init() {
 	// 向 SFACG 插件传入 Bot 实例
 	go func() {
-		for Bot == nil {
+		for nil == Bot {
 			Bot = zero.GetBot(Configs.SelfID)
 		}
 		BotSFACGchan <- Bot
@@ -41,7 +41,7 @@ func init() {
 			g int64              // 本群的群号
 			u = ctx.Event.UserID // 发出 poke 的 QQ 号
 		)
-		if ctx.Event.DetailType == "private" {
+		if `private` == ctx.Event.DetailType {
 			g = -ctx.Event.UserID
 		} else {
 			g = ctx.Event.GroupID

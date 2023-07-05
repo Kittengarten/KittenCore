@@ -130,7 +130,6 @@ func init() {
 			break
 		}
 	})
-
 	// Ping 功能
 	engine.OnCommandGroup([]string{`Ping`, `ping`}, zero.AdminPermission).SetBlock(true).
 		Limit(ctxext.NewLimiterManager(time.Minute, 1).LimitByGroup).Handle(func(ctx *zero.Ctx) {
@@ -143,18 +142,16 @@ func init() {
 		pinger, err := probing.NewPinger(pingURL)
 		pinger.Count = 4                  // 检测 4 次
 		pinger.Timeout = 16 * time.Second // 超时时间设置
-		if err != nil {
+		if !kitten.Check(err) {
 			kitten.DoNotKnow(ctx)
 			return
 		}
-
 		pinger.OnRecv = func(pkt *probing.Packet) {
 			pingMsg = strings.Join([]string{pingMsg,
 				fmt.Sprintf(`来自 %s 的回复：字节=%d 时间=%v TTL=%v`, pkt.IPAddr, pkt.Nbytes, pkt.Rtt, pkt.TTL),
 			}, "\n")
 			nbytes = pkt.Nbytes
 		}
-
 		pinger.OnFinish = func(stats *probing.Statistics) {
 			report = strings.Join([]string{fmt.Sprintf(`正在 Ping %s [%s] 具有 %d 字节的数据：`, pingURL, stats.IPAddr, nbytes),
 				pingMsg,
@@ -166,23 +163,26 @@ func init() {
 				fmt.Sprintf(`　　最短 = %v，最长 = %v，平均 = %v`, stats.MinRtt, stats.MaxRtt, stats.AvgRtt),
 			}, "\n")
 		}
-
 		err = pinger.Run()
-		if err != nil {
-			kitten.DoNotKnow(ctx)
-			log.Errorf(`Ping 出现错误：%v`, err)
+		if kitten.Check(err) {
+			kitten.SendTextOf(ctx, true, report)
 		}
-		ctx.Send(report)
+		kitten.SendTextOf(ctx, true, `Ping 出现错误：%v`, err)
+		log.Errorf(`Ping 出现错误：%v`, err)
 	})
 }
 
 // CPU使用率%
 func getCPUPercent() float64 {
+	var avg float64
 	percent, err := cpu.Percent(time.Second, false)
 	if !kitten.Check(err) {
 		log.Warnf("获取 CPU 使用率失败了喵！\n%v", err)
 	}
-	return percent[0]
+	for _, v := range percent {
+		avg += v
+	}
+	return avg / float64(len(percent))
 }
 
 // 内存使用调用

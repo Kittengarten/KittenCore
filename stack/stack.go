@@ -32,9 +32,8 @@ const (
 )
 
 var (
-	configFile  = kitten.FilePath(`stack`, `config.yaml`)                    // 叠猫猫配置文件名
-	imagePath   = kitten.FilePath(kitten.Path(kitten.Configs.Path), `image`) // 图片路径
-	stackConfig Config                                                       // 叠猫猫配置文件
+	configFile  = kitten.FilePath(`stack`, `config.yaml`) // 叠猫猫配置文件名
+	stackConfig Config                                    // 叠猫猫配置文件
 	mu          sync.Mutex
 )
 
@@ -79,6 +78,10 @@ func init() {
 			data     = loadData(kitten.FilePath(kitten.Path(engine.DataFolder()), dataFile))
 			dataExit = loadData(kitten.FilePath(kitten.Path(engine.DataFolder()), exitFile))
 		)
+		if `guild` == ctx.Event.DetailType {
+			ctx.Send(`暂不支持频道喵！`)
+			return
+		}
 		switch ag {
 		case `加入`:
 			data.in(dataExit, stackConfig, ctx, engine)
@@ -168,7 +171,7 @@ func (data Data) in(esc Data, stackConfig Config, ctx *zero.Ctx, e *control.Engi
 			// 如果不是平地摔
 			if len(data) != 0 {
 				exitCount := int(math.Ceil(float64(len(data)) * rand.Float64()))
-				if exitCount == 0 {
+				if 0 == exitCount {
 					exitCount = 1
 				}
 				exitData := data[len(data)-exitCount:]
@@ -189,7 +192,7 @@ func (data Data) in(esc Data, stackConfig Config, ctx *zero.Ctx, e *control.Engi
 			logExit(ID, ctx, e) // 将叠猫猫失败的猫猫记录至退出日志
 		}
 	}
-	send(ID, permit, ctx, report)
+	send(ID, permit, report, ctx)
 }
 
 // 退出叠猫猫
@@ -221,7 +224,7 @@ func (data Data) exit(ctx *zero.Ctx, e *control.Engine) {
 			permit = false
 			log.Warn(strconv.FormatInt(ID, 10) + report)
 		}
-		send(ID, permit, ctx, report)
+		send(ID, permit, report, ctx)
 	}
 }
 
@@ -254,7 +257,7 @@ func save(data Data, path kitten.Path) (ok bool) {
 	if !ok {
 		log.Errorf("文件写入错误喵！\n%v", err)
 		reciver := kitten.Configs.SuperUsers[0]
-		if kitten.Bot != nil {
+		if kitten.Check(kitten.Bot) {
 			kitten.Bot.SendPrivateMessage(reciver, `叠猫猫文件写入错误，请检查日志喵！`)
 		}
 	}
@@ -276,7 +279,7 @@ func autoExit(f kitten.Path, c Config, e *control.Engine) {
 	case exitFile:
 		limitTime = time.Duration(c.GapTime) * time.Hour
 	}
-	if limitTime == 0 {
+	if 0 == limitTime {
 		limitTime = time.Hour
 	}
 	for {
@@ -302,7 +305,6 @@ func autoExit(f kitten.Path, c Config, e *control.Engine) {
 		}
 		mu.Unlock()
 		log.Infof(`下次定时退出 %s 时间为：%s`, kitten.FilePath(kitten.Path(e.DataFolder()), f), nextTime.Format(`2006-01-02 15:04:05`))
-
 		time.Sleep(time.Until(nextTime))
 	}
 }
@@ -330,19 +332,20 @@ func checkStack(h int) bool {
 }
 
 // 发送叠猫猫结果
-func send(u int64, p bool, ctx *zero.Ctx, r string) {
-	if ctx.Event.DetailType == "private" {
+func send(u int64, p bool, r string, ctx *zero.Ctx) {
+	switch ctx.Event.DetailType {
+	case `private`:
 		if p {
 			ctx.Send(message.Text(r))
-		} else {
-			ctx.SendChain(imagePath.GetImage(`no.png`), message.Text(r))
+			return
 		}
-	} else {
+		ctx.SendChain(kitten.ImagePath.GetImage(`no.png`), message.Text(r))
+	case `group`:
 		if p {
 			ctx.SendChain(message.At(u), message.Text(r))
-		} else {
-			ctx.SendChain(message.At(u), imagePath.GetImage(`no.png`), message.Text(r))
+			return
 		}
+		ctx.SendChain(message.At(u), kitten.ImagePath.GetImage(`no.png`), message.Text(r))
 	}
 }
 

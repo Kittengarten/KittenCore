@@ -1,5 +1,8 @@
 package kitten
 
+// ImagePath 图片路径
+var ImagePath = FilePath(Path(Configs.Path), `image`)
+
 type (
 	// Config 是来自 Bot 的配置文件的数据集
 	Config struct {

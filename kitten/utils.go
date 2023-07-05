@@ -30,28 +30,6 @@ func (str IntString) Int() int {
 	return 0
 }
 
-// GetLogLevel 从日志配置获取日志等级
-func (lc LogConfig) GetLogLevel() log.Level {
-	switch lc.Level {
-	case log.PanicLevel.String():
-		return log.PanicLevel
-	case log.FatalLevel.String():
-		return log.FatalLevel
-	case log.ErrorLevel.String():
-		return log.ErrorLevel
-	case log.WarnLevel.String():
-		return log.WarnLevel
-	case log.InfoLevel.String():
-		return log.InfoLevel
-	case log.DebugLevel.String():
-		return log.DebugLevel
-	case log.TraceLevel.String():
-		return log.TraceLevel
-	default:
-		return log.WarnLevel
-	}
-}
-
 // FilePath 文件路径构建
 func FilePath(elem ...Path) Path {
 	var s = make([]string, len(elem))
@@ -63,15 +41,15 @@ func FilePath(elem ...Path) Path {
 
 // Read 文件读取
 func (path Path) Read() (data []byte) {
-	res, err1 := os.Open(string(path))
-	if !Check(err1) {
-		log.Infof("读取：文件 %s 无法读取或不存在喵，试图新建。\n%v", path, err1)
-	} else {
+	res, err := os.Open(string(path))
+	if Check(err) {
 		defer res.Close()
+	} else {
+		log.Errorf("读取：文件 %s 无法读取或不存在喵！\n%v", path, err)
 	}
-	data, err2 := io.ReadAll(res)
-	if !Check(err2) {
-		log.Warnf("打开文件 %s 失败了喵！\n%v", path, err2)
+	data, err = io.ReadAll(res)
+	if !Check(err) {
+		log.Errorf("打开文件 %s 失败了喵！\n%v", path, err)
 	}
 	return
 }
@@ -82,14 +60,14 @@ func (path Path) Write(data []byte) {
 		os.MkdirAll(filepath.Dir(string(path)), os.ModeDir)
 	}
 	res, err1 := os.Open(string(path))
-	if !Check(err1) {
-		log.Infof("写入：文件 %s 无法读取或不存在喵，尝试新建。\n%v", path, err1)
-	} else {
+	if Check(err1) {
 		defer res.Close()
+	} else {
+		log.Infof("写入：文件 %s 无法读取或不存在喵，尝试新建。\n%v", path, err1)
 	}
 	err2 := os.WriteFile(string(path), data, 0666)
 	if !Check(err2) {
-		log.Warnf("写入文件 %s 失败了喵！\n%v", path, err2)
+		log.Errorf("写入文件 %s 失败了喵！\n%v", path, err2)
 	}
 	return
 }
@@ -112,23 +90,23 @@ func (path Path) Exists() (bool, error) {
 // （私有）判断路径是否文件夹
 func (path Path) isDir() bool {
 	s, err := os.Stat(string(path))
-	if !Check(err) {
-		return false
+	if Check(err) {
+		return s.IsDir()
 	}
-	return s.IsDir()
+	return false
 }
 
 // LoadPath 加载文件中保存的相对路径或绝对路径
 func (path Path) LoadPath() Path {
-	res, err1 := os.Open(string(path))
-	if Check(err1) {
+	res, err := os.Open(string(path))
+	if Check(err) {
 		defer res.Close()
 	} else {
-		log.Warnf("打开文件 %s 失败了喵！\n%v", path, err1)
+		log.Errorf("打开文件 %s 失败了喵！\n%v", path, err)
 	}
-	data, err2 := io.ReadAll(res)
-	if !Check(err2) {
-		log.Warnf("打开文件 %s 失败了喵！\n%v", path, err2)
+	data, err := io.ReadAll(res)
+	if !Check(err) {
+		log.Errorf("打开文件 %s 失败了喵！\n%v", path, err)
 	}
 	if filepath.IsAbs(string(data)) {
 		return Path(`file://`) + FilePath(Path(data))
@@ -163,17 +141,16 @@ func InitFile(name Path, text string) {
 func LoadMainConfig() (config Config) {
 	if err := yaml.Unmarshal(path.Read(), &config); !Check(err) {
 		log.Fatalf("打开 %s 失败了喵！\n%v", path, err)
-		return
 	}
 	return
 }
 
 // Check 处理错误，没有错误则返回 True
 func Check(err any) bool {
-	if err != nil {
-		return false
+	if nil == err {
+		return true
 	}
-	return true
+	return false
 }
 
 // Choose 按权重抽取一个项目的序号 i，有可能返回 -1（这种情况代表项目列表为空，需要处理以免报错）
@@ -208,14 +185,14 @@ func IsSameDate(t1 time.Time, t2 time.Time) bool {
 // GetMidText 获取中间字符串，pre 为获取字符串的前缀（不包含），suf 为获取字符串的后缀（不包含），str 为整个字符串
 func GetMidText(pre string, suf string, str string) string {
 	n := strings.Index(str, pre)
-	if n == -1 {
+	if -1 == n {
 		n = 0
 	} else {
 		n = n + len(pre)
 	}
 	str = string([]byte(str)[n:])
 	m := strings.Index(str, suf)
-	if m == -1 {
+	if -1 == m {
 		m = len(str)
 	}
 	return string([]byte(str)[:m])
@@ -226,14 +203,55 @@ func TextOf(format string, a ...any) message.MessageSegment {
 	return message.Text(fmt.Sprintf(format, a...))
 }
 
+// SendTextOf 发送格式化文本，lf 控制群聊的 @ 后是否换行
+func SendTextOf(ctx *zero.Ctx, lf bool, format string, a ...any) {
+	switch ctx.Event.DetailType {
+	case `private`:
+		ctx.Send(TextOf(format, a...))
+	case `group`:
+		if lf {
+			ctx.SendChain(message.At(ctx.Event.UserID), message.Text("\n"), TextOf(format, a...))
+			return
+		}
+		ctx.SendChain(message.At(ctx.Event.UserID), TextOf(format, a...))
+	case `guild`:
+		if lf {
+			ctx.SendChain(message.At(ctx.Event.UserID), message.Text("\n"), TextOf(format, a...))
+			return
+		}
+		ctx.SendChain(message.At(ctx.Event.UserID), TextOf(format, a...))
+	}
+}
+
+// SendMessage 发送消息，lf 控制群聊的 @ 后是否换行
+func SendMessage(ctx *zero.Ctx, lf bool, m ...message.MessageSegment) {
+	switch ctx.Event.DetailType {
+	case `private`:
+		ctx.Send(m)
+	case `group`:
+		if lf {
+			ctx.SendGroupMessage(ctx.Event.GroupID, append(append([]message.MessageSegment{message.At(ctx.Event.UserID)}, message.Text("\n")), m...))
+			return
+		}
+		ctx.SendGroupMessage(ctx.Event.GroupID, append([]message.MessageSegment{message.At(ctx.Event.UserID)}, m...))
+	case `guild`:
+		ctx.SendChain(ImagePath.GetImage(`no.png`), TextOf(`暂不支持频道喵！`))
+	}
+}
+
+// DoNotKnow 喵喵不知道哦
+func DoNotKnow(ctx *zero.Ctx) {
+	SendMessage(ctx, false, ImagePath.GetImage(`哈——？.png`), TextOf(`%s不知道哦`, zero.BotConfig.NickName[0]))
+}
+
 // GetTitle 从 QQ 获取【头衔】
 func (u QQ) GetTitle(ctx *zero.Ctx) (title string) {
 	gmi := ctx.GetGroupMemberInfo(ctx.Event.GroupID, int64(u), true)
-	if titleStr := gjson.Get(gmi.Raw, `title`).Str; titleStr == `` {
+	if titleStr := gjson.Get(gmi.Raw, `title`).Str; `` == titleStr {
 		title = titleStr
-	} else {
-		title = fmt.Sprintf(`【%s】`, gjson.Get(gmi.Raw, `title`).Str)
+		return
 	}
+	title = fmt.Sprintf(`【%s】`, gjson.Get(gmi.Raw, `title`).Str)
 	return
 }
 
@@ -278,7 +296,7 @@ func (s URL) CheckServer() *probing.Statistics {
 
 // CheckPing 检查延迟，返回延迟毫秒数对应的语言描述
 func CheckPing(p *probing.Statistics) (ps Pingstr) {
-	if 0 > p.MinRtt {
+	if 0 >= p.MinRtt {
 		ps.Min = `连接超时喵！`
 		return
 	} else if time.Microsecond > p.MinRtt {
@@ -286,7 +304,7 @@ func CheckPing(p *probing.Statistics) (ps Pingstr) {
 	} else {
 		ps.Min = fmt.Sprintf(`最小延迟：%v`, p.MinRtt)
 	}
-	if 0 > p.AvgRtt {
+	if 0 >= p.AvgRtt {
 		ps.Avg = `连接超时喵！`
 		return
 	} else if time.Microsecond > p.AvgRtt {
@@ -294,8 +312,8 @@ func CheckPing(p *probing.Statistics) (ps Pingstr) {
 	} else {
 		ps.Avg = fmt.Sprintf(`平均延迟：%v`, p.AvgRtt)
 	}
-	if 0 > p.MaxRtt {
-		ps.Max = `连接超时喵！`
+	if 0 >= p.MaxRtt {
+		ps.Max = `最大延迟：连接超时喵！`
 	} else if time.Microsecond > p.MaxRtt {
 		ps.Max = `最大延迟：< 1 μs`
 	} else {
@@ -304,11 +322,6 @@ func CheckPing(p *probing.Statistics) (ps Pingstr) {
 	ps.StdDev = fmt.Sprintf(`延迟抖动：%v`, p.StdDevRtt)
 	ps.Loss = fmt.Sprintf(`丢包率：%.0f%%`, p.PacketLoss)
 	return
-}
-
-// DoNotKnow 喵喵不知道哦
-func DoNotKnow(ctx *zero.Ctx) {
-	ctx.Send(fmt.Sprintf(`%s不知道哦`, zero.BotConfig.NickName[0]))
 }
 
 // （私有）获取信息
@@ -330,4 +343,32 @@ func (u QQ) IsFemale(ctx *zero.Ctx) bool {
 		return true
 	}
 	return false
+}
+
+// GenerateRandomNumber 生成 count 个 [start, end) 范围的不重复的随机数
+func GenerateRandomNumber(start int, end int, count int) []int {
+	// 范围检查
+	if end < start || (end-start) < count {
+		return nil
+	}
+	var (
+		// 存放结果的集合（不重复）
+		set = make(map[int]bool)
+		// 存放结果的数组
+		nums []int = make([]int, count)
+		// 数组下标
+		i int
+	)
+	// 随机数生成器，加入时间戳保证每次生成的随机数不一样
+	r := rand.New(rand.NewSource(time.Now().UnixNano()))
+	for len(set) < count {
+		// 生成随机数
+		set[r.Intn(end-start)+start] = false
+	}
+	// 集合转换为数组
+	for k := range set {
+		nums[i] = k
+		i++
+	}
+	return nums
 }

@@ -54,9 +54,32 @@ func LogConfigInit(config Config) {
 		log.SetOutput(mw)
 	} else {
 		log.Error(`主函数写入日志失败了喵！`)
+		return
 	}
 	// 设置最低日志等级
 	log.SetLevel(config.Log.GetLogLevel())
+}
+
+// GetLogLevel 从日志配置获取日志等级
+func (lc LogConfig) GetLogLevel() log.Level {
+	switch lc.Level {
+	case log.PanicLevel.String():
+		return log.PanicLevel
+	case log.FatalLevel.String():
+		return log.FatalLevel
+	case log.ErrorLevel.String():
+		return log.ErrorLevel
+	case log.WarnLevel.String():
+		return log.WarnLevel
+	case log.InfoLevel.String():
+		return log.InfoLevel
+	case log.DebugLevel.String():
+		return log.DebugLevel
+	case log.TraceLevel.String():
+		return log.TraceLevel
+	default:
+		return log.WarnLevel
+	}
 }
 
 // 获取日志等级对应色彩代码
