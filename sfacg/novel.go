@@ -262,7 +262,8 @@ func (nv *Novel) update() (str string, ok bool) {
 	timeGap = strings.Replace(timeGap, `m`, ` 分钟 `, 1)
 	timeGap = strings.Replace(timeGap, `s`, ` 秒`, 1)
 	chapterName := nv.NewChapter.Title
-	str = strings.Join([]string{fmt.Sprintf(`《%s》更新了喵～`, nv.Name) + chapterName,
+	str = strings.Join([]string{fmt.Sprintf(`《%s》更新了喵～`, nv.Name),
+		chapterName,
 		`更新字数：` + wordNum,
 		`间隔时间：` + timeGap,
 		fmt.Sprintf(`当日第 %d 更`, cm.Times),

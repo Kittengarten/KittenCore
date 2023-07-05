@@ -12,7 +12,7 @@ import (
 
 // 加载配置
 func loadConfig(configFile kitten.Path) (c Config, err error) {
-	yaml.Unmarshal(configFile.Read(), &c)
+	err = yaml.Unmarshal(configFile.Read(), &c)
 	return
 }
 
