@@ -89,7 +89,7 @@ func init() {
 	engine.OnCommand(`添加报更`).SetBlock(true).Handle(func(ctx *zero.Ctx) {
 		var (
 			novel    = getNovel(ctx)
-			c, err   = loadConfig(kitten.Path(engine.DataFolder()) + configFile)
+			c, err   = loadConfig(kitten.FilePath(kitten.Path(engine.DataFolder()), configFile))
 			track    = make(Config, 1)
 			g        int64                         // 发送对象
 			hasg     bool                          // 是否有发送对象
@@ -149,7 +149,7 @@ func init() {
 		Handle(func(ctx *zero.Ctx) {
 			var (
 				novel    = getNovel(ctx)
-				c, err   = loadConfig(kitten.Path(engine.DataFolder()) + configFile)
+				c, err   = loadConfig(kitten.FilePath(kitten.Path(engine.DataFolder()), configFile))
 				g        int64                         // 发送对象
 				groupSet = make(map[string]mapset.Set) // 书号:群号集合
 				ok       bool
@@ -230,7 +230,7 @@ func track(e *control.Engine) {
 		bot       = <-kitten.BotSFACGchan
 		name      = zero.BotConfig.NickName[0]
 		line      = `======================[` + name + `]======================`
-		data, err = loadConfig(kitten.Path(e.DataFolder()) + configFile)
+		data, err = loadConfig(kitten.FilePath(kitten.Path(e.DataFolder()), configFile))
 		content   = strings.Join([]string{
 			line,
 			`* OneBot + ZeroBot + Go`,
@@ -251,11 +251,10 @@ func track(e *control.Engine) {
 	// 报更
 	for {
 		var (
-			data, err = loadConfig(kitten.Path(e.DataFolder()) + configFile)
+			data, err = loadConfig(kitten.FilePath(kitten.Path(e.DataFolder()), configFile))
 			dataNew   = data
 			done      bool
 		)
-
 		// 如果加载文件出错，则不进行后续步骤，直接重试
 		if !kitten.Check(err) {
 			select {
@@ -289,15 +288,14 @@ func track(e *control.Engine) {
 			}
 		}
 		// 如果并没有报更，直接进入下一次循环
-		if !done {
-			continue
-		}
-		updateConfig, err := yaml.Marshal(dataNew)
-		kitten.FilePath(kitten.Path(e.DataFolder()), configFile).Write(updateConfig)
-		if kitten.Check(err) {
-			log.Infof(`记录 %s 成功喵！`, e.DataFolder()+configFile)
-		} else {
-			log.Warnf(`记录 %s 失败喵！`, e.DataFolder()+configFile)
+		if done {
+			updateConfig, err := yaml.Marshal(dataNew)
+			kitten.FilePath(kitten.Path(e.DataFolder()), configFile).Write(updateConfig)
+			if kitten.Check(err) {
+				log.Infof(`记录 %s 成功喵！`, e.DataFolder()+configFile)
+			} else {
+				log.Warnf(`记录 %s 失败喵！`, e.DataFolder()+configFile)
+			}
 		}
 		select {
 		case <-t: // 阻塞协程，收到定时器信号则释放

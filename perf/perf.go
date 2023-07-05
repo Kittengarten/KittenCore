@@ -3,6 +3,7 @@ package perf
 
 import (
 	"fmt"
+	"math/rand"
 	"os"
 	"runtime"
 	"strconv"
@@ -14,6 +15,7 @@ import (
 	"github.com/FloatTech/zbputils/ctxext"
 	probing "github.com/prometheus-community/pro-bing"
 	zero "github.com/wdvxdr1123/ZeroBot"
+	"github.com/wdvxdr1123/ZeroBot/extension/rate"
 	"github.com/wdvxdr1123/ZeroBot/message"
 
 	"github.com/shirou/gopsutil/v3/cpu"
@@ -47,9 +49,14 @@ const (
 	ReplyServiceName             = `perf`
 	brief                        = `查看运行状况`
 	filePath         kitten.Path = `file.txt` // 保存微星小飞机温度配置文件路径的文件，非 Windows 系统或不使用可以忽略
+	randMax                      = 100        // 随机数上限（不包含）
 )
 
-var imagePath = kitten.FilePath(kitten.Path(kitten.Configs.Path), ReplyServiceName, `image`) // 图片路径
+var (
+	imagePath = kitten.FilePath(kitten.Path(kitten.Configs.Path), ReplyServiceName, `image`) // 图片路径
+	poke      = rate.NewManager[int64](5*time.Minute, 9)                                     // 戳一戳
+	nickname  = kitten.Configs.NickName[0]                                                   // 昵称
+)
 
 func init() {
 	var (
@@ -74,11 +81,11 @@ func init() {
 		)
 		for _, v := range zero.BotConfig.NickName {
 			if who == v {
-				who = "喵喵"
+				who = nickname
 			}
 		}
 		switch who {
-		case "喵喵":
+		case nickname:
 			var (
 				cpu                                      = getCPUPercent()
 				mem                                      = getMemPercent()
@@ -130,6 +137,7 @@ func init() {
 			break
 		}
 	})
+
 	// Ping 功能
 	engine.OnCommandGroup([]string{`Ping`, `ping`}, zero.AdminPermission).SetBlock(true).
 		Limit(ctxext.NewLimiterManager(time.Minute, 1).LimitByGroup).Handle(func(ctx *zero.Ctx) {
@@ -169,6 +177,37 @@ func init() {
 		}
 		kitten.SendTextOf(ctx, true, `Ping 出现错误：%v`, err)
 		log.Errorf(`Ping 出现错误：%v`, err)
+	})
+
+	// 戳一戳
+	engine.On(`notice/notify/poke`, zero.OnlyToMe).SetBlock(true).Handle(func(ctx *zero.Ctx) {
+		var (
+			g int64              // 本群的群号
+			u = ctx.Event.UserID // 发出 poke 的 QQ 号
+		)
+		if `private` == ctx.Event.DetailType {
+			g = -ctx.Event.UserID
+		} else {
+			g = ctx.Event.GroupID
+		}
+		switch {
+		case poke.Load(g).AcquireN(5):
+			// 5 分钟共 8 块命令牌 一次消耗 5 块命令牌
+			ctx.SendChain(message.Poke(u))
+		case poke.Load(g).AcquireN(3):
+			// 5 分钟共 8 块命令牌 一次消耗 3 块命令牌
+			kitten.SendTextOf(ctx, false, `请不要拍%s >_<`, nickname)
+		case poke.Load(g).Acquire():
+			// 5 分钟共 8 块命令牌 一次消耗 1 块命令牌
+			ctx.SendChain(message.At(u), kitten.TextOf("喂(#`O′) 拍%s干嘛！（好感 - %d）", nickname, rand.Intn(randMax)+1))
+		default:
+			// 频繁触发，不回复
+		}
+	})
+
+	// 图片，用于让 Bot 发送图片，可通过 CQ 码、链接等，为防止滥用，仅管理员可用
+	zero.OnCommand(`图片`, zero.AdminPermission).SetBlock(true).Handle(func(ctx *zero.Ctx) {
+		ctx.Send(message.Image(ctx.State[`args`].(string)))
 	})
 }
 

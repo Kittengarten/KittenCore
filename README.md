@@ -6,11 +6,9 @@
 
 所有指令均需要加上前缀（在 `config.yaml` 中可以设置），触发词不需要前缀。
 
-以 `bot` 的昵称为开头的发言会被视为与 `bot` 对话。
+以 `Bot` 的昵称为开头的发言会被视为与 `Bot` 对话。
 
 由于项目中可能含有非 `ASCII` 字符文件名，可能需要执行 `git config --bool hooks.allownoascii true`。
-
-可以双击 `bot` 头像（戳一戳）触发响应。
 
 包含的插件可用于任何基于 [ZeroBot](https://github.com/wdvxdr1123/ZeroBot) 的程序，但在一些环境中可能需要部分修改。部分功能需要通过其它程序实现。
 
