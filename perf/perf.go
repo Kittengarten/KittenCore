@@ -112,7 +112,6 @@ func init() {
 					fmt.Sprintf(`体温：%s℃`, t),
 					reportAnno,
 				}, "\n")
-				break
 			case `linux`:
 				t = kitten.IntString(`45`)
 				str = strings.Join([]string{fmt.Sprintf(`CPU 使用率：%.2f%%`, cpu),
@@ -120,21 +119,18 @@ func init() {
 					fmt.Sprintf(`系统盘使用：%.2f%%（%s）`, getDiskPercent(), getDiskUsed()),
 					reportAnno,
 				}, "\n")
-				break
 			default:
 				t = kitten.IntString(`45`)
 				str = strings.Join([]string{fmt.Sprintf(`CPU 使用率：%.2f%%`, cpu),
 					fmt.Sprintf(`内存使用：%.0f%%（%s）`, mem, getMemUsed()),
 					reportAnno,
 				}, "\n")
-				break
 			}
 			report = message.Message{imagePath.GetImage(kitten.Path(strconv.Itoa(getPerf(cpu, mem, t)) + `.png`)), message.Text(str)}
 			ctx.Send(report)
 			break
 		default:
 			kitten.DoNotKnow(ctx)
-			break
 		}
 	})
 
@@ -156,7 +152,7 @@ func init() {
 		}
 		pinger.OnRecv = func(pkt *probing.Packet) {
 			pingMsg = strings.Join([]string{pingMsg,
-				fmt.Sprintf(`来自 %s 的回复：字节=%d 时间=%v TTL=%v`, pkt.IPAddr, pkt.Nbytes, pkt.Rtt, pkt.TTL),
+				fmt.Sprintf(`来自 %s 的回复：字节=%d 时间=%dms TTL=%v`, pkt.IPAddr, pkt.Nbytes, pkt.Rtt.Milliseconds(), pkt.TTL),
 			}, "\n")
 			nbytes = pkt.Nbytes
 		}
@@ -165,18 +161,19 @@ func init() {
 				pingMsg,
 				``,
 				fmt.Sprintf(`%s 的 Ping 统计信息：`, stats.IPAddr),
-				fmt.Sprintf(`　　数据包：已发送 = %d，已接收 = %d，丢失 = %d（%v%% 丢失）`,
+				fmt.Sprintf("    数据包：已发送 = %d，已接收 = %d，丢失 = %d（%.0f%% 丢失）",
 					stats.PacketsSent, stats.PacketsRecv, stats.PacketsSent-stats.PacketsRecv, stats.PacketLoss),
 				`往返行程的估计时间：`,
-				fmt.Sprintf(`　　最短 = %v，最长 = %v，平均 = %v`, stats.MinRtt, stats.MaxRtt, stats.AvgRtt),
+				fmt.Sprintf(`    最短 = %dms，最长 = %dms，平均 = %dms`, stats.MinRtt.Milliseconds(), stats.MaxRtt.Milliseconds(), stats.AvgRtt.Milliseconds()),
 			}, "\n")
 		}
 		err = pinger.Run()
 		if kitten.Check(err) {
 			kitten.SendTextOf(ctx, true, report)
+			return
 		}
-		kitten.SendTextOf(ctx, true, `Ping 出现错误：%v`, err)
-		log.Errorf(`Ping 出现错误：%v`, err)
+		kitten.SendTextOf(ctx, true, "Ping 出现错误：\n%v", err)
+		log.Warnf("Ping 出现错误：\n%v", err)
 	})
 
 	// 戳一戳

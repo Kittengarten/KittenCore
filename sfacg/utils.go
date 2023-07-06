@@ -11,8 +11,10 @@ import (
 )
 
 // 加载配置
-func loadConfig(configFile kitten.Path) (c Config, err error) {
-	err = yaml.Unmarshal(configFile.Read(), &c)
+func loadConfig(configFile kitten.Path) (c Config) {
+	if err := yaml.Unmarshal(configFile.Read(), &c); !kitten.Check(err) {
+		log.Errorf("%s 载入配置文件出现错误喵！\n%v", ReplyServiceName, err)
+	}
 	return
 }
 
@@ -33,6 +35,10 @@ func saveConfig(c Config, e *control.Engine) (ok bool) {
 
 // 判断字符串是否为整数（可用于判断是书号还是关键词）
 func isInt(str string) bool {
-	match, _ := regexp.MatchString(`^[0-9]+$`, str)
-	return match
+	match, err := regexp.MatchString(`^[0-9]+$`, str)
+	if kitten.Check(err) {
+		return match
+	}
+	log.Error(`判断字符串是否为整数时，字符串正则匹配错误喵！`)
+	return false
 }

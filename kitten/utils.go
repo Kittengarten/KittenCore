@@ -54,20 +54,28 @@ func (path Path) Read() (data []byte) {
 	return
 }
 
-// Write 文件写入
+// Write 文件写入，如文件不存在会尝试新建
 func (path Path) Write(data []byte) {
-	if e, _ := path.Exists(); !e {
-		os.MkdirAll(filepath.Dir(string(path)), os.ModeDir)
+	e, err := path.Exists()
+	if !e {
+		// 如果文件或文件夹不存在，或不确定是否存在
+		if Check(err) {
+			// 如果文件不存在，新建该文件所在的文件夹；如果文件夹不存在，新建该文件夹本身
+			os.MkdirAll(filepath.Dir(string(path)), os.ModeDir)
+		} else {
+			// 文件或文件夹不确定是否存在
+			log.Warnf("不确定 %s 存在喵！\n%v", path, err)
+		}
 	}
-	res, err1 := os.Open(string(path))
-	if Check(err1) {
+	res, err := os.Open(string(path))
+	if Check(err) {
 		defer res.Close()
 	} else {
-		log.Infof("写入：文件 %s 无法读取或不存在喵，尝试新建。\n%v", path, err1)
+		log.Infof("写入：文件 %s 无法读取或不存在喵，尝试新建。\n%v", path, err)
 	}
-	err2 := os.WriteFile(string(path), data, 0666)
-	if !Check(err2) {
-		log.Errorf("写入文件 %s 失败了喵！\n%v", path, err2)
+	err = os.WriteFile(string(path), data, 0666)
+	if !Check(err) {
+		log.Errorf("写入文件 %s 失败了喵！\n%v", path, err)
 	}
 	return
 }
@@ -75,7 +83,7 @@ func (path Path) Write(data []byte) {
 // Exists 判断文件是否存在，不确定存在的情况下报错
 func (path Path) Exists() (bool, error) {
 	_, err := os.Stat(string(path))
-	// 当为空文件或文件夹存在
+	// 当 err 为空，文件或文件夹存在
 	if Check(err) {
 		return true, nil
 	}
@@ -93,6 +101,7 @@ func (path Path) isDir() bool {
 	if Check(err) {
 		return s.IsDir()
 	}
+	log.Errorf("识别 %s 失败了喵！\n%v", path, err)
 	return false
 }
 
@@ -130,7 +139,12 @@ func (path Path) GetImage(name Path) message.MessageSegment {
 
 // InitFile 初始化文本文件
 func InitFile(name Path, text string) {
-	e, _ := name.Exists()
+	e, err := name.Exists()
+	if Check(err) {
+		log.Warnf("不确定 %s 存在喵！\n%v", path, err)
+		return
+	}
+	// 如果文件不存在，初始化
 	if !e {
 		name.Write([]byte(text))
 	}
@@ -145,7 +159,7 @@ func LoadMainConfig() (config Config) {
 	return
 }
 
-// Check 处理错误，没有错误则返回 True
+// Check 处理错误，没有错误则返回 true
 func Check(err any) bool {
 	if nil == err {
 		return true
@@ -208,13 +222,7 @@ func SendTextOf(ctx *zero.Ctx, lf bool, format string, a ...any) {
 	switch ctx.Event.DetailType {
 	case `private`:
 		ctx.Send(TextOf(format, a...))
-	case `group`:
-		if lf {
-			ctx.SendChain(message.At(ctx.Event.UserID), message.Text("\n"), TextOf(format, a...))
-			return
-		}
-		ctx.SendChain(message.At(ctx.Event.UserID), TextOf(format, a...))
-	case `guild`:
+	case `group`, `guild`:
 		if lf {
 			ctx.SendChain(message.At(ctx.Event.UserID), message.Text("\n"), TextOf(format, a...))
 			return
@@ -228,14 +236,13 @@ func SendMessage(ctx *zero.Ctx, lf bool, m ...message.MessageSegment) {
 	switch ctx.Event.DetailType {
 	case `private`:
 		ctx.Send(m)
-	case `group`:
+	case `group`, `guild`:
+		var n []message.MessageSegment
 		if lf {
-			ctx.SendGroupMessage(ctx.Event.GroupID, append(append([]message.MessageSegment{message.At(ctx.Event.UserID)}, message.Text("\n")), m...))
+			ctx.SendChain(append(append(append(n, message.At(ctx.Event.UserID)), message.Text("\n")), m...)...)
 			return
 		}
-		ctx.SendGroupMessage(ctx.Event.GroupID, append([]message.MessageSegment{message.At(ctx.Event.UserID)}, m...))
-	case `guild`:
-		ctx.SendChain(ImagePath.GetImage(`no.png`), TextOf(`暂不支持频道喵！`))
+		ctx.SendChain(append(append(n, message.At(ctx.Event.UserID)), m...)...)
 	}
 }
 

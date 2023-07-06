@@ -60,6 +60,7 @@ func init() {
 		if isExist, err = tf.Exists(); !kitten.Check(err) {
 			// 如果不确定文件存在
 			kitten.DoNotKnow(ctx)
+			log.Warnf("不确定 %s 存在喵！\n%v", tf, err)
 			return
 		}
 		if !isExist {
@@ -88,6 +89,10 @@ func init() {
 		})
 		list = list[math.Max(0, len(list)-50):]
 		nums := kitten.GenerateRandomNumber(0, len(list), 5)
+		if kitten.Check(nums) {
+			ctx.Send(`没有足够的食物喵！`)
+			return
+		}
 		todayData.Time = time.Now()
 		todayData.Breakfast = kitten.QQ(list[nums[0]].Get(`user_id`).Int())
 		todayData.Lunch = kitten.QQ(list[nums[1]].Get(`user_id`).Int())
@@ -97,6 +102,7 @@ func init() {
 		today, err = yaml.Marshal(todayData)
 		if !kitten.Check(err) {
 			log.Errorf("待写入饮食统计数据有错误：\n%v", err)
+			return
 		}
 		tf.Write(today)
 		report(todayData, name, ctx)
@@ -226,6 +232,7 @@ func init() {
 		if isExist, err = sf.Exists(); !kitten.Check(err) {
 			// 如果不确定文件存在
 			kitten.DoNotKnow(ctx)
+			log.Warnf("不确定 %s 存在喵！\n%v", sf, err)
 			return
 		}
 		if !isExist {

@@ -224,8 +224,8 @@ func (data Data) exit(ctx *zero.Ctx, e *control.Engine) {
 			permit = false
 			log.Warn(strconv.FormatInt(ID, 10) + report)
 		}
-		send(ID, permit, report, ctx)
 	}
+	send(ID, permit, report, ctx)
 }
 
 // 查看叠猫猫
@@ -340,7 +340,7 @@ func send(u int64, p bool, r string, ctx *zero.Ctx) {
 			return
 		}
 		ctx.SendChain(kitten.ImagePath.GetImage(`no.png`), message.Text(r))
-	case `group`:
+	case `group`, `guild`:
 		if p {
 			ctx.SendChain(message.At(u), message.Text(r))
 			return

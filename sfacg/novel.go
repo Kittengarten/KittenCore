@@ -70,10 +70,13 @@ func (nv *Novel) init(bookID string) {
 			log.Error(`获取点击错误喵！`)
 		}
 		// 获取更新时间
-		loc, _ := time.LoadLocation(`Local`)
+		loc, err := time.LoadLocation(`Local`)
+		if !kitten.Check(err) {
+			log.Errorf("时区获取出错喵！\n%v", err)
+		}
 		if 9 < len(textRow.Eq(3).Text()) {
 			var errT error
-			nv.NewChapter.Time, errT = time.ParseInLocation(`2006/1/2 15:04:05`, textRow.Eq(3).Text()[9:], loc)
+			nv.NewChapter.Time, err = time.ParseInLocation(`2006/1/2 15:04:05`, textRow.Eq(3).Text()[9:], loc)
 			if !kitten.Check(errT) {
 				log.Errorf("时间转换出错喵！\n%v", errT)
 			}
@@ -154,7 +157,10 @@ func (cp *Chapter) init(URL string) {
 				}
 				// 获取更新时间
 				if 15 < len(desc.Eq(1).Text()) {
-					loc, _ := time.LoadLocation(`Local`)
+					loc, err := time.LoadLocation(`Local`)
+					if !kitten.Check(err) {
+						log.Errorf("时区获取出错喵！\n%v", err)
+					}
 					var errT error
 					cp.Time, errT = time.ParseInLocation(`2006/1/2 15:04:05`, desc.Eq(1).Text()[15:], loc)
 					if !kitten.Check(errT) {
@@ -164,10 +170,17 @@ func (cp *Chapter) init(URL string) {
 				// 获取新章节标题
 				cp.Title = doc.Find(`h1.article-title`).Text()
 				// 获取上一章链接
-				cp.LastURL, _ = doc.Find(`div.fn-btn`).Eq(-1).Find(`a`).Eq(0).Attr(`href`)
+				var ok bool
+				cp.LastURL, ok = doc.Find(`div.fn-btn`).Eq(-1).Find(`a`).Eq(0).Attr(`href`)
+				if !ok {
+					log.Warnf("%s上一章链接获取失败喵！", URL)
+				}
 				cp.LastURL = `https://book.sfacg.com` + cp.LastURL
 				// 获取下一章链接
-				cp.NextURL, _ = doc.Find(`div.fn-btn`).Eq(-1).Find(`a`).Eq(1).Attr(`href`)
+				cp.NextURL, ok = doc.Find(`div.fn-btn`).Eq(-1).Find(`a`).Eq(1).Attr(`href`)
+				if !ok {
+					log.Warnf("%s上一章链接获取失败喵！", URL)
+				}
 				cp.NextURL = `https://book.sfacg.com` + cp.NextURL
 			}
 		} else {
@@ -246,7 +259,7 @@ func (key keyWord) findBookID() (string, bool) {
 	return fmt.Sprintf("网页转换出错喵！\n%v", errR), false
 }
 
-// 更新信息
+// 更新信息，若更新时间差大于一分钟返回 true，避免更新时间差为 0 等失败情况
 func (nv *Novel) update() (str string, ok bool) {
 	var (
 		cm      = nv.makeCompare()
