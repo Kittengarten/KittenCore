@@ -123,7 +123,7 @@ func (path Path) LoadPath() Path {
 	return FilePath(Path(data))
 }
 
-// GetImage 从图片的相对路径或绝对路径，或相对路径或绝对路径文件中保存的相对路径或绝对路径加载图片
+// GetImage 从图片的相对/绝对路径，或相对/绝对路径文件中保存的相对/绝对路径加载图片
 func (path Path) GetImage(name Path) message.MessageSegment {
 	if filepath.IsAbs(string(FilePath(path))) {
 		if path.isDir() {
