@@ -64,7 +64,7 @@ func (path Path) Write(data []byte) {
 			os.MkdirAll(filepath.Dir(string(path)), os.ModeDir)
 		} else {
 			// 文件或文件夹不确定是否存在
-			log.Warnf("不确定 %s 存在喵！\n%v", path, err)
+			log.Warnf("写入时不确定 %s 存在喵！\n%v", path, err)
 		}
 	}
 	res, err := os.Open(string(path))
@@ -140,8 +140,8 @@ func (path Path) GetImage(name Path) message.MessageSegment {
 // InitFile 初始化文本文件
 func InitFile(name Path, text string) {
 	e, err := name.Exists()
-	if Check(err) {
-		log.Warnf("不确定 %s 存在喵！\n%v", path, err)
+	if !Check(err) {
+		log.Warnf("初始化时不确定 %s 存在喵！\n%v", name, err)
 		return
 	}
 	// 如果文件不存在，初始化
