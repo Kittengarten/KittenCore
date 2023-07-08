@@ -14,14 +14,14 @@ import (
 func FilePath(elem ...Path) Path {
 	var s = make([]string, len(elem))
 	for k, v := range elem {
-		s[k] = string(v)
+		s[k] = v.String()
 	}
 	return Path(filepath.Join([]string(s)...))
 }
 
 // Read 文件读取
 func (path Path) Read() (data []byte) {
-	data, err := os.ReadFile(string(FilePath(path)))
+	data, err := os.ReadFile(path.String())
 	if !Check(err) {
 		log.Errorf("打开文件 %s 失败了喵！\n%v", path, err)
 	}
@@ -39,13 +39,13 @@ func (path Path) Write(data []byte) {
 		// 如果文件或文件夹不存在，或不确定是否存在
 		if Check(err) {
 			// 如果文件不存在，新建该文件所在的文件夹；如果文件夹不存在，新建该文件夹本身
-			os.MkdirAll(filepath.Dir(string(FilePath(path))), os.ModeDir)
+			os.MkdirAll(filepath.Dir(path.String()), os.ModeDir)
 		} else {
 			// 文件或文件夹不确定是否存在
 			log.Warnf("写入时不确定 %s 存在喵！\n%v", path, err)
 		}
 	}
-	err = os.WriteFile(string(FilePath(path)), data, 0666)
+	err = os.WriteFile(path.String(), data, 0666)
 	if !Check(err) {
 		log.Errorf("写入文件 %s 失败了喵！\n%v", path, err)
 	}
@@ -58,7 +58,7 @@ Exists 判断文件是否存在
 不确定存在的情况下报错
 */
 func (path Path) Exists() (bool, error) {
-	_, err := os.Stat(string(FilePath(path)))
+	_, err := os.Stat(path.String())
 	// 当 err 为空，文件或文件夹存在
 	if Check(err) {
 		return true, nil
@@ -73,7 +73,7 @@ func (path Path) Exists() (bool, error) {
 
 // （私有）判断路径是否文件夹
 func (path Path) isDir() bool {
-	s, err := os.Stat(string(FilePath(path)))
+	s, err := os.Stat(path.String())
 	if Check(err) {
 		return s.IsDir()
 	}
@@ -83,7 +83,7 @@ func (path Path) isDir() bool {
 
 // LoadPath 加载文件中保存的相对路径或绝对路径
 func (path Path) LoadPath() Path {
-	data, err := os.ReadFile(string(FilePath(path)))
+	data, err := os.ReadFile(path.String())
 	if !Check(err) {
 		log.Errorf("打开文件 %s 失败了喵！\n%v", path, err)
 	}
@@ -95,21 +95,27 @@ func (path Path) LoadPath() Path {
 
 // GetImage 从图片的相对/绝对路径，或相对/绝对路径文件中保存的相对/绝对路径加载图片
 func (path Path) GetImage(name Path) message.MessageSegment {
-	if filepath.IsAbs(string(FilePath(path))) {
+	if filepath.IsAbs(path.String()) {
 		if path.isDir() {
-			return message.Image(`file://` + string(FilePath(path, name)))
+			return message.Image(`file://` + FilePath(path, name).String())
 		}
-		return message.Image(`file://` + string(FilePath(path.LoadPath(), name)))
+		return message.Image(`file://` + FilePath(path.LoadPath(), name).String())
 	}
 	if path.isDir() {
-		return message.Image(string(FilePath(path, name)))
+		return message.Image(FilePath(path, name).String())
 	}
-	return message.Image(string(FilePath(path.LoadPath(), name)))
+	return message.Image(FilePath(path.LoadPath(), name).String())
 }
 
-// InitFile 初始化文本文件
+/*
+Path 类型实现 Stringer 接口，并将路径规范化
+*/
+func (path Path) String() string {
+	return filepath.Clean(string(FilePath(path)))
+}
+
+// InitFile 初始化文本文件，要求传入路径事先规范化过
 func InitFile(name Path, text string) {
-	name = FilePath(name)
 	e, err := name.Exists()
 	if !Check(err) {
 		log.Warnf("初始化时不确定 %s 存在喵！\n%v", name, err)

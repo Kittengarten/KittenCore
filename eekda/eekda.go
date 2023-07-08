@@ -2,7 +2,6 @@ package eekda
 
 import (
 	"fmt"
-	"io"
 	"os"
 	"sort"
 	"strings"
@@ -25,11 +24,10 @@ import (
 const (
 	// ReplyServiceName 插件名
 	ReplyServiceName             = `eekda`
-	todayFile        kitten.Path = `today.yaml` // 保存今天吃什么的文件
-	statFile         kitten.Path = `stat.yaml`  // 保存统计数据的文件
+	namePath         kitten.Path = `eekda/name.txt` // 保存名字的文件
+	todayFile        kitten.Path = `today.yaml`     // 保存今天吃什么的文件
+	statFile         kitten.Path = `stat.yaml`      // 保存统计数据的文件
 )
-
-var namePath = kitten.FilePath(`eekda`, `name.txt`) // 保存名字的文件
 
 func init() {
 	var (
@@ -65,7 +63,7 @@ func init() {
 		}
 		if !isExist {
 			// 如果文件不存在，创建文件
-			if fp, err := os.Create(engine.DataFolder() + string(todayFile)); kitten.Check(err) {
+			if fp, err := os.Create(tf.String()); kitten.Check(err) {
 				fp.WriteString(`[]`)
 				defer fp.Close()
 				return
@@ -237,7 +235,7 @@ func init() {
 		}
 		if !isExist {
 			// 如果文件不存在，创建文件
-			if fp, err := os.Create(string(sf)); kitten.Check(err) {
+			if fp, err := os.Create(sf.String()); kitten.Check(err) {
 				fp.WriteString(`[]`)
 				defer fp.Close()
 				return
@@ -278,13 +276,7 @@ func init() {
 // 获取名字
 func getName() string {
 	kitten.InitFile(namePath, `翼翼`) // 创建默认名字
-	res, err := os.Open(string(namePath))
-	if !kitten.Check(err) {
-		log.Warnf("打开文件 %s 失败了喵！\n%v", namePath, err)
-		return `翼翼`
-	}
-	defer res.Close()
-	data, err := io.ReadAll(res)
+	data, err := os.ReadFile(namePath.String())
 	if kitten.Check(err) {
 		return string(data)
 	}
@@ -296,7 +288,7 @@ func getName() string {
 func getLine(u kitten.QQ, ctx *zero.Ctx) string {
 	info := Kitten{
 		ID:   u,
-		Name: u.GetTitle(ctx) + ctx.CardOrNickName(int64(u)),
+		Name: u.GetTitle(ctx) + ctx.CardOrNickName(u.Int64()),
 	}
 	return fmt.Sprintf(`%s（%d）`, info.Name, info.ID)
 }

@@ -210,7 +210,7 @@ func getNovel(ctx *zero.Ctx) (nv Novel) {
 			return
 		}
 	}
-	nv.init(string(ag))
+	nv.init(ag)
 	return nv
 }
 

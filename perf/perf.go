@@ -275,10 +275,10 @@ func getDiskUsed() (str string) {
 
 // Windows 系统下获取 CPU 温度，通过微星小飞机（需要自行安装配置，并确保温度在其 log 中的位置）
 func getCPUTemperatureOnWindows(e *control.Engine) (CPUTemperature string) {
-	kitten.InitFile(kitten.Path(e.DataFolder())+filePath, `C:\Program Files (x86)\MSI Afterburner\HardwareMonitoring.hml`)
-	os.Remove(string(filePath.LoadPath()))
+	kitten.InitFile(kitten.FilePath(kitten.Path(e.DataFolder()), filePath), `C:\Program Files (x86)\MSI Afterburner\HardwareMonitoring.hml`)
+	os.Remove(filePath.LoadPath().String())
 	time.Sleep(1 * time.Second)
-	file, err := os.ReadFile(string(filePath.LoadPath()))
+	file, err := os.ReadFile(filePath.LoadPath().String())
 	if !kitten.Check(err) {
 		log.Warnf("获取 CPU 温度日志失败了喵！\n%v", err)
 	}

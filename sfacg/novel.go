@@ -53,7 +53,7 @@ func (nv *Novel) init(bookID string) {
 		nv.Writer = doc.Find(`div.author-name`).Find(`span`).Text()
 		// 获取头像链接，失败时使用报错图片
 		if nv.HeadURL, he = doc.Find(`div.author-mask`).Find(`img`).Attr(`src`); !he {
-			nv.HeadURL = string(imagePath.LoadPath()) + `no.png`
+			nv.HeadURL = imagePath.LoadPath().String() + `no.png`
 			log.Error(`头像链接获取失败喵！`)
 		}
 		// 获取小说详细信息
@@ -101,7 +101,7 @@ func (nv *Novel) init(bookID string) {
 		// })
 		// 获取封面，失败时使用报错图片
 		if nv.CoverURL, ce = doc.Find(`div.figure`).Find(`img`).Eq(0).Attr(`src`); !ce {
-			nv.CoverURL = string(imagePath.LoadPath()) + `no.png`
+			nv.CoverURL = imagePath.LoadPath().String() + `no.png`
 			log.Error("封面链接获取失败喵！")
 		}
 		// 获取收藏

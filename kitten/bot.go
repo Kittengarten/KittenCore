@@ -77,9 +77,14 @@ func DoNotKnow(ctx *zero.Ctx) {
 	SendMessage(ctx, false, ImagePath.GetImage(`哈——？.png`), TextOf(`%s不知道哦`, zero.BotConfig.NickName[0]))
 }
 
+// Int64 QQ 号转换为整型
+func (u QQ) Int64() int64 {
+	return int64(u)
+}
+
 // GetTitle 从 QQ 获取【头衔】
 func (u QQ) GetTitle(ctx *zero.Ctx) string {
-	gmi := ctx.GetGroupMemberInfo(ctx.Event.GroupID, int64(u), true)
+	gmi := ctx.GetGroupMemberInfo(ctx.Event.GroupID, u.Int64(), true)
 	if titleStr := gjson.Get(gmi.Raw, `title`).Str; `` == titleStr {
 		return ``
 	}
