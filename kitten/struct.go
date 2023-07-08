@@ -1,7 +1,5 @@
 package kitten
 
-import "net/url"
-
 // ImagePath 图片路径
 var ImagePath = FilePath(Path(Configs.Path), `image`)
 
@@ -20,8 +18,8 @@ type (
 
 	// WebSocketConfig 是一个 WebSocket 链接的配置
 	WebSocketConfig struct {
-		URL         url.URL // WebSocket 链接
-		AccessToken string  // WebSocket 密钥
+		URL         string // WebSocket 链接
+		AccessToken string // WebSocket 密钥
 	}
 
 	// // URL 代表 URL 的字符串
@@ -29,7 +27,7 @@ type (
 
 	// WebUIConfig 是一个 WebUI 的配置
 	WebUIConfig struct {
-		URL url.URL // WebUI 链接
+		URL string // WebUI 链接
 	}
 
 	// LogConfig 是一个日志的配置

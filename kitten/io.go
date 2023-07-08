@@ -12,7 +12,7 @@ import (
 
 // FilePath 文件路径构建
 func FilePath(elem ...Path) Path {
-	var s = make([]string, len(elem))
+	s := make([]string, len(elem))
 	for k, v := range elem {
 		s[k] = v.String()
 	}
@@ -111,7 +111,7 @@ func (path Path) GetImage(name Path) message.MessageSegment {
 Path 类型实现 Stringer 接口，并将路径规范化
 */
 func (path Path) String() string {
-	return filepath.Clean(string(FilePath(path)))
+	return filepath.Clean(filepath.Join(string(path)))
 }
 
 // InitFile 初始化文本文件，要求传入路径事先规范化过

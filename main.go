@@ -94,7 +94,7 @@ func init() {
 	// 启用日志格式
 	kitten.LogConfigInit(config)
 	// 启用 WebUI
-	go webctrl.RunGui(config.WebUI.URL.String())
+	go webctrl.RunGui(config.WebUI.URL)
 }
 
 func main() {
@@ -115,7 +115,7 @@ func main() {
 		Driver: []zero.Driver{
 			&driver.WSClient{
 				// OneBot 正向 WS 默认使用 6700 端口
-				Url:         config.WebSocket.URL.String(),
+				Url:         config.WebSocket.URL,
 				AccessToken: config.WebSocket.AccessToken,
 			},
 		},
