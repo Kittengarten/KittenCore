@@ -72,9 +72,9 @@ func init() {
 			report = novel.Preview
 		)
 		if `` == report {
-			kitten.SendTextOf(ctx, true, `不存在的喵！`)
+			kitten.SendText(ctx, true, `不存在的喵！`)
 		} else {
-			kitten.SendTextOf(ctx, true, report)
+			kitten.SendText(ctx, true, report)
 		}
 	})
 
@@ -96,7 +96,7 @@ func init() {
 			groupSet = make(map[string]mapset.Set) // 书号:群号集合
 		)
 		if g = getg(ctx); 0 == g {
-			kitten.SendTextOf(ctx, false, `报更对象不支持喵～`)
+			kitten.SendText(ctx, false, `报更对象不支持喵～`)
 			log.Warnf(`添加报更对象不支持喵～`)
 			return
 		}
@@ -152,7 +152,7 @@ func init() {
 				ok       bool
 			)
 			if g = getg(ctx); 0 == g {
-				kitten.SendTextOf(ctx, false, `报更对象不支持喵～`)
+				kitten.SendText(ctx, false, `报更对象不支持喵～`)
 				log.Warnf(`取消报更对象不支持喵～`)
 				return
 			}
@@ -196,7 +196,7 @@ func init() {
 				kitten.SendTextOf(ctx, false, `取消《%s》报更失败喵！`, novel.Name)
 				return
 			}
-			kitten.SendTextOf(ctx, false, `本书不存在或不在追更列表，也许有其它错误喵～`)
+			kitten.SendText(ctx, false, `本书不存在或不在追更列表，也许有其它错误喵～`)
 		})
 }
 
@@ -206,7 +206,7 @@ func getNovel(ctx *zero.Ctx) (nv Novel) {
 	if !isInt(ag) {
 		ag, chk = keyWord(ag).findBookID()
 		if !chk {
-			kitten.SendTextOf(ctx, false, ag)
+			kitten.SendText(ctx, false, ag)
 			return
 		}
 	}

@@ -264,7 +264,7 @@ func init() {
 					fmt.Sprintf(`晚餐：%d 次`, statData[i].Dinner),
 					fmt.Sprintf(`夜宵：%d 次`, statData[i].Supper),
 				}, "\n")
-				kitten.SendTextOf(ctx, true, report)
+				kitten.SendText(ctx, true, report)
 				ctx.SendChain(message.At(ctx.Event.UserID), message.Text(report))
 				isGet = true
 			}

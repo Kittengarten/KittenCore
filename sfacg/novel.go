@@ -3,6 +3,7 @@ package sfacg
 import (
 	"fmt"
 	"net/http"
+	"strconv"
 	"strings"
 	"time"
 
@@ -153,7 +154,10 @@ func (cp *Chapter) init(URL string) {
 				desc := doc.Find(`div.article-desc`).Find(`span`)
 				// 获取新章节字数
 				if 9 < len(desc.Eq(2).Text()) {
-					cp.WordNum = kitten.IntString(desc.Eq(2).Text()[9:]).Int()
+					cp.WordNum, err = strconv.Atoi(desc.Eq(2).Text()[9:])
+				}
+				if !kitten.Check(err) {
+					log.Warnf("转换新章节字数失败了喵！\n%v", err)
 				}
 				// 获取更新时间
 				if 15 < len(desc.Eq(1).Text()) {

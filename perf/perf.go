@@ -89,7 +89,7 @@ func init() {
 			var (
 				cpu                                      = getCPUPercent()
 				mem                                      = getMemPercent()
-				t                                        kitten.IntString
+				t                                        = `45`
 				annoStr, flower, elemental, imagery, err = kitten.GetWTAAnno()
 				reportAnno                               string
 			)
@@ -113,14 +113,12 @@ func init() {
 					reportAnno,
 				}, "\n")
 			case `linux`:
-				t = kitten.IntString(`45`)
 				str = strings.Join([]string{fmt.Sprintf(`CPU 使用率：%.2f%%`, cpu),
 					fmt.Sprintf(`内存使用：%.0f%%（%s）`, mem, getMemUsed()),
 					fmt.Sprintf(`系统盘使用：%.2f%%（%s）`, getDiskPercent(), getDiskUsed()),
 					reportAnno,
 				}, "\n")
 			default:
-				t = kitten.IntString(`45`)
 				str = strings.Join([]string{fmt.Sprintf(`CPU 使用率：%.2f%%`, cpu),
 					fmt.Sprintf(`内存使用：%.0f%%（%s）`, mem, getMemUsed()),
 					reportAnno,
@@ -150,26 +148,31 @@ func init() {
 			kitten.DoNotKnow(ctx)
 			return
 		}
+		pinger.OnSend = func(pkt *probing.Packet) {
+			nbytes = pkt.Nbytes
+		}
 		pinger.OnRecv = func(pkt *probing.Packet) {
 			pingMsg = strings.Join([]string{pingMsg,
 				fmt.Sprintf(`来自 %s 的回复：字节=%d 时间=%dms TTL=%v`, pkt.IPAddr, pkt.Nbytes, pkt.Rtt.Milliseconds(), pkt.TTL),
 			}, "\n")
-			nbytes = pkt.Nbytes
 		}
 		pinger.OnFinish = func(stats *probing.Statistics) {
 			report = strings.Join([]string{fmt.Sprintf(`正在 Ping %s [%s] 具有 %d 字节的数据：`, pingURL, stats.IPAddr, nbytes),
 				pingMsg,
 				``,
 				fmt.Sprintf(`%s 的 Ping 统计信息：`, stats.IPAddr),
-				fmt.Sprintf("    数据包：已发送 = %d，已接收 = %d，丢失 = %d（%.0f%% 丢失）",
+				fmt.Sprintf(`    数据包：已发送 = %d，已接收 = %d，丢失 = %d（%.0f%% 丢失）`,
 					stats.PacketsSent, stats.PacketsRecv, stats.PacketsSent-stats.PacketsRecv, stats.PacketLoss),
-				`往返行程的估计时间：`,
-				fmt.Sprintf(`    最短 = %dms，最长 = %dms，平均 = %dms`, stats.MinRtt.Milliseconds(), stats.MaxRtt.Milliseconds(), stats.AvgRtt.Milliseconds()),
 			}, "\n")
+			if 100 > stats.PacketLoss {
+				report += strings.Join([]string{"\n往返行程的估计时间：",
+					fmt.Sprintf(`    最短 = %dms，最长 = %dms，平均 = %dms`,
+						stats.MinRtt.Milliseconds(), stats.MaxRtt.Milliseconds(), stats.AvgRtt.Milliseconds())}, "\n")
+			}
 		}
 		err = pinger.Run()
 		if kitten.Check(err) {
-			kitten.SendTextOf(ctx, true, report)
+			kitten.SendText(ctx, true, report)
 			return
 		}
 		kitten.SendTextOf(ctx, true, "Ping 出现错误：\n%v", err)
@@ -196,7 +199,7 @@ func init() {
 			kitten.SendTextOf(ctx, false, `请不要拍%s >_<`, nickname)
 		case poke.Load(g).Acquire():
 			// 5 分钟共 8 块命令牌 一次消耗 1 块命令牌
-			ctx.SendChain(message.At(u), kitten.TextOf("喂(#`O′) 拍%s干嘛！（好感 - %d）", nickname, rand.Intn(randMax)+1))
+			kitten.SendTextOf(ctx, false, "喂(#`O′) 拍%s干嘛！\n（好感 - %d）", nickname, rand.Intn(randMax)+1)
 		default:
 			// 频繁触发，不回复
 		}
@@ -271,7 +274,7 @@ func getDiskUsed() (str string) {
 }
 
 // Windows 系统下获取 CPU 温度，通过微星小飞机（需要自行安装配置，并确保温度在其 log 中的位置）
-func getCPUTemperatureOnWindows(e *control.Engine) (CPUTemperature kitten.IntString) {
+func getCPUTemperatureOnWindows(e *control.Engine) (CPUTemperature string) {
 	kitten.InitFile(kitten.Path(e.DataFolder())+filePath, `C:\Program Files (x86)\MSI Afterburner\HardwareMonitoring.hml`)
 	os.Remove(string(filePath.LoadPath()))
 	time.Sleep(1 * time.Second)
@@ -279,14 +282,15 @@ func getCPUTemperatureOnWindows(e *control.Engine) (CPUTemperature kitten.IntStr
 	if !kitten.Check(err) {
 		log.Warnf("获取 CPU 温度日志失败了喵！\n%v", err)
 	}
-	CPUTemperature = kitten.IntString(file[329:331]) // 此处为温度在微星小飞机 log 中的位置
+	CPUTemperature = string(file[329:331]) // 此处为温度在微星小飞机 log 中的位置
 	return
 }
 
 // 返回状态等级
-func getPerf(cpu float64, mem float64, t kitten.IntString) int {
-	if tt := float64(t.Int()); 0 < tt && 100 > tt {
-		perf := 0.00005 * (cpu + mem) * tt
+func getPerf(cpu float64, mem float64, ts string) int {
+	ti, err := strconv.Atoi(ts)
+	if 0 < ti && 100 > ti && kitten.Check(err) {
+		perf := 0.00005 * (cpu + mem) * float64(ti)
 		log.Tracef(`%s的负荷评分是 %f……`, zero.BotConfig.NickName[0], perf)
 		switch {
 		case 0.1 > perf:
@@ -301,5 +305,6 @@ func getPerf(cpu float64, mem float64, t kitten.IntString) int {
 			return 4
 		}
 	}
+	log.Warn(err)
 	return 5
 }

@@ -38,9 +38,6 @@ type (
 		Expire int    // 日志文件的过期天数，大于该天数前的日志文件会被清理。设置为 -1 可以禁用。
 	}
 
-	// IntString 是一个可转换为 int 的字符串
-	IntString string
-
 	// Path 是一个表示文件路径的字符串
 	Path string
 
