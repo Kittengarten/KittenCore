@@ -48,7 +48,7 @@ func (c Choices) Choose() (result int, err error) {
 	return len(c) - 1, errors.New(`没有项目喵！`)
 }
 
-// IsSameDate 判断两个时间是否是同一天
+// IsSameDate 判断两个时间是否在同一天
 func IsSameDate(t1 time.Time, t2 time.Time) bool {
 	var (
 		year1, month1, day1 = t1.Date()
