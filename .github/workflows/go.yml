@@ -8,11 +8,23 @@ on:
     branches: [ "主分支" ]
   pull_request:
     branches: [ "主分支" ]
+  workflow_dispatch:
+    
+env:
+  BINARY_PREFIX: "kitten_core_"
+  BINARY_SUFFIX: ""
+  COMMIT_ID: "${{ github.sha }}"
+  PR_PROMPT: "::warning:: Build artifact will not be uploaded due to the workflow is trigged by pull request."
 
 jobs:
-
   build:
     runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        # build and publish in parallel: linux/amd64, windows/386, windows/amd64,
+        goos: [linux, windows]
+        goarch: [amd64, arm64]
+      fail-fast: true
     steps:
     - uses: actions/checkout@v3
 
@@ -26,3 +38,21 @@ jobs:
 
     - name: Test
       run: go test -v ./...
+      
+    - name: Build binary file
+      env:
+        GOOS: ${{ matrix.goos }}
+        GOARCH: ${{ matrix.goarch }}
+        IS_PR: ${{ !!github.head_ref }}
+      run: |
+        if [ $GOOS = "windows" ]; then export BINARY_SUFFIX="$BINARY_SUFFIX.exe"; fi
+        if $IS_PR ; then echo $PR_PROMPT; fi
+        export BINARY_NAME="$BINARY_PREFIX"$GOOS"_$GOARCH$BINARY_SUFFIX"
+        export CGO_ENABLED=0
+        go build -o "output/$BINARY_NAME" -trimpath
+    - name: Upload artifact
+      uses: actions/upload-artifact@v3
+      if: ${{ !github.head_ref }}
+      with:
+        name: ${{ matrix.goos }}_${{ matrix.goarch }}
+        path: output/
