@@ -2,15 +2,10 @@
 package main
 
 import (
-	// 标准库
-	"math/rand"
-	"runtime"
-	"strings"
-	"time"
-
+	// 官方库
+	"runtime/debug"
 	// KittenCore 的核心库
 	"github.com/Kittengarten/KittenCore/kitten"
-
 	// 以下为内部插件
 	// _ "github.com/Kittengarten/KittenCore/draw"
 	_ "github.com/Kittengarten/KittenCore/eekda" // XX 今天吃什么
@@ -21,7 +16,6 @@ import (
 
 	// 以下为外部插件
 	_ "github.com/FloatTech/ZeroBot-Plugin/plugin/manager"
-
 	// _ "github.com/Kittengarten/KittenCore/plugin/kokomi"
 	_ "github.com/FloatTech/ZeroBot-Plugin/plugin/ahsai"
 	_ "github.com/FloatTech/ZeroBot-Plugin/plugin/ai_false"
@@ -102,12 +96,9 @@ func main() {
 	defer func() {
 		if err := recover(); !kitten.Check(err) {
 			log.Errorf("主函数有 Bug 喵！\n%v", err)
+			debug.PrintStack()
 		}
 	}()
-	// Go 1.20 之前版本需要全局重置随机数种子，插件无须再次使用
-	if !strings.Contains(runtime.Version(), "go1.2") {
-		rand.Seed(time.Now().UnixNano())
-	}
 	zero.RunAndBlock(&zero.Config{
 		NickName:      config.NickName,
 		CommandPrefix: config.CommandPrefix,

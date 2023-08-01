@@ -16,12 +16,11 @@ import (
 Check 处理错误，没有错误则返回 true
 
 也可用于检查传入参数是否存在，如果不存在则返回 true
+
+禁止传入指针
 */
 func Check(err any) bool {
-	if nil == err {
-		return true
-	}
-	return false
+	return nil == err
 }
 
 // Choose 按权重抽取一个项目的序号
@@ -54,10 +53,7 @@ func IsSameDate(t1 time.Time, t2 time.Time) bool {
 		year1, month1, day1 = t1.Date()
 		year2, month2, day2 = t2.Date()
 	)
-	if year1 == year2 && month1 == month2 && day1 == day2 {
-		return true
-	}
-	return false
+	return year1 == year2 && month1 == month2 && day1 == day2
 }
 
 /*

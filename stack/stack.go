@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"math"
 	"math/rand"
+	"runtime/debug"
 	"strconv"
 	"strings"
 	"sync"
@@ -97,7 +98,9 @@ func init() {
 
 // 加载叠猫猫数据
 func loadData(path kitten.Path) (stackData Data) {
-	yaml.Unmarshal(path.Read(), &stackData)
+	if err := yaml.Unmarshal(path.Read(), &stackData); !kitten.Check(err) {
+		log.Errorf("加载叠猫猫数据失败喵！\n%v", err)
+	}
 	return
 }
 
@@ -108,15 +111,15 @@ func (data Data) in(esc Data, stackConfig Config, ctx *zero.Ctx, e *control.Engi
 		ID              = ctx.Event.UserID
 		report, reports string
 	)
-	for _, meow := range esc {
-		if ID == meow.ID {
+	for i := range esc {
+		if ID == esc[i].ID {
 			report = fmt.Sprintf(`休息不足 %d 小时，不能加入喵！`, stackConfig.GapTime)
 			permit = false
 			log.Info(strconv.FormatInt(ID, 10) + report)
 		}
 	}
-	for _, meow := range data {
-		if ID == meow.ID {
+	for i := range data {
+		if ID == data[i].ID {
 			report = `已经加入叠猫猫了喵！`
 			permit = false
 			log.Info(strconv.FormatInt(ID, 10) + ` ` + report)
@@ -139,8 +142,8 @@ func (data Data) in(esc Data, stackConfig Config, ctx *zero.Ctx, e *control.Engi
 					exitData := data[:exitLabel+1]
 					reports = strings.Join(exitData.reverse(), "\n")
 					// 将被压坏的的猫猫记录至退出日志
-					for _, kitten := range exitData {
-						logExit(kitten.ID, ctx, e)
+					for k := range exitData {
+						logExit(exitData[k].ID, ctx, e)
 					}
 					data = data[exitLabel+1:]
 					save(data, kitten.FilePath(kitten.Path(e.DataFolder()), dataFile))
@@ -176,8 +179,8 @@ func (data Data) in(esc Data, stackConfig Config, ctx *zero.Ctx, e *control.Engi
 				}
 				exitData := data[len(data)-exitCount:]
 				// 将摔下来的的猫猫记录至退出日志
-				for _, kitten := range exitData {
-					logExit(kitten.ID, ctx, e)
+				for k := range exitData {
+					logExit(exitData[k].ID, ctx, e)
 				}
 				data = data[:len(data)-exitCount]
 				save(data, kitten.FilePath(kitten.Path(e.DataFolder()), dataFile))
@@ -198,22 +201,22 @@ func (data Data) in(esc Data, stackConfig Config, ctx *zero.Ctx, e *control.Engi
 // 退出叠猫猫
 func (data Data) exit(ctx *zero.Ctx, e *control.Engine) {
 	var (
-		permit  = true
-		ID      = ctx.Event.UserID
-		dataNew = data
-		report  string
+		permit = true
+		ID     = ctx.Event.UserID
+		ld     = len(data) // 退出前的猫猫数量
+		report string
 	)
-	for i, meow := range data {
-		if ID == meow.ID {
-			dataNew = append(data[:i], data[i+1:]...)
+	for i := range data {
+		if ID == data[i].ID {
+			data = append(data[:i], data[i+1:]...)
 		}
 	}
-	if len(dataNew) == len(data) {
+	if ld == len(data) {
 		report = `没有加入叠猫猫，不能退出喵！`
 		permit = false
 		log.Warn(strconv.FormatInt(ID, 10) + report)
 	} else {
-		stackData, err := yaml.Marshal(dataNew)
+		stackData, err := yaml.Marshal(data)
 		kitten.FilePath(kitten.Path(e.DataFolder()), dataFile).Write(stackData)
 		if kitten.Check(err) {
 			report = `退出叠猫猫成功喵！`
@@ -256,10 +259,6 @@ func save(data Data, path kitten.Path) (ok bool) {
 	ok = kitten.Check(err)
 	if !ok {
 		log.Errorf("文件写入错误喵！\n%v", err)
-		reciver := kitten.Configs.SuperUsers[0]
-		if kitten.Check(kitten.Bot) {
-			kitten.Bot.SendPrivateMessage(reciver, `叠猫猫文件写入错误，请检查日志喵！`)
-		}
 	}
 	return
 }
@@ -270,6 +269,7 @@ func autoExit(f kitten.Path, c Config, e *control.Engine) {
 	defer func() {
 		if err := recover(); !kitten.Check(err) {
 			log.Error(err)
+			debug.PrintStack()
 		}
 	}()
 	var limitTime time.Duration
@@ -287,7 +287,7 @@ func autoExit(f kitten.Path, c Config, e *control.Engine) {
 		kitten.InitFile(kitten.FilePath(kitten.Path(e.DataFolder()), f), `[]`)
 		var (
 			data     = loadData(kitten.FilePath(kitten.Path(e.DataFolder()), f))
-			dataNew  = data
+			ld       = len(data) // 退出前的猫猫数量
 			nextTime = time.Now().Add(limitTime)
 		)
 		if 0 < len(data) {
@@ -295,13 +295,13 @@ func autoExit(f kitten.Path, c Config, e *control.Engine) {
 				if 1 < len(data) {
 					nextTime = data[1].Time.Add(limitTime)
 				}
-				dataNew = data[1:]
+				data = data[1:]
 			} else {
 				nextTime = data[0].Time.Add(limitTime)
 			}
 		}
-		if len(dataNew) != len(data) {
-			save(dataNew, kitten.FilePath(kitten.Path(e.DataFolder()), f))
+		if ld != len(data) {
+			save(data, kitten.FilePath(kitten.Path(e.DataFolder()), f))
 		}
 		mu.Unlock()
 		log.Infof(`下次定时退出 %s 时间为：%s`, kitten.FilePath(kitten.Path(e.DataFolder()), f), nextTime.Format(`2006-01-02 15:04:05`))
@@ -325,10 +325,7 @@ func logExit(u int64, ctx *zero.Ctx, e *control.Engine) {
 
 // 根据高度 h 检查压猫猫或叠猫猫是否成功
 func checkStack(h int) bool {
-	if rand.Float64() < 0.01*float64(h*stackConfig.FailPercent) {
-		return false
-	}
-	return true
+	return 0.01*float64(h*stackConfig.FailPercent) <= rand.Float64()
 }
 
 // 发送叠猫猫结果
@@ -351,6 +348,8 @@ func send(u int64, p bool, r string, ctx *zero.Ctx) {
 
 // 加载叠猫猫配置
 func loadConfig(configFile kitten.Path) (c Config) {
-	yaml.Unmarshal(configFile.Read(), &c)
+	if err := yaml.Unmarshal(configFile.Read(), &c); !kitten.Check(err) {
+		log.Errorf("加载叠猫猫配置失败喵！\n%v", err)
+	}
 	return
 }

@@ -79,8 +79,8 @@ func init() {
 			str    string
 			report message.Message
 		)
-		for _, v := range zero.BotConfig.NickName {
-			if who == v {
+		for k := range zero.BotConfig.NickName {
+			if who == zero.BotConfig.NickName[k] {
 				who = nickname
 			}
 		}
@@ -126,7 +126,6 @@ func init() {
 			}
 			report = message.Message{imagePath.GetImage(kitten.Path(strconv.Itoa(getPerf(cpu, mem, t)) + `.png`)), message.Text(str)}
 			ctx.Send(report)
-			break
 		default:
 			kitten.DoNotKnow(ctx)
 		}
@@ -218,8 +217,8 @@ func getCPUPercent() float64 {
 	if !kitten.Check(err) {
 		log.Warnf("获取 CPU 使用率失败了喵！\n%v", err)
 	}
-	for _, v := range percent {
-		avg += v
+	for k := range percent {
+		avg += percent[k]
 	}
 	return avg / float64(len(percent))
 }

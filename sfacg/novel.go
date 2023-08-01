@@ -1,10 +1,12 @@
 package sfacg
 
 import (
+	"errors"
 	"fmt"
 	"net/http"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/Kittengarten/KittenCore/kitten"
@@ -14,7 +16,24 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-var imagePath kitten.Path = kitten.Path(kitten.Configs.Path + `image/`) // 图片路径
+var (
+	// 图片路径
+	imagePath kitten.Path = kitten.Path(kitten.Configs.Path + `image/`)
+	// 小说池
+	novelPool = sync.Pool{
+		New: func() interface{} {
+			return &Novel{}
+		},
+	}
+	// 章节池
+	chapterPool = sync.Pool{
+		New: func() interface{} {
+			return &Chapter{}
+		},
+	}
+	// 配置池
+	configPool sync.Pool
+)
 
 // 小说网页信息获取
 func (nv *Novel) init(bookID string) {
@@ -25,6 +44,7 @@ func (nv *Novel) init(bookID string) {
 		he      bool               // 头像链接是否存在
 		ce      bool               // 封面链接是否存在
 		textRow *goquery.Selection // 小说详细信息
+
 	)
 	// 初始化
 	nv.IsGet = false
@@ -32,8 +52,10 @@ func (nv *Novel) init(bookID string) {
 	nv.ID = bookID
 	// 生成链接
 	nv.URL = `https://book.sfacg.com/Novel/` + bookID
-	// 向章节传入本书链接
+	// 从章节池初始化章节，向章节传入本书链接
+	nv.NewChapter = *chapterPool.Get().(*Chapter)
 	nv.NewChapter.BookURL = nv.URL
+	defer chapterPool.Put(&nv.NewChapter)
 	// 获取 HTTP 响应
 	req, err = http.Get(nv.URL)
 	if kitten.Check(err) {
@@ -76,10 +98,9 @@ func (nv *Novel) init(bookID string) {
 			log.Errorf("时区获取出错喵！\n%v", err)
 		}
 		if 9 < len(textRow.Eq(3).Text()) {
-			var errT error
 			nv.NewChapter.Time, err = time.ParseInLocation(`2006/1/2 15:04:05`, textRow.Eq(3).Text()[9:], loc)
-			if !kitten.Check(errT) {
-				log.Errorf("时间转换出错喵！\n%v", errT)
+			if !kitten.Check(err) {
+				log.Errorf("时间转换出错喵！\n%v", err)
 			}
 		}
 		// 获取小说字数信息
@@ -219,8 +240,8 @@ func (nv *Novel) makeCompare() (cm Compare) {
 // 小说信息
 func (nv *Novel) information() (str string) {
 	// var tags string // 标签
-	// for _, v := range nv.TagList {
-	// 	tags += fmt.Sprintf(`[%s]`, v)
+	// for k := range nv.TagList {
+	// 	tags += fmt.Sprintf(`[%s]`, nv.TagList[k])
 	// }
 	str = strings.Join([]string{`书名：` + nv.Name,
 		`书号：` + nv.ID,
@@ -234,18 +255,21 @@ func (nv *Novel) information() (str string) {
 	if nv.IsGet {
 		return
 	}
+	if `` == nv.ID {
+		return `获取不到书号喵！`
+	}
 	return fmt.Sprintf(`书号 %s 打不开喵！`, nv.ID)
 }
 
-// 用关键词搜索书号，如失败，返回值为失败信息
-func (key keyWord) findBookID() (string, bool) {
+// 用关键词搜索书号，如失败，返回原关键词和失败信息
+func (key keyWord) findBookID() (string, error) {
 	var (
 		searchURL = fmt.Sprintf(`http://s.sfacg.com/?Key=%s&S=1&SS=0`, key)
 		req, err  = http.Get(searchURL)
 	)
 	if !kitten.Check(err) {
 		log.Warnf("获取书号失败了喵！\n错误：%v", err)
-		return `获取书号失败了喵！`, false
+		return string(key), err
 	}
 	defer req.Body.Close()
 	var (
@@ -254,24 +278,27 @@ func (key keyWord) findBookID() (string, bool) {
 	)
 	if kitten.Check(errR) {
 		if haveResult {
-			return href[29:], true
+			return href[29:], nil
 		}
-		log.Info(key + `搜索无结果喵。`)
-		return fmt.Sprintf(`关键词【%s】找不到小说喵！`, key), false
+		e := fmt.Sprintf(`关键词【%s】找不到小说喵！`, key)
+		log.Info(e)
+		return string(key), errors.New(e)
 	}
-	log.Errorf("网页转换出错喵！\n%v", errR)
-	return fmt.Sprintf("网页转换出错喵！\n%v", errR), false
+	e := fmt.Sprintf("网页转换出错喵！\n%v", errR)
+	log.Error(e)
+	return string(key), errors.New(e)
 }
 
-// 更新信息，若更新时间差大于一分钟返回 true，避免更新时间差为 0 等失败情况
-func (nv *Novel) update() (str string, ok bool) {
+// 更新信息
+func (nv *Novel) update() (str string, d time.Duration) {
 	var (
 		cm      = nv.makeCompare()
 		wordNum = fmt.Sprintf(`%d 字`, nv.NewChapter.WordNum)
 		timeGap string
 	)
-	if cm.TimeGap < 144*time.Hour {
-		timeGap = cm.TimeGap.String()
+	d = cm.TimeGap
+	if d < 144*time.Hour {
+		timeGap = d.String()
 	} else {
 		timeGap = `不明`
 	}
@@ -285,8 +312,5 @@ func (nv *Novel) update() (str string, ok bool) {
 		`间隔时间：` + timeGap,
 		fmt.Sprintf(`当日第 %d 更`, cm.Times),
 	}, "\n")
-	if time.Minute <= cm.TimeGap {
-		ok = true
-	}
 	return
 }

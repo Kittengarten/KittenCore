@@ -25,10 +25,6 @@ func saveConfig(c Config, e *control.Engine) (ok bool) {
 	ok = kitten.Check(err)
 	if !ok {
 		log.Errorf("配置文件写入错误喵！\n%v", err)
-		reciver := kitten.Configs.SuperUsers[0]
-		if kitten.Check(kitten.Bot) {
-			kitten.Bot.SendPrivateMessage(reciver, `追更配置文件写入错误，请检查日志喵！`)
-		}
 	}
 	return
 }

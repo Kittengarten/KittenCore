@@ -13,8 +13,8 @@ import (
 // FilePath 文件路径构建
 func FilePath(elem ...Path) Path {
 	s := make([]string, len(elem))
-	for k, v := range elem {
-		s[k] = v.String()
+	for k := range elem {
+		s[k] = elem[k].String()
 	}
 	return Path(filepath.Join([]string(s)...))
 }
@@ -39,7 +39,9 @@ func (path Path) Write(data []byte) {
 		// 如果文件或文件夹不存在，或不确定是否存在
 		if Check(err) {
 			// 如果文件不存在，新建该文件所在的文件夹；如果文件夹不存在，新建该文件夹本身
-			os.MkdirAll(filepath.Dir(path.String()), os.ModeDir)
+			if !Check(os.MkdirAll(filepath.Dir(path.String()), os.ModeDir)) {
+				log.Warnf("新建 %s 失败喵！\n%v", path, err)
+			}
 		} else {
 			// 文件或文件夹不确定是否存在
 			log.Warnf("写入时不确定 %s 存在喵！\n%v", path, err)
@@ -49,7 +51,6 @@ func (path Path) Write(data []byte) {
 	if !Check(err) {
 		log.Errorf("写入文件 %s 失败了喵！\n%v", path, err)
 	}
-	return
 }
 
 /*
@@ -125,7 +126,6 @@ func InitFile(name Path, text string) {
 	if !e {
 		name.Write([]byte(text))
 	}
-	return
 }
 
 // LoadMainConfig 加载主配置

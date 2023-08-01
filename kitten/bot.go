@@ -98,16 +98,12 @@ func (u QQ) getInfo(ctx *zero.Ctx) gjson.Result {
 
 // IsAdult 是成年人
 func (u QQ) IsAdult(ctx *zero.Ctx) bool {
-	if age := gjson.Get(u.getInfo(ctx).Raw, `age`).Int(); 18 <= age {
-		return true
-	}
-	return false
+	age := gjson.Get(u.getInfo(ctx).Raw, `age`).Int()
+	return 18 <= age
 }
 
 // IsFemale 是女性
 func (u QQ) IsFemale(ctx *zero.Ctx) bool {
-	if sex := gjson.Get(u.getInfo(ctx).Raw, `sex`).String(); `female` == sex {
-		return true
-	}
-	return false
+	sex := gjson.Get(u.getInfo(ctx).Raw, `sex`).String()
+	return `female` == sex
 }
