@@ -18,8 +18,8 @@ require (
 	github.com/shirou/gopsutil/v3 v3.23.7
 	github.com/tidwall/gjson v1.15.0
 	github.com/wdvxdr1123/ZeroBot v1.7.4
-	golang.org/x/image v0.10.0
 	go.uber.org/zap v1.25.0
+	golang.org/x/image v0.10.0
 	gopkg.in/yaml.v3 v3.0.1
 )
 
@@ -101,7 +101,7 @@ require (
 	github.com/rogpeppe/go-internal v1.11.0 // indirect
 	github.com/sahilm/fuzzy v0.1.0
 	github.com/shoenig/go-m1cpu v0.1.6 // indirect
-	github.com/sirupsen/logrus v1.9.3
+	github.com/sirupsen/logrus v1.9.3 // indirect
 	github.com/swaggo/files v1.0.1 // indirect
 	github.com/swaggo/gin-swagger v1.6.0 // indirect
 	github.com/swaggo/swag v1.16.1 // indirect
@@ -115,7 +115,6 @@ require (
 	github.com/yusufpapurcu/wmi v1.2.3 // indirect
 	gitlab.com/gomidi/midi/v2 v2.0.30 // indirect
 	go.uber.org/multierr v1.11.0 // indirect
-	
 	golang.org/x/arch v0.4.0 // indirect
 	golang.org/x/crypto v0.11.0 // indirect
 	golang.org/x/exp v0.0.0-20230801115018-d63ba01acd4b // indirect
@@ -136,5 +135,7 @@ require (
 )
 
 replace modernc.org/sqlite => github.com/fumiama/sqlite3 v1.20.0-with-win386
+
 replace github.com/remyoudompheng/bigfft => github.com/fumiama/bigfft v0.0.0-20211011143303-6e0bfa3c836b
-//replace github.com/sirupsen/logrus => github.com/Kittengarten/KittenCore/zap 
+
+replace github.com/sirupsen/logrus => github.com/Kittengarten/logrus v0.0.0-20230803091414-a09d6fbc1502

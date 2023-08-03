@@ -2,9 +2,9 @@
 package main
 
 import (
-
 	// WebUI，不需要使用可以注释
 	webctrl "github.com/FloatTech/zbputils/control/web"
+	"go.uber.org/zap"
 
 	// 以下为外部插件
 	_ "github.com/FloatTech/ZeroBot-Plugin/plugin/manager"
@@ -79,7 +79,6 @@ import (
 
 	// KittenCore 的核心库
 	"github.com/Kittengarten/KittenCore/kitten"
-	"github.com/Kittengarten/KittenCore/zap"
 
 	// 官方库
 	"runtime/debug"
@@ -94,7 +93,7 @@ func main() {
 	// 处理 panic，防止程序崩溃
 	defer func() {
 		if err := recover(); !kitten.Check(err) {
-			zap.Errorf("主函数有 Bug 喵！\n%v", err)
+			zap.S().Errorf("主函数有 Bug 喵！\n%v", err)
 			debug.PrintStack()
 		}
 	}()

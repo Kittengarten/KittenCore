@@ -17,13 +17,13 @@ import (
 	zero "github.com/wdvxdr1123/ZeroBot"
 	"github.com/wdvxdr1123/ZeroBot/extension/rate"
 	"github.com/wdvxdr1123/ZeroBot/message"
+	"go.uber.org/zap"
 
 	"github.com/shirou/gopsutil/v3/cpu"
 	"github.com/shirou/gopsutil/v3/disk"
 	"github.com/shirou/gopsutil/v3/mem"
 
 	"github.com/Kittengarten/KittenCore/kitten"
-	"github.com/Kittengarten/KittenCore/zap"
 )
 
 const (
@@ -94,7 +94,7 @@ func init() {
 			)
 			// 查看性能页
 			if !kitten.Check(err) {
-				zap.Errorf("报时失败喵！\n%v", err)
+				zap.S().Errorf("报时失败喵！\n%v", err)
 				reportAnno = `喵？`
 			} else {
 				reportAnno = strings.Join([]string{fmt.Sprintf(`%s报时：现在是%s`, zero.BotConfig.NickName[0], annoStr),
@@ -174,7 +174,7 @@ func init() {
 			return
 		}
 		kitten.SendTextOf(ctx, true, "Ping 出现错误：\n%v", err)
-		zap.Warnf("Ping 出现错误：\n%v", err)
+		zap.S().Warnf("Ping 出现错误：\n%v", err)
 	})
 
 	// 戳一戳
@@ -214,7 +214,7 @@ func getCPUPercent() float64 {
 	var avg float64
 	percent, err := cpu.Percent(time.Second, false)
 	if !kitten.Check(err) {
-		zap.Warnf("获取 CPU 使用率失败了喵！\n%v", err)
+		zap.S().Warnf("获取 CPU 使用率失败了喵！\n%v", err)
 	}
 	for k := range percent {
 		avg += percent[k]
@@ -226,7 +226,7 @@ func getCPUPercent() float64 {
 func getMem() (memInfo *mem.VirtualMemoryStat) {
 	memInfo, err := mem.VirtualMemory()
 	if !kitten.Check(err) {
-		zap.Warnf("获取内存使用失败了喵！\n%v", err)
+		zap.S().Warnf("获取内存使用失败了喵！\n%v", err)
 	}
 	return
 }
@@ -251,7 +251,7 @@ func getDisk() (diskInfo *disk.UsageStat) {
 	parts, err1 := disk.Partitions(false)
 	diskInfo, err2 := disk.Usage(parts[0].Mountpoint)
 	if !(kitten.Check(err1) && kitten.Check(err2)) {
-		zap.Warnf("获取磁盘使用失败了喵！\n%v\n%v", err1, err2)
+		zap.S().Warnf("获取磁盘使用失败了喵！\n%v\n%v", err1, err2)
 	}
 	return
 }
@@ -278,7 +278,7 @@ func getCPUTemperatureOnWindows(e *control.Engine) (CPUTemperature string) {
 	time.Sleep(1 * time.Second)
 	file, err := os.ReadFile(filePath.LoadPath().String())
 	if !kitten.Check(err) {
-		zap.Warnf("获取 CPU 温度日志失败了喵！\n%v", err)
+		zap.S().Warnf("获取 CPU 温度日志失败了喵！\n%v", err)
 	}
 	CPUTemperature = string(file[329:331]) // 此处为温度在微星小飞机 log 中的位置
 	return
@@ -289,7 +289,7 @@ func getPerf(cpu float64, mem float64, ts string) int {
 	ti, err := strconv.Atoi(ts)
 	if 0 < ti && 100 > ti && kitten.Check(err) {
 		perf := 0.00005 * (cpu + mem) * float64(ti)
-		zap.Debugf(`%s的负荷评分是 %f……`, zero.BotConfig.NickName[0], perf)
+		zap.S().Debugf(`%s的负荷评分是 %f……`, zero.BotConfig.NickName[0], perf)
 		switch {
 		case 0.1 > perf:
 			return 0
@@ -303,6 +303,6 @@ func getPerf(cpu float64, mem float64, ts string) int {
 			return 4
 		}
 	}
-	zap.Warn(err)
+	zap.S().Warn(err)
 	return 5
 }

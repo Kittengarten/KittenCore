@@ -9,6 +9,7 @@ import (
 	"time"
 
 	mapset "github.com/deckarep/golang-set"
+	"go.uber.org/zap"
 	"gopkg.in/yaml.v3"
 
 	ctrl "github.com/FloatTech/zbpctrl"
@@ -18,7 +19,6 @@ import (
 	"github.com/wdvxdr1123/ZeroBot/message"
 
 	"github.com/Kittengarten/KittenCore/kitten"
-	"github.com/Kittengarten/KittenCore/zap"
 )
 
 const (
@@ -249,7 +249,7 @@ func track(e *control.Engine) {
 	// 处理 panic，防止程序崩溃
 	defer func() {
 		if err := recover(); !kitten.Check(err) {
-			zap.Errorf("%s 报更协程出现错误喵！\n%v", ReplyServiceName, err)
+			zap.S().Errorf("%s 报更协程出现错误喵！\n%v", ReplyServiceName, err)
 			debug.PrintStack()
 		}
 	}()
@@ -270,9 +270,9 @@ func track(e *control.Engine) {
 	)
 	fmt.Println(content)
 	for nil == bot {
-		zap.Debugf(`尝试获取 Bot 实例：%d`, kitten.Configs.SelfID)
+		zap.S().Debugf(`尝试获取 Bot 实例：%d`, kitten.Configs.SelfID)
 		bot = zero.GetBot(kitten.Configs.SelfID)
-		zap.Debugf("获取的 Bot 实例：\n%v", bot)
+		zap.S().Debugf("获取的 Bot 实例：\n%v", bot)
 		<-t.C // 阻塞协程，收到定时器信号则释放
 	}
 	// 报更
@@ -319,9 +319,9 @@ func track(e *control.Engine) {
 			configPool.Put(&data)
 			kitten.FilePath(kitten.Path(e.DataFolder()), configFile).Write(updateConfig)
 			if kitten.Check(err) {
-				zap.Infof(`记录 %s 成功喵！`, e.DataFolder()+configFile)
+				zap.S().Infof(`记录 %s 成功喵！`, e.DataFolder()+configFile)
 			} else {
-				zap.Warnf(`记录 %s 失败喵！`, e.DataFolder()+configFile)
+				zap.S().Warnf(`记录 %s 失败喵！`, e.DataFolder()+configFile)
 			}
 		}
 		<-t.C // 阻塞协程，收到定时器信号则释放
