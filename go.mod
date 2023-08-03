@@ -137,4 +137,4 @@ require (
 
 replace modernc.org/sqlite => github.com/fumiama/sqlite3 v1.20.0-with-win386
 replace github.com/remyoudompheng/bigfft => github.com/fumiama/bigfft v0.0.0-20211011143303-6e0bfa3c836b
-replace github.com/sirupsen/logrus => github.com/Kittengarten/KittenCore/zap v0.0.0
+//replace github.com/sirupsen/logrus => github.com/Kittengarten/KittenCore/zap 
