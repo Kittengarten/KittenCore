@@ -18,8 +18,7 @@ import (
 	"github.com/wdvxdr1123/ZeroBot/message"
 
 	"github.com/Kittengarten/KittenCore/kitten"
-
-	log "github.com/sirupsen/logrus"
+	"github.com/Kittengarten/KittenCore/zap"
 )
 
 const (
@@ -250,7 +249,7 @@ func track(e *control.Engine) {
 	// 处理 panic，防止程序崩溃
 	defer func() {
 		if err := recover(); !kitten.Check(err) {
-			log.Errorf("%s 报更协程出现错误喵！\n%v", ReplyServiceName, err)
+			zap.Errorf("%s 报更协程出现错误喵！\n%v", ReplyServiceName, err)
 			debug.PrintStack()
 		}
 	}()
@@ -271,9 +270,9 @@ func track(e *control.Engine) {
 	)
 	fmt.Println(content)
 	for nil == bot {
-		log.Tracef(`尝试获取 Bot 实例：%d`, kitten.Configs.SelfID)
+		zap.Debugf(`尝试获取 Bot 实例：%d`, kitten.Configs.SelfID)
 		bot = zero.GetBot(kitten.Configs.SelfID)
-		log.Tracef("获取的 Bot 实例：\n%v", bot)
+		zap.Debugf("获取的 Bot 实例：\n%v", bot)
 		<-t.C // 阻塞协程，收到定时器信号则释放
 	}
 	// 报更
@@ -320,9 +319,9 @@ func track(e *control.Engine) {
 			configPool.Put(&data)
 			kitten.FilePath(kitten.Path(e.DataFolder()), configFile).Write(updateConfig)
 			if kitten.Check(err) {
-				log.Infof(`记录 %s 成功喵！`, e.DataFolder()+configFile)
+				zap.Infof(`记录 %s 成功喵！`, e.DataFolder()+configFile)
 			} else {
-				log.Warnf(`记录 %s 失败喵！`, e.DataFolder()+configFile)
+				zap.Warnf(`记录 %s 失败喵！`, e.DataFolder()+configFile)
 			}
 		}
 		<-t.C // 阻塞协程，收到定时器信号则释放

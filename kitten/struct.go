@@ -32,10 +32,11 @@ type (
 
 	// LogConfig 是一个日志的配置
 	LogConfig struct {
-		Level  string // 日志等级
-		Path   string // 日志路径
-		Days   int    // 单段分割文件记录的天数
-		Expire int    // 日志文件的过期天数，大于该天数前的日志文件会被清理。设置为 -1 可以禁用。
+		Level      string // 日志等级
+		Path       string // 日志路径
+		MaxSize    int    // 文件大小限制，单位 MB
+		MaxBackups int    // 最大保留日志文件数量
+		MaxAge     int    // 日志文件的过期天数，大于该天数前的日志文件会被清理。设置为 -1 可以禁用。
 	}
 
 	// Path 是一个表示文件路径的字符串

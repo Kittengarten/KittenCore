@@ -10,10 +10,9 @@ import (
 	"time"
 
 	"github.com/Kittengarten/KittenCore/kitten"
+	"github.com/Kittengarten/KittenCore/zap"
 
 	"github.com/PuerkitoBio/goquery"
-
-	log "github.com/sirupsen/logrus"
 )
 
 var (
@@ -64,7 +63,7 @@ func (nv *Novel) init(bookID string) {
 		if doc, err = goquery.NewDocumentFromReader(req.Body); strings.EqualFold(doc.Find(`title`).Text(), `出错了`) ||
 			strings.EqualFold(doc.Find(`title`).Text(), `糟糕,页面找不到了`) ||
 			43 > len(doc.Find(`title`).Text()) || !kitten.Check(err) {
-			log.Errorf(`书号 %s 没有喵！`, bookID)
+			zap.Errorf(`书号 %s 没有喵！`, bookID)
 			return
 		}
 		// 网页没炸，小说获取成功
@@ -76,7 +75,7 @@ func (nv *Novel) init(bookID string) {
 		// 获取头像链接，失败时使用报错图片
 		if nv.HeadURL, he = doc.Find(`div.author-mask`).Find(`img`).Attr(`src`); !he {
 			nv.HeadURL = imagePath.LoadPath().String() + `no.png`
-			log.Error(`头像链接获取失败喵！`)
+			zap.Error(`头像链接获取失败喵！`)
 		}
 		// 获取小说详细信息
 		textRow = doc.Find(`div.text-row`).Find(`span`)
@@ -84,23 +83,23 @@ func (nv *Novel) init(bookID string) {
 		if 9 < len(textRow.Eq(0).Text()) {
 			nv.Type = textRow.Eq(0).Text()[9:]
 		} else {
-			log.Error(`获取类型错误喵！`)
+			zap.Error(`获取类型错误喵！`)
 		}
 		// 获取点击
 		if 9 < len(textRow.Eq(2).Text()) {
 			nv.HitNum = textRow.Eq(2).Text()[9:]
 		} else {
-			log.Error(`获取点击错误喵！`)
+			zap.Error(`获取点击错误喵！`)
 		}
 		// 获取更新时间
 		loc, err := time.LoadLocation(`Local`)
 		if !kitten.Check(err) {
-			log.Errorf("时区获取出错喵！\n%v", err)
+			zap.Errorf("时区获取出错喵！\n%v", err)
 		}
 		if 9 < len(textRow.Eq(3).Text()) {
 			nv.NewChapter.Time, err = time.ParseInLocation(`2006/1/2 15:04:05`, textRow.Eq(3).Text()[9:], loc)
 			if !kitten.Check(err) {
-				log.Errorf("时间转换出错喵！\n%v", err)
+				zap.Errorf("时间转换出错喵！\n%v", err)
 			}
 		}
 		// 获取小说字数信息
@@ -123,7 +122,7 @@ func (nv *Novel) init(bookID string) {
 		// 获取封面，失败时使用报错图片
 		if nv.CoverURL, ce = doc.Find(`div.figure`).Find(`img`).Eq(0).Attr(`src`); !ce {
 			nv.CoverURL = imagePath.LoadPath().String() + `no.png`
-			log.Error("封面链接获取失败喵！")
+			zap.Error("封面链接获取失败喵！")
 		}
 		// 获取收藏
 		if 7 < len(doc.Find(`#BasicOperation`).Find(`a`).Eq(2).Text()) {
@@ -146,11 +145,11 @@ func (nv *Novel) init(bookID string) {
 		} else {
 			// 防止更新章节炸了跳转到网站首页引起程序报错
 			nv.NewChapter.IsGet = false
-			log.Warnf("%s 获取更新链接失败了喵！\n", nv.URL)
+			zap.Warnf("%s 获取更新链接失败了喵！\n", nv.URL)
 		}
 		return
 	}
-	log.Warnf(`书号 %s 获取网页失败了喵！`, bookID)
+	zap.Warnf(`书号 %s 获取网页失败了喵！`, bookID)
 }
 
 // 新章节信息获取
@@ -169,7 +168,7 @@ func (cp *Chapter) init(URL string) {
 				strings.EqualFold(doc.Find(`title`).Text(), `糟糕,页面找不到了`) ||
 				!kitten.Check(err) {
 				// 防止网页炸了导致问题
-				log.Infof("章节 %s 没有喵！\n%v", cp.URL, err)
+				zap.Infof("章节 %s 没有喵！\n%v", cp.URL, err)
 			} else {
 				cp.IsGet = true
 				desc := doc.Find(`div.article-desc`).Find(`span`)
@@ -178,18 +177,18 @@ func (cp *Chapter) init(URL string) {
 					cp.WordNum, err = strconv.Atoi(desc.Eq(2).Text()[9:])
 				}
 				if !kitten.Check(err) {
-					log.Warnf("转换新章节字数失败了喵！\n%v", err)
+					zap.Warnf("转换新章节字数失败了喵！\n%v", err)
 				}
 				// 获取更新时间
 				if 15 < len(desc.Eq(1).Text()) {
 					loc, err := time.LoadLocation(`Local`)
 					if !kitten.Check(err) {
-						log.Errorf("时区获取出错喵！\n%v", err)
+						zap.Errorf("时区获取出错喵！\n%v", err)
 					}
 					var errT error
 					cp.Time, errT = time.ParseInLocation(`2006/1/2 15:04:05`, desc.Eq(1).Text()[15:], loc)
 					if !kitten.Check(errT) {
-						log.Errorf("时间转换出错喵！\n%v", errT)
+						zap.Errorf("时间转换出错喵！\n%v", errT)
 					}
 				}
 				// 获取新章节标题
@@ -198,21 +197,21 @@ func (cp *Chapter) init(URL string) {
 				var ok bool
 				cp.LastURL, ok = doc.Find(`div.fn-btn`).Eq(-1).Find(`a`).Eq(0).Attr(`href`)
 				if !ok {
-					log.Warnf("%s上一章链接获取失败喵！", URL)
+					zap.Warnf("%s上一章链接获取失败喵！", URL)
 				}
 				cp.LastURL = `https://book.sfacg.com` + cp.LastURL
 				// 获取下一章链接
 				cp.NextURL, ok = doc.Find(`div.fn-btn`).Eq(-1).Find(`a`).Eq(1).Attr(`href`)
 				if !ok {
-					log.Warnf("%s上一章链接获取失败喵！", URL)
+					zap.Warnf("%s上一章链接获取失败喵！", URL)
 				}
 				cp.NextURL = `https://book.sfacg.com` + cp.NextURL
 			}
 		} else {
-			log.Warnf(`%s 更新异常喵！`, URL)
+			zap.Warnf(`%s 更新异常喵！`, URL)
 		}
 	} else {
-		log.Warnf(`%s 获取更新网页失败了喵！`, URL)
+		zap.Warnf(`%s 获取更新网页失败了喵！`, URL)
 	}
 }
 
@@ -268,7 +267,7 @@ func (key keyWord) findBookID() (string, error) {
 		req, err  = http.Get(searchURL)
 	)
 	if !kitten.Check(err) {
-		log.Warnf("获取书号失败了喵！\n错误：%v", err)
+		zap.Warnf("获取书号失败了喵！\n错误：%v", err)
 		return string(key), err
 	}
 	defer req.Body.Close()
@@ -281,11 +280,11 @@ func (key keyWord) findBookID() (string, error) {
 			return href[29:], nil
 		}
 		e := fmt.Sprintf(`关键词【%s】找不到小说喵！`, key)
-		log.Info(e)
+		zap.Info(e)
 		return string(key), errors.New(e)
 	}
 	e := fmt.Sprintf("网页转换出错喵！\n%v", errR)
-	log.Error(e)
+	zap.Error(e)
 	return string(key), errors.New(e)
 }
 

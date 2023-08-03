@@ -17,8 +17,7 @@ import (
 	"github.com/wdvxdr1123/ZeroBot/message"
 
 	"github.com/Kittengarten/KittenCore/kitten"
-
-	log "github.com/sirupsen/logrus"
+	"github.com/Kittengarten/KittenCore/zap"
 )
 
 const (
@@ -58,14 +57,14 @@ func init() {
 		if isExist, err = tf.Exists(); !kitten.Check(err) {
 			// 如果不确定文件存在
 			kitten.DoNotKnow(ctx)
-			log.Warnf("不确定 %s 存在喵！\n%v", tf, err)
+			zap.Warnf("不确定 %s 存在喵！\n%v", tf, err)
 			return
 		}
 		if !isExist {
 			// 如果文件不存在，创建文件
 			if fp, err := os.Create(tf.String()); kitten.Check(err) {
 				if n, err := fp.WriteString(`[]`); !kitten.Check(err) {
-					log.Errorf("写入 %d 字符时失败了喵！\n%v", n, err)
+					zap.Errorf("写入 %d 字符时失败了喵！\n%v", n, err)
 				}
 				defer fp.Close()
 				return
@@ -78,7 +77,7 @@ func init() {
 			todayData Today
 		)
 		if err := yaml.Unmarshal(today, &todayData); !kitten.Check(err) {
-			log.Errorf("转换 %v 失败了喵！\n%v", today, err)
+			zap.Errorf("转换 %v 失败了喵！\n%v", today, err)
 		}
 		if kitten.IsSameDate(time.Now(), todayData.Time) {
 			report(todayData, name, ctx)
@@ -103,7 +102,7 @@ func init() {
 		todayData.Supper = kitten.QQ(list[nums[4]].Get(`user_id`).Int())
 		today, err = yaml.Marshal(todayData)
 		if !kitten.Check(err) {
-			log.Errorf("待写入饮食统计数据有错误：\n%v", err)
+			zap.Errorf("待写入饮食统计数据有错误：\n%v", err)
 			return
 		}
 		tf.Write(today)
@@ -117,7 +116,7 @@ func init() {
 		)
 		if !kitten.Check(yaml.Unmarshal(stat, &statData)) {
 			kitten.DoNotKnow(ctx)
-			log.Error(`饮食统计数据损坏了喵！`)
+			zap.Error(`饮食统计数据损坏了喵！`)
 			return
 		}
 		// 加载数据
@@ -213,7 +212,7 @@ func init() {
 		stat, err = yaml.Marshal(statData)
 		sf.Write(stat)
 		if !kitten.Check(err) {
-			log.Errorf("写入饮食统计数据发生错误：\n%v", err)
+			zap.Errorf("写入饮食统计数据发生错误：\n%v", err)
 		}
 	})
 
@@ -227,14 +226,14 @@ func init() {
 		if isExist, err = sf.Exists(); !kitten.Check(err) {
 			// 如果不确定文件存在
 			kitten.DoNotKnow(ctx)
-			log.Warnf("不确定 %s 存在喵！\n%v", sf, err)
+			zap.Warnf("不确定 %s 存在喵！\n%v", sf, err)
 			return
 		}
 		if !isExist {
 			// 如果文件不存在，创建文件
 			if fp, err := os.Create(sf.String()); kitten.Check(err) {
 				if n, err := fp.WriteString(`[]`); !kitten.Check(err) {
-					log.Errorf("写入 %d 字符时失败了喵！\n%v", n, err)
+					zap.Errorf("写入 %d 字符时失败了喵！\n%v", n, err)
 				}
 				defer fp.Close()
 				return
@@ -249,7 +248,7 @@ func init() {
 		)
 		if !kitten.Check(yaml.Unmarshal(stat, &statData)) {
 			kitten.DoNotKnow(ctx)
-			log.Error(`饮食统计数据损坏了喵！`)
+			zap.Error(`饮食统计数据损坏了喵！`)
 			return
 		}
 		for i := range statData {
@@ -279,7 +278,7 @@ func getName() string {
 	if kitten.Check(err) {
 		return string(data)
 	}
-	log.Warnf("打开文件 %s 失败了喵！\n%v", namePath, err)
+	zap.Warnf("打开文件 %s 失败了喵！\n%v", namePath, err)
 	return `翼翼`
 }
 

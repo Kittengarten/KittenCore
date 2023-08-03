@@ -2,17 +2,9 @@
 package main
 
 import (
-	// 官方库
-	"runtime/debug"
-	// KittenCore 的核心库
-	"github.com/Kittengarten/KittenCore/kitten"
-	// 以下为内部插件
-	// _ "github.com/Kittengarten/KittenCore/draw"
-	_ "github.com/Kittengarten/KittenCore/eekda" // XX 今天吃什么
-	// _ "github.com/Kittengarten/KittenCore/essence"
-	_ "github.com/Kittengarten/KittenCore/perf"  // 查看 XX
-	_ "github.com/Kittengarten/KittenCore/sfacg" // SF 轻小说报更
-	_ "github.com/Kittengarten/KittenCore/stack" // 叠猫猫
+
+	// WebUI，不需要使用可以注释
+	webctrl "github.com/FloatTech/zbputils/control/web"
 
 	// 以下为外部插件
 	_ "github.com/FloatTech/ZeroBot-Plugin/plugin/manager"
@@ -72,42 +64,49 @@ import (
 
 	_ "github.com/FloatTech/ZeroBot-Plugin/plugin/thesaurus"
 
+	// 以下为内部插件
+	// _ "github.com/Kittengarten/KittenCore/draw"
+	_ "github.com/Kittengarten/KittenCore/eekda" // XX 今天吃什么
+	// _ "github.com/Kittengarten/KittenCore/essence"
+	_ "github.com/Kittengarten/KittenCore/perf"  // 查看 XX
+	_ "github.com/Kittengarten/KittenCore/sfacg" // SF 轻小说报更
+	_ "github.com/Kittengarten/KittenCore/stack" // 叠猫猫
+
 	// 以下为核心依赖
 	"github.com/FloatTech/floatbox/process"
-	log "github.com/sirupsen/logrus"
 	zero "github.com/wdvxdr1123/ZeroBot"
 	"github.com/wdvxdr1123/ZeroBot/driver"
 
-	// WebUI，不需要使用可以注释
-	webctrl "github.com/FloatTech/zbputils/control/web"
+	// KittenCore 的核心库
+	"github.com/Kittengarten/KittenCore/kitten"
+	"github.com/Kittengarten/KittenCore/zap"
+
+	// 官方库
+	"runtime/debug"
 )
 
-var config = kitten.LoadMainConfig()
-
 func init() {
-	// 启用日志格式
-	kitten.LogConfigInit(config)
 	// 启用 WebUI
-	go webctrl.RunGui(config.WebUI.URL)
+	go webctrl.RunGui(kitten.Configs.WebUI.URL)
 }
 
 func main() {
 	// 处理 panic，防止程序崩溃
 	defer func() {
 		if err := recover(); !kitten.Check(err) {
-			log.Errorf("主函数有 Bug 喵！\n%v", err)
+			zap.Errorf("主函数有 Bug 喵！\n%v", err)
 			debug.PrintStack()
 		}
 	}()
 	zero.RunAndBlock(&zero.Config{
-		NickName:      config.NickName,
-		CommandPrefix: config.CommandPrefix,
-		SuperUsers:    config.SuperUsers,
+		NickName:      kitten.Configs.NickName,
+		CommandPrefix: kitten.Configs.CommandPrefix,
+		SuperUsers:    kitten.Configs.SuperUsers,
 		Driver: []zero.Driver{
 			&driver.WSClient{
 				// OneBot 正向 WS 默认使用 6700 端口
-				Url:         config.WebSocket.URL,
-				AccessToken: config.WebSocket.AccessToken,
+				Url:         kitten.Configs.WebSocket.URL,
+				AccessToken: kitten.Configs.WebSocket.AccessToken,
 			},
 		},
 	}, process.GlobalInitMutex.Unlock)

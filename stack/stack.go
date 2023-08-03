@@ -20,8 +20,7 @@ import (
 	"github.com/wdvxdr1123/ZeroBot/message"
 
 	"github.com/Kittengarten/KittenCore/kitten"
-
-	log "github.com/sirupsen/logrus"
+	"github.com/Kittengarten/KittenCore/zap"
 )
 
 const (
@@ -99,7 +98,7 @@ func init() {
 // 加载叠猫猫数据
 func loadData(path kitten.Path) (stackData Data) {
 	if err := yaml.Unmarshal(path.Read(), &stackData); !kitten.Check(err) {
-		log.Errorf("加载叠猫猫数据失败喵！\n%v", err)
+		zap.Errorf("加载叠猫猫数据失败喵！\n%v", err)
 	}
 	return
 }
@@ -115,14 +114,14 @@ func (data Data) in(esc Data, stackConfig Config, ctx *zero.Ctx, e *control.Engi
 		if ID == esc[i].ID {
 			report = fmt.Sprintf(`休息不足 %d 小时，不能加入喵！`, stackConfig.GapTime)
 			permit = false
-			log.Info(strconv.FormatInt(ID, 10) + report)
+			zap.Info(strconv.FormatInt(ID, 10) + report)
 		}
 	}
 	for i := range data {
 		if ID == data[i].ID {
 			report = `已经加入叠猫猫了喵！`
 			permit = false
-			log.Info(strconv.FormatInt(ID, 10) + ` ` + report)
+			zap.Info(strconv.FormatInt(ID, 10) + ` ` + report)
 		}
 	}
 	if permit {
@@ -156,7 +155,7 @@ func (data Data) in(esc Data, stackConfig Config, ctx *zero.Ctx, e *control.Engi
 			} else {
 				report += fmt.Sprintf("\n\n压猫猫失败了喵！你在 %d 小时内无法加入叠猫猫。", stackConfig.GapTime)
 			}
-			log.Info(strconv.FormatInt(ID, 10) + report)
+			zap.Info(strconv.FormatInt(ID, 10) + report)
 			logExit(ID, ctx, e) // 将压猫猫的猫猫记录至退出日志
 		} else if checkStack(len(data) + 1) {
 			// 如果叠猫猫成功
@@ -168,7 +167,7 @@ func (data Data) in(esc Data, stackConfig Config, ctx *zero.Ctx, e *control.Engi
 			data = append(data, meow)
 			save(data, kitten.FilePath(kitten.Path(e.DataFolder()), dataFile))
 			report = fmt.Sprintf(`叠猫猫成功，目前处于队列中第 %d 位喵～`, len(data))
-			log.Info(strconv.FormatInt(ID, 10) + report)
+			zap.Info(strconv.FormatInt(ID, 10) + report)
 		} else {
 			// 如果叠猫猫失败
 			// 如果不是平地摔
@@ -191,7 +190,7 @@ func (data Data) in(esc Data, stackConfig Config, ctx *zero.Ctx, e *control.Engi
 				report = fmt.Sprintf("叠猫猫失败，你平地摔了喵！需要休息 %d 小时。", stackConfig.GapTime)
 			}
 			permit = false
-			log.Info(strconv.FormatInt(ID, 10) + report)
+			zap.Info(strconv.FormatInt(ID, 10) + report)
 			logExit(ID, ctx, e) // 将叠猫猫失败的猫猫记录至退出日志
 		}
 	}
@@ -214,18 +213,18 @@ func (data Data) exit(ctx *zero.Ctx, e *control.Engine) {
 	if ld == len(data) {
 		report = `没有加入叠猫猫，不能退出喵！`
 		permit = false
-		log.Warn(strconv.FormatInt(ID, 10) + report)
+		zap.Warn(strconv.FormatInt(ID, 10) + report)
 	} else {
 		stackData, err := yaml.Marshal(data)
 		kitten.FilePath(kitten.Path(e.DataFolder()), dataFile).Write(stackData)
 		if kitten.Check(err) {
 			report = `退出叠猫猫成功喵！`
-			log.Info(strconv.FormatInt(ID, 10) + report)
+			zap.Info(strconv.FormatInt(ID, 10) + report)
 			logExit(ID, ctx, e)
 		} else {
 			report = `退出叠猫猫失败喵！`
 			permit = false
-			log.Warn(strconv.FormatInt(ID, 10) + report)
+			zap.Warn(strconv.FormatInt(ID, 10) + report)
 		}
 	}
 	send(ID, permit, report, ctx)
@@ -258,7 +257,7 @@ func save(data Data, path kitten.Path) (ok bool) {
 	path.Write(d)
 	ok = kitten.Check(err)
 	if !ok {
-		log.Errorf("文件写入错误喵！\n%v", err)
+		zap.Errorf("文件写入错误喵！\n%v", err)
 	}
 	return
 }
@@ -268,7 +267,7 @@ func autoExit(f kitten.Path, c Config, e *control.Engine) {
 	// 处理 panic，防止程序崩溃
 	defer func() {
 		if err := recover(); !kitten.Check(err) {
-			log.Error(err)
+			zap.Error(err)
 			debug.PrintStack()
 		}
 	}()
@@ -304,7 +303,7 @@ func autoExit(f kitten.Path, c Config, e *control.Engine) {
 			save(data, kitten.FilePath(kitten.Path(e.DataFolder()), f))
 		}
 		mu.Unlock()
-		log.Infof(`下次定时退出 %s 时间为：%s`, kitten.FilePath(kitten.Path(e.DataFolder()), f), nextTime.Format(`2006-01-02 15:04:05`))
+		zap.Infof(`下次定时退出 %s 时间为：%s`, kitten.FilePath(kitten.Path(e.DataFolder()), f), nextTime.Format(`2006.1.2 15:04:05`))
 		time.Sleep(time.Until(nextTime))
 	}
 }
@@ -349,7 +348,7 @@ func send(u int64, p bool, r string, ctx *zero.Ctx) {
 // 加载叠猫猫配置
 func loadConfig(configFile kitten.Path) (c Config) {
 	if err := yaml.Unmarshal(configFile.Read(), &c); !kitten.Check(err) {
-		log.Errorf("加载叠猫猫配置失败喵！\n%v", err)
+		zap.Errorf("加载叠猫猫配置失败喵！\n%v", err)
 	}
 	return
 }
