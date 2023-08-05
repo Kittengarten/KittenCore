@@ -38,7 +38,7 @@ func (path Path) Write(data []byte) {
 		// 如果文件或文件夹不存在，或不确定是否存在
 		if Check(err) {
 			// 如果文件不存在，新建该文件所在的文件夹；如果文件夹不存在，新建该文件夹本身
-			if !Check(os.MkdirAll(filepath.Dir(path.String()), os.ModeDir)) {
+			if !Check(os.MkdirAll(filepath.Dir(path.String()), 0755)) {
 				zap.S().Warnf("新建 %s 失败喵！\n%v", path, err)
 			}
 		} else {
