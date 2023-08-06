@@ -12,14 +12,16 @@ require (
 	github.com/Kittengarten/KittenAnno v0.0.10-0.20230803023052-8989f563413c
 	github.com/PuerkitoBio/goquery v1.8.1
 	github.com/deckarep/golang-set v1.8.0
-	github.com/mroth/weightedrand v1.0.0
+	github.com/mroth/weightedrand/v2 v2.0.2
 	github.com/nfnt/resize v0.0.0-20180221191011-83c6a9932646
 	github.com/prometheus-community/pro-bing v0.3.0
+	github.com/sahilm/fuzzy v0.1.0
 	github.com/shirou/gopsutil/v3 v3.23.7
 	github.com/tidwall/gjson v1.15.0
 	github.com/wdvxdr1123/ZeroBot v1.7.4
 	go.uber.org/zap v1.25.0
 	golang.org/x/image v0.10.0
+	gopkg.in/natefinch/lumberjack.v2 v2.2.1
 	gopkg.in/yaml.v3 v3.0.1
 )
 
@@ -99,7 +101,6 @@ require (
 	github.com/quic-go/quic-go v0.37.1 // indirect
 	github.com/remyoudompheng/bigfft v0.0.0-20230129092748-24d4a6f8daec // indirect
 	github.com/rogpeppe/go-internal v1.11.0 // indirect
-	github.com/sahilm/fuzzy v0.1.0
 	github.com/shoenig/go-m1cpu v0.1.6 // indirect
 	github.com/sirupsen/logrus v1.9.3 // indirect
 	github.com/swaggo/files v1.0.1 // indirect
@@ -127,7 +128,6 @@ require (
 	golang.org/x/text v0.11.0 // indirect
 	golang.org/x/tools v0.11.1 // indirect
 	google.golang.org/protobuf v1.31.0 // indirect
-	gopkg.in/natefinch/lumberjack.v2 v2.2.1
 	modernc.org/libc v1.24.1 // indirect
 	modernc.org/mathutil v1.6.0 // indirect
 	modernc.org/memory v1.6.0 // indirect
