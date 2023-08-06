@@ -47,8 +47,9 @@ type (
 
 	// Choices 是由随机项目的抽象接口组成的数组
 	Choices []interface {
+		GetID() int64           // 该项目的 ID
 		GetInformation() string // 该项目的信息
-		GetChance() int         // 该项目的权重
+		GetChance() int64       // 该项目的权重
 	}
 
 	// Pingstr 是延迟毫秒数对应的语言描述

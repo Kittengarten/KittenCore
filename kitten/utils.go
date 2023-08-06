@@ -1,11 +1,11 @@
 package kitten
 
 import (
-	"errors"
 	"fmt"
 	"strings"
 	"time"
 
+	wr "github.com/mroth/weightedrand/v2"
 	probing "github.com/prometheus-community/pro-bing"
 
 	"github.com/Kittengarten/KittenAnno/wta"
@@ -23,27 +23,20 @@ func Check(err any) bool {
 }
 
 // Choose 按权重抽取一个项目的序号
-func (c Choices) Choose() (result int, err error) {
-	var (
-		a int // 总权重
-		n int // 抽取的权重
-	)
-	// 计算总权重
+func (c Choices) Choose() (result int64, err error) {
+	cs := []wr.Choice[int64, int64]{}
 	for i := range c {
-		a += c[i].GetChance()
+		var (
+			item   = c[i].GetID()
+			weight = c[i].GetChance()
+		)
+		cs = append(cs, wr.Choice[int64, int64]{Item: item, Weight: weight})
 	}
-	// 抽取权重
-	if 0 < a {
-		n = Rand.Intn(a)
+	chooser, err := wr.NewChooser(cs...)
+	if !Check(err) {
+		return -1, err
 	}
-	// 计算抽取的权重所在的序号
-	for i := range c {
-		if n -= c[i].GetChance(); 0 > n {
-			return i, nil
-		}
-	}
-	// 如果没有项目，则返回 -1 并报错
-	return len(c) - 1, errors.New(`没有项目喵！`)
+	return chooser.PickSource(Rand), nil
 }
 
 // IsSameDate 判断两个时间是否在同一天
