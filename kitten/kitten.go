@@ -1,7 +1,12 @@
 // Package kitten 包含了 KittenCore 以及各插件的核心依赖结构体、方法和函数
 package kitten
 
-import zero "github.com/wdvxdr1123/ZeroBot"
+import (
+	"math/rand"
+	"time"
+
+	zero "github.com/wdvxdr1123/ZeroBot"
+)
 
 const path Path = `config.yaml` // 配置文件名
 
@@ -10,4 +15,6 @@ var (
 	Configs = LoadMainConfig()
 	// Bot 实例
 	Bot *zero.Ctx
+	// 伪随机数源
+	Rand = rand.New(rand.NewSource(time.Now().Unix()))
 )

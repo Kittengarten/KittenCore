@@ -3,7 +3,6 @@ package kitten
 import (
 	"errors"
 	"fmt"
-	"math/rand"
 	"strings"
 	"time"
 
@@ -35,7 +34,7 @@ func (c Choices) Choose() (result int, err error) {
 	}
 	// 抽取权重
 	if 0 < a {
-		n = rand.Intn(a)
+		n = Rand.Intn(a)
 	}
 	// 计算抽取的权重所在的序号
 	for i := range c {
@@ -137,11 +136,11 @@ func GenerateRandomNumber(start int, end int, count int) []int {
 		// 数组下标
 		i int
 	)
-	// 随机数生成器，加入时间戳保证每次生成的随机数不一样
-	r := rand.New(rand.NewSource(time.Now().UnixNano()))
+	// 重置随机数种子
+	Rand.Seed(time.Now().UnixNano())
 	for len(set) < count {
 		// 生成随机数
-		set[r.Intn(end-start)+start] = false
+		set[Rand.Intn(end-start)+start] = false
 	}
 	// 集合转换为数组
 	for k := range set {

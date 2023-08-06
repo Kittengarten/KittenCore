@@ -4,7 +4,6 @@ package stack
 import (
 	"fmt"
 	"math"
-	"math/rand"
 	"runtime/debug"
 	"strconv"
 	"strings"
@@ -172,7 +171,7 @@ func (data Data) in(esc Data, stackConfig Config, ctx *zero.Ctx, e *control.Engi
 			// 如果叠猫猫失败
 			// 如果不是平地摔
 			if len(data) != 0 {
-				exitCount := int(math.Ceil(float64(len(data)) * rand.Float64()))
+				exitCount := int(math.Ceil(float64(len(data)) * kitten.Rand.Float64()))
 				if 0 == exitCount {
 					exitCount = 1
 				}
@@ -324,7 +323,7 @@ func logExit(u int64, ctx *zero.Ctx, e *control.Engine) {
 
 // 根据高度 h 检查压猫猫或叠猫猫是否成功
 func checkStack(h int) bool {
-	return 0.01*float64(h*stackConfig.FailPercent) <= rand.Float64()
+	return 0.01*float64(h*stackConfig.FailPercent) <= kitten.Rand.Float64()
 }
 
 // 发送叠猫猫结果

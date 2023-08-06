@@ -3,7 +3,6 @@ package perf
 
 import (
 	"fmt"
-	"math/rand"
 	"os"
 	"runtime"
 	"strconv"
@@ -197,7 +196,7 @@ func init() {
 			kitten.SendTextOf(ctx, false, `请不要拍%s >_<`, nickname)
 		case poke.Load(g).Acquire():
 			// 5 分钟共 8 块命令牌 一次消耗 1 块命令牌
-			kitten.SendTextOf(ctx, false, "喂(#`O′) 拍%s干嘛！\n（好感 - %d）", nickname, rand.Intn(randMax)+1)
+			kitten.SendTextOf(ctx, false, "喂(#`O′) 拍%s干嘛！\n（好感 - %d）", nickname, kitten.Rand.Intn(randMax)+1)
 		default:
 			// 频繁触发，不回复
 		}
