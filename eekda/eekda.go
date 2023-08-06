@@ -15,7 +15,6 @@ import (
 	"github.com/FloatTech/zbputils/control"
 	"github.com/FloatTech/zbputils/ctxext"
 	zero "github.com/wdvxdr1123/ZeroBot"
-	"github.com/wdvxdr1123/ZeroBot/message"
 
 	"github.com/Kittengarten/KittenCore/kitten"
 )
@@ -253,7 +252,7 @@ func init() {
 		}
 		for i := range statData {
 			if kitten.QQ(ctx.Event.UserID) == statData[i].ID {
-				report := strings.Join([]string{fmt.Sprintf("\n%s的被吃次数", getLine(kitten.QQ(ctx.Event.UserID), ctx)),
+				report := strings.Join([]string{fmt.Sprintf(`%s的被吃次数`, getLine(kitten.QQ(ctx.Event.UserID), ctx)),
 					fmt.Sprintf(`早餐：%d 次`, statData[i].Breakfast),
 					fmt.Sprintf(`午餐：%d 次`, statData[i].Lunch),
 					fmt.Sprintf(`下午茶：%d 次`, statData[i].LowTea),
@@ -261,7 +260,6 @@ func init() {
 					fmt.Sprintf(`夜宵：%d 次`, statData[i].Supper),
 				}, "\n")
 				kitten.SendText(ctx, true, report)
-				ctx.SendChain(message.At(ctx.Event.UserID), message.Text(report))
 				isGet = true
 			}
 		}
