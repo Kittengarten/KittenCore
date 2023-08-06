@@ -38,12 +38,12 @@ var (
 
 func init() {
 	// 初始化叠猫猫配置文件
-	kitten.InitFile(configFile, `maxstack: 10 # 叠猫猫队列上限
-	maxtime: 2   # 叠猫猫时间上限（小时数）
-	gaptime: 1   # 叠猫猫主动退出或者被压坏后重新加入所需的时间（小时数）
-	outofstack: "不能再叠了，下面的猫猫会被压坏的喵！" # 叠猫猫队列已满的回复
-	maxcount: 5 # 被压次数上限
-	failpercent: 1 # 叠猫猫每层失败概率百分数`)
+	kitten.InitFile(configFile, `maxstack: 10    # 叠猫猫队列上限
+maxtime: 2      # 叠猫猫时间上限（小时数）
+gaptime: 1      # 叠猫猫主动退出或者被压坏后重新加入所需的时间（小时数）
+outofstack: "不能再叠了，下面的猫猫会被压坏的喵！"  # 叠猫猫队列已满的回复
+maxcount: 5     # 被压次数上限
+failpercent: 1  # 叠猫猫每层失败概率百分数`)
 	var (
 		// 加载叠猫猫配置文件
 		stackConfig = loadConfig(configFile)

@@ -39,11 +39,11 @@ func (path Path) Write(data []byte) {
 		if Check(err) {
 			// 如果文件不存在，新建该文件所在的文件夹；如果文件夹不存在，新建该文件夹本身
 			if !Check(os.MkdirAll(filepath.Dir(path.String()), 0755)) {
-				zap.S().Warnf("新建 %s 失败喵！\n%v", path, err)
+				zap.S().Errorf("新建 %s 失败喵！\n%v", path, err)
 			}
 		} else {
 			// 文件或文件夹不确定是否存在
-			zap.S().Warnf("写入时不确定 %s 存在喵！\n%v", path, err)
+			zap.S().Errorf("写入时不确定 %s 存在喵！\n%v", path, err)
 		}
 	}
 	err = os.WriteFile(path.String(), data, 0666)
@@ -118,7 +118,7 @@ func (path Path) String() string {
 func InitFile(name Path, text string) {
 	e, err := name.Exists()
 	if !Check(err) {
-		zap.S().Warnf("初始化时不确定 %s 存在喵！\n%v", name, err)
+		zap.S().Errorf("初始化时不确定 %s 存在喵！\n%v", name, err)
 		return
 	}
 	// 如果文件不存在，初始化
