@@ -1,19 +1,21 @@
 package eekda
 
 import (
+	"cmp"
 	"fmt"
 	"os"
-	"sort"
 	"strings"
 	"time"
 
 	"go.uber.org/zap"
+	"golang.org/x/exp/slices"
 	"gopkg.in/yaml.v3"
 
 	"github.com/FloatTech/floatbox/math"
 	ctrl "github.com/FloatTech/zbpctrl"
 	"github.com/FloatTech/zbputils/control"
 	"github.com/FloatTech/zbputils/ctxext"
+	"github.com/tidwall/gjson"
 	zero "github.com/wdvxdr1123/ZeroBot"
 
 	"github.com/Kittengarten/KittenCore/kitten"
@@ -62,21 +64,27 @@ func init() {
 		if !isExist {
 			// 如果文件不存在，创建文件
 			if fp, err := os.Create(tf.String()); kitten.Check(err) {
+				// 如果文件创建成功
 				if n, err := fp.WriteString(`[]`); !kitten.Check(err) {
-					zap.S().Errorf("写入 %d 字符时失败了喵！\n%v", n, err)
+					// 如果文件写入字符串失败
+					zap.S().Errorf("写入 %d 字符串时失败了喵！\n%v", n, err)
+					kitten.DoNotKnow(ctx)
 				}
 				defer fp.Close()
 				return
 			}
+			zap.S().Errorf("创建 %s 文件时失败了喵！\n%v", tf.String())
 			kitten.DoNotKnow(ctx)
 			return
 		}
 		var (
 			today     = tf.Read()
 			todayData Today
+			nums      []int
 		)
 		if err := yaml.Unmarshal(today, &todayData); !kitten.Check(err) {
 			zap.S().Errorf("转换 %v 失败了喵！\n%v", today, err)
+			return
 		}
 		if kitten.IsSameDate(time.Now(), todayData.Time) {
 			report(todayData, name, ctx)
@@ -84,21 +92,23 @@ func init() {
 		}
 		// 生成今天吃什么
 		list := ctx.GetThisGroupMemberListNoCache().Array()
-		sort.SliceStable(list, func(i, j int) bool {
-			return list[i].Get(`last_sent_time`).Int() < list[j].Get(`last_sent_time`).Int()
+		slices.SortStableFunc(list, func(i, j gjson.Result) int {
+			return cmp.Compare(i.Get(`last_sent_time`).Int(), j.Get(`last_sent_time`).Int())
 		})
 		list = list[math.Max(0, len(list)-50):]
-		nums := kitten.GenerateRandomNumber(0, len(list), 5)
+		nums = kitten.GenerateRandomNumber(0, len(list), 5)
 		if kitten.Check(nums) {
 			ctx.Send(`没有足够的食物喵！`)
 			return
 		}
-		todayData.Time = time.Now()
-		todayData.Breakfast = kitten.QQ(list[nums[0]].Get(`user_id`).Int())
-		todayData.Lunch = kitten.QQ(list[nums[1]].Get(`user_id`).Int())
-		todayData.LowTea = kitten.QQ(list[nums[2]].Get(`user_id`).Int())
-		todayData.Dinner = kitten.QQ(list[nums[3]].Get(`user_id`).Int())
-		todayData.Supper = kitten.QQ(list[nums[4]].Get(`user_id`).Int())
+		todayData = Today{
+			Time:      time.Now(),
+			Breakfast: kitten.QQ{QQ: list[nums[0]].Get(`user_id`).Int()},
+			Lunch:     kitten.QQ{QQ: list[nums[1]].Get(`user_id`).Int()},
+			LowTea:    kitten.QQ{QQ: list[nums[2]].Get(`user_id`).Int()},
+			Dinner:    kitten.QQ{QQ: list[nums[3]].Get(`user_id`).Int()},
+			Supper:    kitten.QQ{QQ: list[nums[4]].Get(`user_id`).Int()},
+		}
 		today, err = yaml.Marshal(todayData)
 		if !kitten.Check(err) {
 			zap.S().Errorf("待写入饮食统计数据有错误：\n%v", err)
@@ -114,8 +124,8 @@ func init() {
 			statMap  = make(map[kitten.QQ]Kitten) // QQ:猫猫集合
 		)
 		if !kitten.Check(yaml.Unmarshal(stat, &statData)) {
-			kitten.DoNotKnow(ctx)
 			zap.S().Error(`饮食统计数据损坏了喵！`)
+			kitten.DoNotKnow(ctx)
 			return
 		}
 		// 加载数据
@@ -160,6 +170,7 @@ func init() {
 		for k := range statData {
 			statData[k] = statMap[statData[k].ID]
 		}
+		// 新增新猫猫的统计数据
 		for k := range isNew {
 			var new Kitten
 			switch k {
@@ -168,46 +179,54 @@ func init() {
 					ID:   todayData.Breakfast,
 					Name: getLine(todayData.Breakfast, ctx),
 				}
-				if isNew[k] {
-					new.Breakfast = 1
-				}
+				new.Breakfast++
 			case `Lunch`:
 				new = Kitten{
 					ID:   todayData.Lunch,
 					Name: getLine(todayData.Lunch, ctx),
 				}
-				if isNew[k] {
-					new.Lunch = 1
-				}
+				new.Lunch++
 			case `LowTea`:
 				new = Kitten{
 					ID:   todayData.LowTea,
 					Name: getLine(todayData.LowTea, ctx),
 				}
-				if isNew[k] {
-					new.LowTea = 1
-				}
+				new.LowTea++
 			case `Dinner`:
 				new = Kitten{
 					ID:   todayData.Dinner,
 					Name: getLine(todayData.Dinner, ctx),
 				}
-				if isNew[k] {
-					new.Dinner = 1
-				}
+				new.Dinner++
 			case `Supper`:
 				new = Kitten{
 					ID:   todayData.Supper,
 					Name: getLine(todayData.Supper, ctx),
 				}
-				if isNew[k] {
-					new.Supper = 1
-				}
+				new.Supper++
 			}
 			if isNew[k] {
+				// 是新猫猫才新增统计数据
 				statData = append(statData, new)
 			}
 		}
+		// 统计数据按总被吃次数排序
+		slices.SortStableFunc(statData, func(i, j Kitten) int {
+			ic := i.Breakfast + i.Lunch + i.LowTea + i.Dinner + i.Supper
+			jc := j.Breakfast + j.Lunch + j.LowTea + j.Dinner + j.Supper
+			if ic < jc {
+				return -1
+			} else if ic > jc {
+				return 1
+			}
+			// 如果总数相等，比较类型是否齐全
+			c := cmp.Compare(min(i.Breakfast, i.Lunch, i.LowTea, i.Dinner, i.Supper), min(j.Breakfast, j.Lunch, j.LowTea, j.Dinner, j.Supper))
+			if 0 == c {
+				// 如果类型齐全，比较单次最高
+				return cmp.Compare(max(i.Breakfast, i.Lunch, i.LowTea, i.Dinner, i.Supper), max(j.Breakfast, j.Lunch, j.LowTea, j.Dinner, j.Supper))
+			}
+			return c
+		})
 		stat, err = yaml.Marshal(statData)
 		sf.Write(stat)
 		if !kitten.Check(err) {
@@ -224,19 +243,22 @@ func init() {
 		)
 		if isExist, err = sf.Exists(); !kitten.Check(err) {
 			// 如果不确定文件存在
-			kitten.DoNotKnow(ctx)
 			zap.S().Warnf("不确定 %s 存在喵！\n%v", sf, err)
+			kitten.DoNotKnow(ctx)
 			return
 		}
 		if !isExist {
 			// 如果文件不存在，创建文件
 			if fp, err := os.Create(sf.String()); kitten.Check(err) {
 				if n, err := fp.WriteString(`[]`); !kitten.Check(err) {
-					zap.S().Errorf("写入 %d 字符时失败了喵！\n%v", n, err)
+					// 如果文件写入字符串失败
+					zap.S().Errorf("写入 %d 字符串时失败了喵！\n%v", n, err)
+					kitten.DoNotKnow(ctx)
 				}
 				defer fp.Close()
 				return
 			}
+			zap.S().Errorf("创建 %s 文件时失败了喵！\n%v", sf.String())
 			kitten.DoNotKnow(ctx)
 			return
 		}
@@ -246,13 +268,13 @@ func init() {
 			isGet    bool
 		)
 		if !kitten.Check(yaml.Unmarshal(stat, &statData)) {
-			kitten.DoNotKnow(ctx)
 			zap.S().Error(`饮食统计数据损坏了喵！`)
+			kitten.DoNotKnow(ctx)
 			return
 		}
 		for i := range statData {
-			if kitten.QQ(ctx.Event.UserID) == statData[i].ID {
-				report := strings.Join([]string{fmt.Sprintf(`%s的被吃次数`, getLine(kitten.QQ(ctx.Event.UserID), ctx)),
+			if ctx.Event.UserID == statData[i].ID.QQ {
+				report := strings.Join([]string{fmt.Sprintf(`%s的被吃次数`, getLine(kitten.QQ{QQ: ctx.Event.UserID}, ctx)),
 					fmt.Sprintf(`早餐：%d 次`, statData[i].Breakfast),
 					fmt.Sprintf(`午餐：%d 次`, statData[i].Lunch),
 					fmt.Sprintf(`下午茶：%d 次`, statData[i].LowTea),
@@ -284,7 +306,7 @@ func getName() string {
 func getLine(u kitten.QQ, ctx *zero.Ctx) string {
 	info := Kitten{
 		ID:   u,
-		Name: u.GetTitle(ctx) + ctx.CardOrNickName(u.Int64()),
+		Name: u.GetTitle(ctx) + ctx.CardOrNickName(u.QQ),
 	}
 	return fmt.Sprintf(`%s（%d）`, info.Name, info.ID)
 }

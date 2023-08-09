@@ -1,6 +1,6 @@
 module github.com/Kittengarten/KittenCore
 
-go 1.20
+go 1.21
 
 require (
 	github.com/FloatTech/ZeroBot-Plugin v1.7.2
@@ -71,6 +71,7 @@ require (
 	github.com/golang/freetype v0.0.0-20170609003504-e2365dfdc4a0 // indirect
 	github.com/golang/groupcache v0.0.0-20210331224755-41bb18bfe9da // indirect
 	github.com/golang/mock v1.6.0 // indirect
+	github.com/google/go-cmp v0.5.9
 	github.com/google/pprof v0.0.0-20230728192033-2ba5b33183c6 // indirect
 	github.com/google/uuid v1.3.0 // indirect
 	github.com/hajimehoshi/oto v1.0.1 // indirect

@@ -12,10 +12,10 @@ websocket:                   # WebSocket
   url: ws://example.com:6700 # WebSocket 链接
   accesstoken: Example       # WebSocket 密钥
 log:                  # 日志
-  level: "trace"      # 日志等级（小写）
+  level: "debug"      # 日志等级（小写）
   path: "log/log.txt" # 日志路径
   maxsize:    10      # 文件大小限制，单位 MB
   maxbackups: 0       # 最大保留日志文件数量，设置为 0 可以无限保留。
-  expire: -1          # 日志文件的过期天数，大于该天数前的日志文件会被清理。设置为 0 可以禁用。 
+  expire: 0           # 日志文件的过期天数，大于该天数前的日志文件会被清理。设置为 0 可以禁用。 
 webui:                # WebUI 配置
   url: "127.0.0.1:3000" # WebUI 链接

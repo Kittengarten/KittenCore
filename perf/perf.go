@@ -53,7 +53,7 @@ const (
 var (
 	imagePath = kitten.FilePath(kitten.Path(kitten.Configs.Path), ReplyServiceName, `image`) // 图片路径
 	poke      = rate.NewManager[int64](5*time.Minute, 9)                                     // 戳一戳
-	nickname  = kitten.Configs.NickName[0]                                                   // 昵称
+	nickname  = kitten.Configs.NickName[0]                                                   // 默认昵称
 )
 
 func init() {
@@ -73,10 +73,13 @@ func init() {
 	engine.OnCommand(`查看`).SetBlock(true).
 		Limit(ctxext.NewLimiterManager(time.Hour, 5).LimitByGroup).Handle(func(ctx *zero.Ctx) {
 		var (
-			who    = ctx.State[`args`].(string)
-			str    string
-			report message.Message
+			who, ok = ctx.State[`args`].(string)
+			str     string
+			report  message.Message
 		)
+		if !ok {
+			return
+		}
 		for k := range zero.BotConfig.NickName {
 			if who == zero.BotConfig.NickName[k] {
 				who = nickname
@@ -133,18 +136,22 @@ func init() {
 	engine.OnCommandGroup([]string{`Ping`, `ping`}, zero.AdminPermission).SetBlock(true).
 		Limit(ctxext.NewLimiterManager(time.Minute, 1).LimitByGroup).Handle(func(ctx *zero.Ctx) {
 		var (
-			pingURL = ctx.State[`args`].(string)
-			report  string
-			pingMsg string
-			nbytes  int
+			pingURL, ok = ctx.State[`args`].(string)
+			report      string
+			pingMsg     string
+			nbytes      int
 		)
+		if !ok {
+			return
+		}
 		pinger, err := probing.NewPinger(pingURL)
-		pinger.Count = 4                  // 检测 4 次
-		pinger.Timeout = 16 * time.Second // 超时时间设置
 		if !kitten.Check(err) {
+			zap.S().Warnf("Ping %s 时出现错误了喵！\n%v", pingURL)
 			kitten.DoNotKnow(ctx)
 			return
 		}
+		pinger.Count = 4                  // 检测 4 次
+		pinger.Timeout = 16 * time.Second // 超时时间设置
 		pinger.OnSend = func(pkt *probing.Packet) {
 			nbytes = pkt.Nbytes
 		}
@@ -167,13 +174,13 @@ func init() {
 						stats.MinRtt.Milliseconds(), stats.MaxRtt.Milliseconds(), stats.AvgRtt.Milliseconds())}, "\n")
 			}
 		}
-		err = pinger.Run()
-		if kitten.Check(err) {
+		if kitten.Check(pinger.Run()) {
 			kitten.SendText(ctx, true, report)
 			return
+		} else {
+			zap.S().Warnf("Ping 出现错误：\n%v", err)
+			kitten.SendTextOf(ctx, true, "Ping 出现错误：\n%v", err)
 		}
-		kitten.SendTextOf(ctx, true, "Ping 出现错误：\n%v", err)
-		zap.S().Warnf("Ping 出现错误：\n%v", err)
 	})
 
 	// 戳一戳
@@ -189,13 +196,13 @@ func init() {
 		}
 		switch {
 		case poke.Load(g).AcquireN(5):
-			// 5 分钟共 8 块命令牌 一次消耗 5 块命令牌
+			// 5 分钟共 9 块命令牌 一次消耗 5 块命令牌
 			ctx.SendChain(message.Poke(u))
 		case poke.Load(g).AcquireN(3):
-			// 5 分钟共 8 块命令牌 一次消耗 3 块命令牌
+			// 5 分钟共 9 块命令牌 一次消耗 3 块命令牌
 			kitten.SendTextOf(ctx, false, `请不要拍%s >_<`, nickname)
 		case poke.Load(g).Acquire():
-			// 5 分钟共 8 块命令牌 一次消耗 1 块命令牌
+			// 5 分钟共 9 块命令牌 一次消耗 1 块命令牌
 			kitten.SendTextOf(ctx, false, "喂(#`O′) 拍%s干嘛！\n（好感 - %d）", nickname, kitten.Rand.Intn(randMax)+1)
 		default:
 			// 频繁触发，不回复
@@ -204,7 +211,9 @@ func init() {
 
 	// 图片，用于让 Bot 发送图片，可通过 CQ 码、链接等，为防止滥用，仅管理员可用
 	zero.OnCommand(`图片`, zero.AdminPermission).SetBlock(true).Handle(func(ctx *zero.Ctx) {
-		ctx.Send(message.Image(ctx.State[`args`].(string)))
+		if img, ok := ctx.State[`args`].(string); ok {
+			ctx.Send(message.Image(img))
+		}
 	})
 }
 
@@ -247,10 +256,12 @@ func getMemUsed() (str string) {
 
 // 磁盘使用调用
 func getDisk() (diskInfo *disk.UsageStat) {
-	parts, err1 := disk.Partitions(false)
-	diskInfo, err2 := disk.Usage(parts[0].Mountpoint)
-	if !(kitten.Check(err1) && kitten.Check(err2)) {
-		zap.S().Warnf("获取磁盘使用失败了喵！\n%v\n%v", err1, err2)
+	parts, err := disk.Partitions(false)
+	if !kitten.Check(err) {
+		zap.S().Warnf("获取磁盘分区失败了喵！\n%v", err)
+	}
+	if diskInfo, err = disk.Usage(parts[0].Mountpoint); !kitten.Check(err) {
+		zap.S().Warnf("获取磁盘信息失败了喵！\n%v", err)
 	}
 	return
 }

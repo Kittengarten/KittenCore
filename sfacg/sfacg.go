@@ -2,6 +2,7 @@
 package sfacg
 
 import (
+	"cmp"
 	"fmt"
 	"runtime/debug"
 	"strings"
@@ -10,6 +11,7 @@ import (
 
 	mapset "github.com/deckarep/golang-set"
 	"go.uber.org/zap"
+	"golang.org/x/exp/slices"
 	"gopkg.in/yaml.v3"
 
 	ctrl "github.com/FloatTech/zbpctrl"
@@ -98,7 +100,7 @@ func init() {
 			groupSet = make(map[string]mapset.Set)                                               // 书号:群号集合
 			track    = make(Config, 1)                                                           // 报更实例
 		)
-		if o = getO(ctx); 0 == o || -1 == o {
+		if o = getO(ctx); 0 == o || 1 == o {
 			return
 		}
 		for k := range c {
@@ -120,6 +122,8 @@ func init() {
 					for i := range gi {
 						gs[i] = gi[i].(int64)
 					}
+					// 群号排序
+					slices.Sort(gs)
 					c[k].GroupID = gs
 				}
 			} else {
@@ -150,7 +154,7 @@ func init() {
 			o        int64                                                                       // 发送对象
 			groupSet = make(map[string]mapset.Set)                                               // 书号:群号集合
 		)
-		if o = getO(ctx); 0 == o || -1 == o {
+		if o = getO(ctx); 0 == o || 1 == o {
 			return
 		}
 		if 0 < len(c) {
@@ -176,6 +180,8 @@ func init() {
 						for i := range gi {
 							gs[i] = gi[i].(int64)
 						}
+						// 群号排序
+						slices.Sort(gs)
 						c[k].GroupID = gs
 					} else {
 						// 如果没有群，则移除该小说
@@ -200,7 +206,7 @@ func init() {
 				c = loadConfig(kitten.FilePath(kitten.Path(engine.DataFolder()), configFile)) // 报更配置
 				o int64                                                                       // 发送对象
 			)
-			if o = getO(ctx); 0 == o || -1 == o {
+			if o = getO(ctx); 0 == o || 1 == o {
 				return
 			}
 			if 0 < len(c) {
@@ -234,12 +240,14 @@ func init() {
 如果传入值不为书号，则先获取书号
 */
 func getNovel(ctx *zero.Ctx) (nv Novel) {
-	ag := ctx.State[`args`].(string)
-	if ag, err := keyWord(ag).findBookID(); isInt(ag) || kitten.Check(err) {
+	ag, ok := ctx.State[`args`].(string)
+	if ag, err := keyWord(ag).findBookID(); ok && (isInt(ag) || kitten.Check(err)) {
 		// 如果传入值是书号，或者成功找到了书号
 		nv = *novelPool.Get().(*Novel)
 		nv.init(ag)
 		defer novelPool.Put(&nv)
+	} else {
+		zap.S().Warnf("获取小说出现错误：\n%v", err)
 	}
 	return
 }
@@ -310,30 +318,40 @@ func track(e *control.Engine) {
 				data[i].BookName = novel.Name
 				data[i].RecordURL = novel.NewChapter.URL
 				data[i].UpdateTime = novel.NewChapter.Time.Format(`2006年01月02日 15时04分05秒`)
+				// 按更新时间倒序排列
+				slices.SortFunc(data, func(i, j Book) int {
+					return cmp.Compare(i.UpdateTime, j.UpdateTime)
+				})
+				slices.Reverse(data)
 				done = true
 			}
 		}
 		// 如果并没有报更，直接进入下一次循环
 		if done {
 			updateConfig, err := yaml.Marshal(data)
-			configPool.Put(&data)
-			kitten.FilePath(kitten.Path(e.DataFolder()), configFile).Write(updateConfig)
 			if kitten.Check(err) {
 				zap.S().Infof(`记录 %s 成功喵！`, e.DataFolder()+configFile)
 			} else {
 				zap.S().Warnf(`记录 %s 失败喵！`, e.DataFolder()+configFile)
+				<-t.C // 阻塞协程，收到定时器信号则释放
+				continue
 			}
+			configPool.Put(&data)
+			kitten.FilePath(kitten.Path(e.DataFolder()), configFile).Write(updateConfig)
+
 		}
 		<-t.C // 阻塞协程，收到定时器信号则释放
 	}
 }
 
 /*
-发送对象判断
+获取发送对象
+
+返回正整数代表群，返回负整数代表私聊
 
 返回默认值 0 代表不支持的对象（目前是频道）
 
-返回 -1 代表在群中无权限
+返回 1 代表在群中无权限
 */
 func getO(ctx *zero.Ctx) (o int64) {
 	switch ctx.Event.DetailType {

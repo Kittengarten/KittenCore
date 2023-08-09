@@ -73,10 +73,13 @@ failpercent: 1  # 叠猫猫每层失败概率百分数`)
 		mu.Lock()
 		defer mu.Unlock()
 		var (
-			ag       = ctx.State[`args`].(string)
+			ag, ok   = ctx.State[`args`].(string)
 			data     = loadData(kitten.FilePath(kitten.Path(engine.DataFolder()), dataFile))
 			dataExit = loadData(kitten.FilePath(kitten.Path(engine.DataFolder()), exitFile))
 		)
+		if !ok {
+			return
+		}
 		if `guild` == ctx.Event.DetailType {
 			ctx.Send(`暂不支持频道喵！`)
 			return
@@ -125,9 +128,9 @@ func (data Data) in(esc Data, stackConfig Config, ctx *zero.Ctx, e *control.Engi
 	}
 	if permit {
 		if len(data) >= stackConfig.MaxStack {
+			// 压猫猫
 			report = stackConfig.OutOfStack
 			permit = false
-			// 压猫猫
 			if exitLabel := -1; checkStack(len(data) + 1) {
 				// 只有下半的猫猫会被压坏
 				for i := range data {
@@ -135,8 +138,8 @@ func (data Data) in(esc Data, stackConfig Config, ctx *zero.Ctx, e *control.Engi
 						exitLabel = i // 最上面一只压坏的猫猫的位置
 					}
 				}
-				// 如果有猫猫被压坏
 				if 0 <= exitLabel {
+					// 如果有猫猫被压坏
 					exitData := data[:exitLabel+1]
 					reports = strings.Join(exitData.reverse(), "\n")
 					// 将被压坏的的猫猫记录至退出日志
@@ -148,6 +151,7 @@ func (data Data) in(esc Data, stackConfig Config, ctx *zero.Ctx, e *control.Engi
 					report += fmt.Sprintf("\n\n压猫猫成功，下面的猫猫对你的好感度下降了！你在 %d 小时内无法加入叠猫猫。", stackConfig.GapTime)
 					report += fmt.Sprintf("\n\n有 %d 只猫猫被压坏了喵！需要休息 %d 小时。\n%s", exitLabel+1, stackConfig.GapTime, reports)
 				} else {
+					// 如果没有猫猫被压坏
 					save(data, kitten.FilePath(kitten.Path(e.DataFolder()), dataFile))
 					report += fmt.Sprintf("\n\n压猫猫成功，下面的猫猫对你的好感度下降了！你在 %d 小时内无法加入叠猫猫。", stackConfig.GapTime)
 				}
@@ -160,7 +164,7 @@ func (data Data) in(esc Data, stackConfig Config, ctx *zero.Ctx, e *control.Engi
 			// 如果叠猫猫成功
 			meow := Kitten{
 				ID:   ID,
-				Name: kitten.QQ(ID).GetTitle(ctx) + ctx.CardOrNickName(ID),
+				Name: kitten.QQ{QQ: ID}.GetTitle(ctx) + ctx.CardOrNickName(ID),
 				Time: time.Unix(ctx.Event.Time, 0),
 			}
 			data = append(data, meow)
@@ -169,8 +173,8 @@ func (data Data) in(esc Data, stackConfig Config, ctx *zero.Ctx, e *control.Engi
 			zap.S().Info(strconv.FormatInt(ID, 10) + report)
 		} else {
 			// 如果叠猫猫失败
-			// 如果不是平地摔
 			if len(data) != 0 {
+				// 如果不是平地摔
 				exitCount := int(math.Ceil(float64(len(data)) * kitten.Rand.Float64()))
 				if 0 == exitCount {
 					exitCount = 1
@@ -214,9 +218,7 @@ func (data Data) exit(ctx *zero.Ctx, e *control.Engine) {
 		permit = false
 		zap.S().Warn(strconv.FormatInt(ID, 10) + report)
 	} else {
-		stackData, err := yaml.Marshal(data)
-		kitten.FilePath(kitten.Path(e.DataFolder()), dataFile).Write(stackData)
-		if kitten.Check(err) {
+		if save(data, kitten.Path(e.DataFolder())) {
 			report = `退出叠猫猫成功喵！`
 			zap.S().Info(strconv.FormatInt(ID, 10) + report)
 			logExit(ID, ctx, e)
@@ -254,8 +256,7 @@ func (data Data) reverse() (s []string) {
 func save(data Data, path kitten.Path) (ok bool) {
 	d, err := yaml.Marshal(data)
 	path.Write(d)
-	ok = kitten.Check(err)
-	if !ok {
+	if ok = kitten.Check(err); !ok {
 		zap.S().Errorf("文件写入错误喵！\n%v", err)
 	}
 	return
@@ -312,9 +313,10 @@ func logExit(u int64, ctx *zero.Ctx, e *control.Engine) {
 	var (
 		dataExit = loadData(kitten.FilePath(kitten.Path(e.DataFolder()), exitFile))
 		meowExit = Kitten{
-			ID:   u,
-			Time: time.Unix(ctx.Event.Time, 0),
-			Name: kitten.QQ(u).GetTitle(ctx) + ctx.CardOrNickName(u),
+			ID:    u,
+			Name:  kitten.QQ{QQ: u}.GetTitle(ctx) + ctx.CardOrNickName(u),
+			Time:  time.Unix(ctx.Event.Time, 0),
+			Count: 0,
 		}
 	)
 	dataExit = append(dataExit, meowExit)
@@ -323,7 +325,9 @@ func logExit(u int64, ctx *zero.Ctx, e *control.Engine) {
 
 // 根据高度 h 检查压猫猫或叠猫猫是否成功
 func checkStack(h int) bool {
-	return 0.01*float64(h*stackConfig.FailPercent) <= kitten.Rand.Float64()
+	r := kitten.Rand.Float64()
+	zap.S().Debugf(`生成的随机数是：%v`, r)
+	return 0.01*float64(h*stackConfig.FailPercent) <= r
 }
 
 // 发送叠猫猫结果

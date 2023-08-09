@@ -22,9 +22,6 @@ type (
 		AccessToken string // WebSocket 密钥
 	}
 
-	// // URL 代表 URL 的字符串
-	// URL string
-
 	// WebUIConfig 是一个 WebUI 的配置
 	WebUIConfig struct {
 		URL string // WebUI 链接
@@ -43,7 +40,9 @@ type (
 	Path string
 
 	// QQ 是一个表示 QQ 的 int64
-	QQ int64
+	QQ struct {
+		QQ int64
+	}
 
 	// Choices 是由随机项目的抽象接口组成的数组
 	Choices []interface {

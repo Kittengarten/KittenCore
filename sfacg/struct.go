@@ -43,10 +43,13 @@ type (
 	}
 
 	// Config 表示多项小说配置的数据集组成的数组
-	Config []struct {
+	Config []Book
+
+	// Book 表示小说配置的数据集
+	Book struct {
 		BookID     string  `yaml:"bookid"`     // 报更书号
 		BookName   string  `yaml:"bookname"`   // 报更书名
-		GroupID    []int64 `yaml:"groupid"`    // 书友群号
+		GroupID    []int64 `yaml:"groupid"`    // 书友群号，负数代表私聊 QQ
 		RecordURL  string  `yaml:"recordurl"`  // 上次更新链接
 		UpdateTime string  `yaml:"updatetime"` // 上次更新时间
 	}

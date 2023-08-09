@@ -218,21 +218,17 @@ func (cp *Chapter) init(URL string) {
 // 与上次更新比较
 func (nv *Novel) makeCompare() (cm Compare) {
 	var this, last Chapter
-	if this = nv.NewChapter; this.IsGet {
+	this = nv.NewChapter
+	if !this.IsGet {
+		// 防止无限得不到更新章节循环
+		return Compare{TimeGap: 1}
+	}
+	last.init(this.LastURL)
+	cm.TimeGap = max(time.Second, this.Time.Sub(last.Time))
+	for cm.Times = 1; kitten.IsSameDate(last.Time, this.Time); cm.Times++ {
+		this = last
 		last.init(this.LastURL)
-		cm.TimeGap = this.Time.Sub(last.Time)
-		if 0 > cm.TimeGap {
-			cm.TimeGap = 0
-		}
-		cm.Times = 1
-		for kitten.IsSameDate(last.Time, this.Time) {
-			this = last
-			last.init(this.LastURL)
-			cm.Times++
-		}
-	} else {
-		cm.TimeGap = 1
-	} // 防止无限得不到更新章节循环
+	}
 	return
 }
 

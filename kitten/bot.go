@@ -20,7 +20,7 @@ func TextOf(format string, a ...any) message.MessageSegment {
 /*
 SendTextOf 发送格式化文本
 
-lf 控制群聊的 @ 后是否换行
+lf 控制群聊的 @ 后是否换行（非消息的事件中获取的 bot 实例可能无效）
 */
 func SendTextOf(ctx *zero.Ctx, lf bool, format string, a ...any) {
 	switch ctx.Event.DetailType {
@@ -32,13 +32,15 @@ func SendTextOf(ctx *zero.Ctx, lf bool, format string, a ...any) {
 			return
 		}
 		ctx.SendChain(message.At(ctx.Event.UserID), TextOf(format, a...))
+	default:
+		ctx.SendChain(message.At(ctx.Event.UserID), TextOf(format, a...))
 	}
 }
 
 /*
 SendText 发送文本
 
-lf 控制群聊的 @ 后是否换行
+lf 控制群聊的 @ 后是否换行（非消息的事件中获取的 bot 实例可能无效）
 */
 func SendText(ctx *zero.Ctx, lf bool, text string) {
 	switch ctx.Event.DetailType {
@@ -50,24 +52,28 @@ func SendText(ctx *zero.Ctx, lf bool, text string) {
 			return
 		}
 		ctx.SendChain(message.At(ctx.Event.UserID), message.Text(text))
+	default:
+		ctx.SendChain(message.At(ctx.Event.UserID), message.Text(text))
 	}
 }
 
 /*
 SendMessage 发送消息
 
-lf 控制群聊的 @ 后是否换行
+lf 控制群聊的 @ 后是否换行（非消息的事件中获取的 bot 实例可能无效）
 */
 func SendMessage(ctx *zero.Ctx, lf bool, m ...message.MessageSegment) {
+	var n []message.MessageSegment
 	switch ctx.Event.DetailType {
 	case `private`:
 		ctx.Send(m)
 	case `group`, `guild`:
-		var n []message.MessageSegment
 		if lf {
 			ctx.SendChain(append(append(append(n, message.At(ctx.Event.UserID)), message.Text("\n")), m...)...)
 			return
 		}
+		ctx.SendChain(append(append(n, message.At(ctx.Event.UserID)), m...)...)
+	default:
 		ctx.SendChain(append(append(n, message.At(ctx.Event.UserID)), m...)...)
 	}
 }
@@ -77,14 +83,12 @@ func DoNotKnow(ctx *zero.Ctx) {
 	SendMessage(ctx, false, ImagePath.GetImage(`哈——？.png`), TextOf(`%s不知道哦`, zero.BotConfig.NickName[0]))
 }
 
-// Int64 QQ 号转换为整型
-func (u QQ) Int64() int64 {
-	return int64(u)
-}
-
 // GetTitle 从 QQ 获取【头衔】
 func (u QQ) GetTitle(ctx *zero.Ctx) string {
-	gmi := ctx.GetGroupMemberInfo(ctx.Event.GroupID, u.Int64(), true)
+	if 0 <= ctx.Event.GroupID {
+		return ``
+	}
+	gmi := ctx.GetGroupMemberInfo(ctx.Event.GroupID, u.QQ, true)
 	if titleStr := gjson.Get(gmi.Raw, `title`).Str; `` == titleStr {
 		return ``
 	}
@@ -93,7 +97,7 @@ func (u QQ) GetTitle(ctx *zero.Ctx) string {
 
 // （私有）获取信息
 func (u QQ) getInfo(ctx *zero.Ctx) gjson.Result {
-	return ctx.GetStrangerInfo(int64(u), true)
+	return ctx.GetStrangerInfo(u.QQ, true)
 }
 
 // IsAdult 是成年人

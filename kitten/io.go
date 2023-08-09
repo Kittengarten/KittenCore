@@ -33,8 +33,7 @@ Write 文件写入
 如文件不存在会尝试新建
 */
 func (path Path) Write(data []byte) {
-	e, err := path.Exists()
-	if !e {
+	if e, err := path.Exists(); !e {
 		// 如果文件或文件夹不存在，或不确定是否存在
 		if Check(err) {
 			// 如果文件不存在，新建该文件所在的文件夹；如果文件夹不存在，新建该文件夹本身
@@ -45,10 +44,10 @@ func (path Path) Write(data []byte) {
 			// 文件或文件夹不确定是否存在
 			zap.S().Errorf("写入时不确定 %s 存在喵！\n%v", path, err)
 		}
-	}
-	err = os.WriteFile(path.String(), data, 0666)
-	if !Check(err) {
-		zap.S().Errorf("写入文件 %s 失败了喵！\n%v", path, err)
+	} else {
+		if err = os.WriteFile(path.String(), data, 0666); !Check(err) {
+			zap.S().Errorf("写入文件 %s 失败了喵！\n%v", path, err)
+		}
 	}
 }
 
@@ -59,12 +58,12 @@ Exists 判断文件是否存在
 */
 func (path Path) Exists() (bool, error) {
 	_, err := os.Stat(path.String())
-	// 当 err 为空，文件或文件夹存在
 	if Check(err) {
+		// 当 err 为空，文件或文件夹存在
 		return true, nil
 	}
-	// os.IsNotExist(err)为 true，文件或文件夹不存在
 	if os.IsNotExist(err) {
+		// os.IsNotExist(err)为 true，文件或文件夹不存在
 		return false, nil
 	}
 	// 其它类型，不确定是否存在
@@ -73,11 +72,11 @@ func (path Path) Exists() (bool, error) {
 
 // （私有）判断路径是否文件夹
 func (path Path) isDir() bool {
-	s, err := os.Stat(path.String())
-	if Check(err) {
+	if s, err := os.Stat(path.String()); Check(err) {
 		return s.IsDir()
+	} else {
+		zap.S().Errorf("识别 %s 失败了喵！\n%v", path, err)
 	}
-	zap.S().Errorf("识别 %s 失败了喵！\n%v", path, err)
 	return false
 }
 
