@@ -73,10 +73,9 @@ func GetMidText(pre string, suf string, str string) string {
 }
 
 // GetWTAAnno 获取世界树纪元的完整字符串和额外信息
-func GetWTAAnno() (str string, flower string, elemental string, imagery string, err error) {
+func GetWTAAnno() (str string, chord string, flower string, elemental string, imagery string, err error) {
 	anno, err := wta.GetAnno()
-	str = anno.YearStr + anno.MonthStr + anno.DayStr
-	str = fmt.Sprintf(`%s　%d:%0*d:%0*d`, str, anno.Hour, 2, anno.Minute, 2, anno.Second)
+	str, chord = anno.GetAnnoStrSplit()
 	flower, elemental, imagery = anno.Flower, anno.Elemental, anno.Imagery
 	return
 }

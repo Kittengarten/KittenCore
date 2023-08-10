@@ -23,6 +23,8 @@ github.com/FloatTech/zbputils v1.6.2-0.20230728081122-94d4d957f3bf h1:PwH9aMnmN+
 github.com/FloatTech/zbputils v1.6.2-0.20230728081122-94d4d957f3bf/go.mod h1:JRnGR7EGeEQgxOs+c0rZAhrS9Es2BTcGHdIDHXIPRzQ=
 github.com/Kittengarten/KittenAnno v0.0.10-0.20230803023052-8989f563413c h1:a9bsPKYcJUtiJKcAkeZMLB/rDwkDiZ7/4fVpNWtV+Rc=
 github.com/Kittengarten/KittenAnno v0.0.10-0.20230803023052-8989f563413c/go.mod h1:Uu1xr0CwpXvbSg2AB0B+0bk2Zwqd5Bsp6Yv8WepAKxI=
+github.com/Kittengarten/KittenAnno v0.1.0 h1:dn2nBrPMu0NbFx9ET/L1JrADARkifAu4STKRkR0qjuo=
+github.com/Kittengarten/KittenAnno v0.1.0/go.mod h1:ATdb0qzJddSLJaC45flt1rL2lzUnDMTp7BGw07vtjh4=
 github.com/Kittengarten/logrus v0.0.0-20230803091414-a09d6fbc1502 h1:FNrIqcoeE8fV1MQClaNIWTEusDr7l2WO/Qfl8ecNiIk=
 github.com/Kittengarten/logrus v0.0.0-20230803091414-a09d6fbc1502/go.mod h1:bLocI5MJfHJsp/mzDt4OZl91AGEYCYUVOURoa8HZgRw=
 github.com/KyleBanks/depth v1.2.1 h1:5h8fQADFrWtarTdtDudMmGsC7GPbOAu6RVB3ffsVFHc=

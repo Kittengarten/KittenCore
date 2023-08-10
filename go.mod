@@ -9,7 +9,7 @@ require (
 	github.com/FloatTech/imgfactory v0.2.2-0.20230413152719-e101cc3606ef
 	github.com/FloatTech/zbpctrl v1.5.3-0.20230514154630-b74e6fcca380
 	github.com/FloatTech/zbputils v1.6.2-0.20230728081122-94d4d957f3bf
-	github.com/Kittengarten/KittenAnno v0.0.10-0.20230803023052-8989f563413c
+	github.com/Kittengarten/KittenAnno v0.1.0
 	github.com/PuerkitoBio/goquery v1.8.1
 	github.com/deckarep/golang-set v1.8.0
 	github.com/mroth/weightedrand/v2 v2.0.2

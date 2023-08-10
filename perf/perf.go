@@ -88,11 +88,11 @@ func init() {
 		switch who {
 		case nickname:
 			var (
-				cpu                                      = getCPUPercent()
-				mem                                      = getMemPercent()
-				t                                        = `45`
-				annoStr, flower, elemental, imagery, err = kitten.GetWTAAnno()
-				reportAnno                               string
+				cpu                                             = getCPUPercent()
+				mem                                             = getMemPercent()
+				t                                               = `45`
+				annoStr, chord, flower, elemental, imagery, err = kitten.GetWTAAnno()
+				reportAnno                                      string
 			)
 			// 查看性能页
 			if !kitten.Check(err) {
@@ -100,6 +100,7 @@ func init() {
 				reportAnno = `喵？`
 			} else {
 				reportAnno = strings.Join([]string{fmt.Sprintf(`%s报时：现在是%s`, zero.BotConfig.NickName[0], annoStr),
+					fmt.Sprintf(`琴弦：%s`, chord),
 					fmt.Sprintf(`花卉：%s`, flower),
 					fmt.Sprintf(`～%s元灵之%s～`, elemental, imagery),
 				}, "\n")
