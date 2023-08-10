@@ -88,7 +88,7 @@ func (u QQ) GetTitle(ctx *zero.Ctx) string {
 	if 0 <= ctx.Event.GroupID {
 		return ``
 	}
-	gmi := ctx.GetGroupMemberInfo(ctx.Event.GroupID, u.QQ, true)
+	gmi := ctx.GetGroupMemberInfo(ctx.Event.GroupID, u.Number, true)
 	if titleStr := gjson.Get(gmi.Raw, `title`).Str; `` == titleStr {
 		return ``
 	}
@@ -97,7 +97,7 @@ func (u QQ) GetTitle(ctx *zero.Ctx) string {
 
 // （私有）获取信息
 func (u QQ) getInfo(ctx *zero.Ctx) gjson.Result {
-	return ctx.GetStrangerInfo(u.QQ, true)
+	return ctx.GetStrangerInfo(u.Number, true)
 }
 
 // IsAdult 是成年人

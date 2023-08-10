@@ -103,11 +103,11 @@ func init() {
 		}
 		todayData = Today{
 			Time:      time.Now(),
-			Breakfast: kitten.QQ{QQ: list[nums[0]].Get(`user_id`).Int()},
-			Lunch:     kitten.QQ{QQ: list[nums[1]].Get(`user_id`).Int()},
-			LowTea:    kitten.QQ{QQ: list[nums[2]].Get(`user_id`).Int()},
-			Dinner:    kitten.QQ{QQ: list[nums[3]].Get(`user_id`).Int()},
-			Supper:    kitten.QQ{QQ: list[nums[4]].Get(`user_id`).Int()},
+			Breakfast: kitten.QQ{Number: list[nums[0]].Get(`user_id`).Int()},
+			Lunch:     kitten.QQ{Number: list[nums[1]].Get(`user_id`).Int()},
+			LowTea:    kitten.QQ{Number: list[nums[2]].Get(`user_id`).Int()},
+			Dinner:    kitten.QQ{Number: list[nums[3]].Get(`user_id`).Int()},
+			Supper:    kitten.QQ{Number: list[nums[4]].Get(`user_id`).Int()},
 		}
 		today, err = yaml.Marshal(todayData)
 		if !kitten.Check(err) {
@@ -273,8 +273,8 @@ func init() {
 			return
 		}
 		for i := range statData {
-			if ctx.Event.UserID == statData[i].ID.QQ {
-				report := strings.Join([]string{fmt.Sprintf(`%s的被吃次数`, getLine(kitten.QQ{QQ: ctx.Event.UserID}, ctx)),
+			if ctx.Event.UserID == statData[i].ID.Number {
+				report := strings.Join([]string{fmt.Sprintf(`%s的被吃次数`, getLine(kitten.QQ{Number: ctx.Event.UserID}, ctx)),
 					fmt.Sprintf(`早餐：%d 次`, statData[i].Breakfast),
 					fmt.Sprintf(`午餐：%d 次`, statData[i].Lunch),
 					fmt.Sprintf(`下午茶：%d 次`, statData[i].LowTea),
@@ -306,7 +306,7 @@ func getName() string {
 func getLine(u kitten.QQ, ctx *zero.Ctx) string {
 	info := Kitten{
 		ID:   u,
-		Name: u.GetTitle(ctx) + ctx.CardOrNickName(u.QQ),
+		Name: u.GetTitle(ctx) + ctx.CardOrNickName(u.Number),
 	}
 	return fmt.Sprintf(`%s（%d）`, info.Name, info.ID)
 }

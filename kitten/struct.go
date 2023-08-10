@@ -41,7 +41,7 @@ type (
 
 	// QQ 是一个表示 QQ 的 int64
 	QQ struct {
-		QQ int64
+		Number int64
 	}
 
 	// Choices 是由随机项目的抽象接口组成的数组

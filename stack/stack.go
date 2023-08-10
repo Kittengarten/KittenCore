@@ -32,7 +32,7 @@ const (
 
 var (
 	configFile  = kitten.FilePath(`stack`, `config.yaml`) // 叠猫猫配置文件名
-	stackConfig Config                                    // 叠猫猫配置文件
+	stackConfig = loadConfig(configFile)                  // 叠猫猫配置文件
 	mu          sync.Mutex
 )
 
@@ -45,9 +45,7 @@ outofstack: "不能再叠了，下面的猫猫会被压坏的喵！"  # 叠猫�
 maxcount: 5     # 被压次数上限
 failpercent: 1  # 叠猫猫每层失败概率百分数`)
 	var (
-		// 加载叠猫猫配置文件
-		stackConfig = loadConfig(configFile)
-		help        = strings.Join([]string{`发送`,
+		help = strings.Join([]string{`发送`,
 			fmt.Sprintf(`%s叠猫猫 [参数]`, kitten.Configs.CommandPrefix),
 			`参数可选：加入|退出|查看`,
 			fmt.Sprintf(`叠猫猫每层高度有 %d%% 概率会失败`, stackConfig.FailPercent),
@@ -164,7 +162,7 @@ func (data Data) in(esc Data, stackConfig Config, ctx *zero.Ctx, e *control.Engi
 			// 如果叠猫猫成功
 			meow := Kitten{
 				ID:   ID,
-				Name: kitten.QQ{QQ: ID}.GetTitle(ctx) + ctx.CardOrNickName(ID),
+				Name: kitten.QQ{Number: ID}.GetTitle(ctx) + ctx.CardOrNickName(ID),
 				Time: time.Unix(ctx.Event.Time, 0),
 			}
 			data = append(data, meow)
@@ -314,7 +312,7 @@ func logExit(u int64, ctx *zero.Ctx, e *control.Engine) {
 		dataExit = loadData(kitten.FilePath(kitten.Path(e.DataFolder()), exitFile))
 		meowExit = Kitten{
 			ID:    u,
-			Name:  kitten.QQ{QQ: u}.GetTitle(ctx) + ctx.CardOrNickName(u),
+			Name:  kitten.QQ{Number: u}.GetTitle(ctx) + ctx.CardOrNickName(u),
 			Time:  time.Unix(ctx.Event.Time, 0),
 			Count: 0,
 		}
@@ -325,9 +323,7 @@ func logExit(u int64, ctx *zero.Ctx, e *control.Engine) {
 
 // 根据高度 h 检查压猫猫或叠猫猫是否成功
 func checkStack(h int) bool {
-	r := kitten.Rand.Float64()
-	zap.S().Debugf(`生成的随机数是：%v`, r)
-	return 0.01*float64(h*stackConfig.FailPercent) <= r
+	return 0.01*float64(h*stackConfig.FailPercent) <= kitten.Rand.Float64()
 }
 
 // 发送叠猫猫结果
