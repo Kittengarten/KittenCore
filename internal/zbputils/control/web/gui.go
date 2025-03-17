@@ -20,10 +20,8 @@ import (
 	"github.com/FloatTech/zbputils/control/web/router"
 )
 
-var (
-	// ListenCtrlChan 启动/停止 webui
-	listenCtrlChan = make(chan bool)
-)
+// ListenCtrlChan 启动/停止 webui
+var listenCtrlChan = make(chan bool)
 
 func init() {
 	zero.OnRegex(`^/设置webui用户名\s?(\S+)\s?密码\s?(\S+)$`, zero.SuperUserPermission, zero.OnlyToMe).SetBlock(true).
@@ -35,7 +33,7 @@ func init() {
 				return
 			}
 			ctx.Send(message.Text("设置成功"))
-			if zero.BotConfig.SuperUsers != nil && len(zero.BotConfig.SuperUsers) > 0 {
+			if len(zero.BotConfig.SuperUsers) > 0 {
 				ctx.SendPrivateMessage(zero.BotConfig.SuperUsers[0], message.Text("webui账号\n用户名: ", regexMatched[1], "\n密码: ", regexMatched[2]))
 			}
 		})

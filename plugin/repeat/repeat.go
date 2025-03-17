@@ -4,7 +4,6 @@ package repeat
 import (
 	"html"
 	"math/rand/v2"
-	"reflect"
 	"strconv"
 	"sync"
 
@@ -30,8 +29,8 @@ const (
 type (
 	// 消息统计
 	stat struct {
-		t   uint            // 次数
-		msg message.Message // 消息
+		t               uint // 次数
+		message.Message      // 消息
 	}
 
 	// 复读姬配置
@@ -58,7 +57,7 @@ var (
 	// 触发复读的概率
 	chance = 0.5
 	// 消息缓存
-	m syncx.Map[int64, stat]
+	m syncx.Map[kitten.QQ, stat]
 	// 互斥锁（只写不读）
 	mu sync.Mutex
 )
@@ -67,17 +66,16 @@ func init() {
 	repeatInit()
 
 	// 复读设置
-	engine.OnCommand(cRepeat, zero.SuperUserPermission).SetBlock(true).
-		Limit(kitten.GetLimiter(kitten.GroupSlow)).Handle(repeatSet)
+	engine.OnCommand(cRepeat, zero.SuperUserPermission).SetBlock(true).Handle(repeatSet)
 
 	// 复读
 	engine.OnMessage(zero.OnlyGroup).SetBlock(false).Handle(repeat)
 }
 
 func repeatInit() {
-	repeatConfig, err := core.Load[config](configPath, core.Empty) // 复读姬配置文件
-	if nil != err {
-		kitten.Error(`加载复读姬配置文件错误喵！`, err)
+	repeatConfig, err := core.Load[config](configPath, "times: 2\nchance: 0.5") // 复读姬配置文件
+	if err != nil {
+		kitten.Error(`复读姬配置文件错误喵！`, err)
 		return
 	}
 	times, chance = repeatConfig.Times, repeatConfig.Chance
@@ -85,9 +83,12 @@ func repeatInit() {
 
 // 复读设置
 func repeatSet(ctx *zero.Ctx) {
-	args := kitten.GetArgsSlice(ctx)
-	if 2 != len(args) {
-		kitten.SendWithImageFailOf(ctx, `本命令参数数量：%d
+	var (
+		msgr = kitten.New(ctx)
+		args = msgr.ArgsSlice()
+	)
+	if len(args) != 2 {
+		msgr.SendWithImageFailOf(`本命令参数数量：%d
 传入的参数数量：%d`,
 			2,
 			len(args),
@@ -95,8 +96,8 @@ func repeatSet(ctx *zero.Ctx) {
 		return
 	}
 	t, err := strconv.ParseUint(args[0], 10, core.PlatformBits)
-	if nil != err {
-		kitten.SendWithImageFailOf(ctx, `[次数] 错误：
+	if err != nil {
+		msgr.SendWithImageFailOf(`[次数] 错误：
 %v
 %s`,
 			err,
@@ -104,13 +105,13 @@ func repeatSet(ctx *zero.Ctx) {
 		)
 		return
 	}
-	if 2 > t || MaxTimes < t {
-		kitten.SendWithImageFailOf(ctx, `[次数] 错误：最少为 2，最多为 %d 喵！`, MaxTimes)
+	if t > 2 || MaxTimes < t {
+		msgr.SendWithImageFailOf(`[次数] 错误：最少为 2，最多为 %d 喵！`, MaxTimes)
 		return
 	}
 	times = uint(t)
-	if chance, err = strconv.ParseFloat(args[1], 64); nil != err {
-		kitten.SendWithImageFailOf(ctx, `[概率] 错误：
+	if chance, err = strconv.ParseFloat(args[1], 64); err != nil {
+		msgr.SendWithImageFailOf(`[概率] 错误：
 %v
 %s`,
 			err,
@@ -118,14 +119,14 @@ func repeatSet(ctx *zero.Ctx) {
 		)
 		return
 	}
-	if 0 > chance {
+	if chance < 0 {
 		chance = 0
-		kitten.SendWithImageFailOf(ctx, `[概率] 警告：不能 ＜ 0 喵！`)
+		msgr.SendWithImageFail(`[概率] 警告：不能 ＜ 0 喵！`)
 		return
 	}
-	if 1 < chance {
+	if chance > 1 {
 		chance = 1
-		kitten.SendWithImageFailOf(ctx, `[概率] 警告：不能 ＞ 1 喵！`)
+		msgr.SendWithImageFail(`[概率] 警告：不能 ＞ 1 喵！`)
 		return
 	}
 	mu.Lock()
@@ -134,72 +135,68 @@ func repeatSet(ctx *zero.Ctx) {
 		Times:  times,
 		Chance: chance,
 	})
-	if nil != err {
-		kitten.SendWithImageFail(ctx, `保存复读姬配置文件错误喵！`, err)
+	if err != nil {
+		msgr.SendWithImageFail(`保存复读姬配置文件错误喵！`, err)
 		return
 	}
-	kitten.SendTextOf(ctx, true, `%s将会开始以 %.2f%% 概率复读重复 %d 次的消息喵！`,
-		zero.BotConfig.NickName[0], 100*chance, times)
+	o, err := msgr.Object()
+	if err != nil {
+		msgr.SendWithImageFail(err)
+		return
+	}
+	n, err := o.Name()
+	if err != nil {
+		msgr.SendWithImageFail(err)
+		return
+	}
+	msgr.Reply().AtLf().
+		TextOf(`%s将会开始以 %.2f%% 概率复读重复 %d 次的消息喵！`,
+			n, 100*chance, times,
+		).Send()
 }
 
 func repeat(ctx *zero.Ctx) {
 	var (
-		g     = ctx.Event.GroupID // 群号
-		c, ok = m.Load(g)         // 尝试获取本群的缓存
-		s     = stat{
-			t:   1,
-			msg: ctx.Event.Message,
-		} // 更新的消息统计
+		g     = kitten.NewQQGroup(ctx.Event.GroupID) // 群号
+		c, ok = m.Load(*g)                           // 尝试获取本群的缓存
 	)
-	if ok && compare(c.msg, ctx.Event.Message) {
+	if ok && kitten.IsSameMessage(c.Message, ctx.Event.Message) {
 		// 如果消息与缓存的内容一致，增加一次复读计数
-		s = c
-		s.t++
+		c.t++
+	} else {
+		// 如果没有缓存，或消息与缓存的内容不一致，初始化缓存
+		c.t = 1
+		c.Message = ctx.Event.Message
 	}
 	// 更新缓存
-	m.Store(g, s)
-	if times > s.t || chance <= rand.Float64() {
+	m.Store(*g, c)
+	if c.t < times || rand.Float64() >= chance {
 		// 如果没有达到复读阈值，或者没有按概率触发复读，则返回
 		return
 	}
-	for i, seg := range s.msg {
-		if `image` != seg.Type {
-			continue
-		}
-		s.msg[i] = kitten.Image(html.UnescapeString(seg.Data[`url`]))
-	}
-	ctx.Send(s.msg)
+	// 处理图片
+	c.handleImage(kitten.New(ctx))
+	// 发送消息
+	ctx.Send(c.Message)
 }
 
-// 比较两个消息段切片是否相等
-func compare(x, y message.Message) bool {
-	if len(x) != len(y) {
-		// 如果两个消息段切片的长度不同，则不相等
-		return false
-	}
-	for i, t := range x {
-		tx, ty := x[i].Type, y[i].Type
-		if tx != ty {
-			// 如果两个消息段类型不同，则不相等
-			return false
+// 处理图片
+func (s *stat) handleImage(msgr *kitten.Messager) {
+	for i, seg := range s.Message {
+		if seg.Type != `image` {
+			continue
 		}
-		switch t.Type {
-		// 按类型的特殊比较路径
-		case `image`:
-			if core.MidText(`file=`, `.image`, x[i].String()) !=
-				core.MidText(`file=`, `.image`, y[i].String()) {
-				// 如果图片 MD5 不同，则不相等
-				return false
-			}
-		case `record`, `video`, `anonymous`, `share`, `contact`,
-			`location`, `music`, `forward`, `node`, `xml`, `json`:
-			// 不复读的类型
-			return false
+		// 如果是单张图片，进行一个图片的获取
+		switch file := seg.Data[`file`]; file {
+		case ``:
+			// 获取不到，跳过
+			continue
+		case `marketface`:
+			// 市场表情
+			s.Message[i] = kitten.Image(html.UnescapeString(seg.Data[`url`]))
 		default:
-			if !reflect.DeepEqual(x[i].Data, y[i].Data) {
-				return false
-			}
+			// 默认
+			s.Message[i] = kitten.Image(msgr.GetImage(file).Get(`file`).String())
 		}
 	}
-	return true
 }

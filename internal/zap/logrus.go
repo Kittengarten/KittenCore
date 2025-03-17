@@ -1,8 +1,8 @@
 package logrus
 
 import (
-	"fmt"
 	"io"
+	"log"
 
 	"go.uber.org/zap"
 )
@@ -80,11 +80,13 @@ func Fatalln(args ...any) {
 }
 
 func Printf(format string, args ...any) {
-	fmt.Printf(format, args...)
+	log.Printf(format, args...)
 }
 
 func Println(args ...any) {
-	fmt.Println(args...)
+	log.Println(args...)
 }
 
-func SetOutput(out io.Writer) {}
+func SetOutput(out io.Writer) {
+	log.SetOutput(out)
+}

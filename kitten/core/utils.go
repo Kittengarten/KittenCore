@@ -1,14 +1,40 @@
 package core
 
 import (
+	"errors"
 	"fmt"
+	"io/fs"
+	"maps"
+	"math"
 	"math/rand/v2"
-	"strings"
-	"time"
-	"unicode"
+	"os"
+	"slices"
 
 	"github.com/Kittengarten/KittenCore/internal/wr"
+
+	zero "github.com/wdvxdr1123/ZeroBot"
 )
+
+const (
+	Empty        = `[]`                   // Empty YAML 空数组（slice）
+	Blank        = `{}`                   // Blank YAML 空集合（map）
+	Layout       = `2006.1.2	❤	15:04:05`  // Layout 日期时间格式
+	PlatformBits = 32 << (^uint(0) >> 63) // PlatformBits 平台位数
+	HoursPerDay  = 24                     // HoursPerDay 每天小时数
+)
+
+func init() {
+	fs.ErrInvalid = errors.New(`无效的参数喵！`)
+	fs.ErrPermission = errors.New(`没有权限喵！`)
+	fs.ErrExist = errors.New(`文件已存在喵！`)
+	fs.ErrNotExist = errors.New(`文件不存在喵！`)
+	fs.ErrClosed = errors.New(`文件已关闭喵！`)
+	os.ErrInvalid = fs.ErrInvalid
+	os.ErrPermission = fs.ErrPermission
+	os.ErrExist = fs.ErrExist
+	os.ErrNotExist = fs.ErrNotExist
+	os.ErrClosed = fs.ErrClosed
+}
 
 type (
 	// Choicer 随机项目的抽象接口
@@ -28,131 +54,78 @@ type (
 
 	// ChoicersW 由带权重的随机项目的抽象接口组成的切片
 	ChoicersW []ChoicerW
-
-	// TimeDuration 表示时间间隔的结构体
-	TimeDuration struct {
-		d, h, m, s time.Duration // 天，小时，分钟，秒
-	}
 )
 
 // Choose 按权重抽取一个项目的序号
 func (c ChoicersW) Choose() (int, error) {
-	choices := make([]wr.Choice[int, int], len(c), len(c))
-	for i, ch := range c {
-		item, weight := ch.GetID(), ch.GetWeight()
-		choices[i] = wr.Choice[int, int]{Item: item, Weight: weight}
-	}
-	chooser, err := wr.NewChooser(choices...)
-	if nil != err {
+	chooser, err := wr.NewChooser(
+		ConvertSlice(
+			c,
+			func(ch ChoicerW) wr.Choice[int, int] {
+				return wr.Choice[int, int]{Item: ch.GetID(), Weight: ch.GetWeight()}
+			},
+		)...,
+	)
+	if err != nil {
 		return -1, err
 	}
 	return chooser.Pick(), nil
 }
 
-// IsSameDate 判断两个时间是否在同一天
-func IsSameDate(t1, t2 time.Time) bool {
-	return t1.Day() == t2.Day() &&
-		t1.Month() == t2.Month() &&
-		t1.Year() == t2.Year()
-}
-
-/*
-CleanAll 清理字符串中全部不必要内容
-
-lf 控制是否换行
-*/
-func CleanAll[T ~string | ~[]rune | ~[]byte](s T, lf bool) T {
-	return T(strings.Map(func(r rune) rune {
-		if remove := unicode.IsControl(r) || unicode.IsSpace(r);
-		// 如果不换行，移除包括换行符在内的控制字符和空白字符
-		(!lf && remove) ||
-			// 如果换行，移除换行符以外的控制字符和空白字符
-			(lf && remove && !strings.ContainsRune("\n\r", r)) ||
-			// 移除可能引发排版和显示错误的字符
-			strings.ContainsRune("\u061c\u200e\u200f\u202a\u202b\u202c\u202d\u202e\u2066\u2067\u2068\u2069\ufffd", r) {
-			return -1
-		}
-		return r
-	}, string(s)))
-}
-
-/*
-MidText 获取中间字符串
-
-pre 为前缀（不包含），suf 为后缀（不包含），str 为整个字符串
-*/
-func MidText(pre, suf, str string) string {
-	return str[func() int {
-		// 截掉前缀及之前部分
-		if i := strings.Index(str, pre); -1 != i {
-			return i + len(pre)
-		}
-		return 0
-	}():func() int {
-		// 截掉后缀及之后部分
-		if i := strings.LastIndex(str, suf); -1 != i {
-			return i
-		}
-		return len(str)
-	}()]
-}
-
 // GenerateRandomNumber 生成 count 个 [start, end) 范围的不重复的随机数
 func GenerateRandomNumber(start, end, count int) ([]int, error) {
 	// 范围检查
-	if end <= start {
+	if start >= end {
 		return nil, fmt.Errorf(`上限 %d 必须大于下限 %d 喵！`, end, start)
 	}
 	if (end - start) < count {
 		return nil, fmt.Errorf(`下限 %d 和上限 %d 之间的数字只有 %d 个，不满足 %d 个的要求喵！`, start, end, end-start, count)
 	}
-	if 0 >= count {
+	if count <= 0 {
 		return nil, fmt.Errorf(`个数 %d 不是正整数喵！`, count)
 	}
 	// 存放不重复结果的集合
 	set := make(map[int]struct{}, count)
 	for len(set) < count {
 		// 生成随机数
-		set[rand.IntN(end-start)+start] = struct{}{}
+		set[rand.N(end-start)+start] = struct{}{}
 	}
-	// 存放结果的切片
-	nums := make([]int, 0, count)
 	// 集合转换为切片
-	for k := range set {
-		nums = append(nums, k)
-	}
-	return nums, nil
+	return slices.Collect(maps.Keys(set)), nil
 }
 
-// RandomDelay 随机阻塞等待
-func RandomDelay(t time.Duration) {
-	<-time.NewTimer(time.Duration(float64(t) * rand.Float64())).C
+// NotOnlyToMe 不是（@ 自己 | 以自己的名字之一开头 | 私聊）任何之一
+func NotOnlyToMe(ctx *zero.Ctx) bool {
+	return !zero.OnlyToMe(ctx)
 }
 
-// ConvertTimeDuration 转换时间间隔
-func ConvertTimeDuration(d time.Duration) TimeDuration {
-	return TimeDuration{
-		d: d / HoursPerDay / time.Hour,
-		h: d % (HoursPerDay * time.Hour) / time.Hour,
-		m: d % time.Hour / time.Minute,
-		s: d % time.Minute / time.Second,
+// ConvertSlice 将 src 中的每个元素由 T 类型转换为 U 类型
+func ConvertSlice[T any, U any](src []T, f func(T) U) []U {
+	dst := make([]U, len(src))
+	for i, v := range src {
+		dst[i] = f(v)
 	}
+	return dst
 }
 
-// String 实现 fmt.Stringer
-func (t TimeDuration) String() string {
-	var s []string
-	if 0 != t.d {
-		s = append(s, fmt.Sprintf(`%d 天`, t.d))
+// Round 保留小数点后 n 位
+func Round(f float64, n int) float64 {
+	pow10_n := math.Pow10(n)
+	return math.RoundToEven(f*pow10_n) / pow10_n
+}
+
+// BoolToString 将布尔值转换为字符串
+func BoolToString(b bool) string {
+	if b {
+		return `true`
 	}
-	if 0 != t.h {
-		s = append(s, fmt.Sprintf(`%d 小时`, t.h))
+	return `false`
+}
+
+// BoolToInt 将布尔值转换为数字
+func BoolToInt(b bool) int {
+	if b {
+		return 1
 	}
-	if 0 != t.m {
-		s = append(s, fmt.Sprintf(`%d 分钟`, t.m))
-	}
-	if 0 != t.s {
-		s = append(s, fmt.Sprintf(`%d 秒`, t.s))
-	}
-	return strings.Join(s, ` `)
+	return 0
 }

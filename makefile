@@ -1,13 +1,16 @@
 .PHONY: build clean help
 
-all: build
+all: clean build
 
 build:
-	go build -v -o KittenCore main.go
+	-go build -ldflags=-checklinkname=0 -v -o KittenCore main.go
 
 clean:
-	rm KittenCore
-	go clean -i .
+	-rm KittenCore
+	-go clean -i .
+	-rm data/zbp/banwords.yaml
+	-rm data/zbp/user.yaml
+	-rm data/Stack2/tips.yaml
 
 help:
 	@echo "make：编译包及其依赖"

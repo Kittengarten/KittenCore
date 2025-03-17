@@ -16,9 +16,7 @@ import (
 	"github.com/wdvxdr1123/ZeroBot/utils/helper"
 )
 
-var (
-	nullResponse = zero.APIResponse{}
-)
+var nullResponse = zero.APIResponse{}
 
 // MSG 消息Map
 type MSG = map[string]interface{}
@@ -78,7 +76,7 @@ func RegisterServer(r func(string, func(CQBot))) {
 
 // Connect 连接服务端
 func (f *FCClient) Connect() {
-	rsp, err := f.CallApi(zero.APIRequest{
+	rsp, err := f.CallAPI(zero.APIRequest{
 		Action: "get_login_info",
 		Params: nil,
 	})
@@ -96,10 +94,10 @@ func (f *FCClient) Listen(handler func([]byte, zero.APICaller)) {
 	f.handler = handler
 }
 
-// CallApi 发送请求
+// CallAPI 发送请求
 //
-//nolint:stylecheck,revive
-func (f *FCClient) CallApi(req zero.APIRequest) (zero.APIResponse, error) {
+
+func (f *FCClient) CallAPI(req zero.APIRequest) (zero.APIResponse, error) {
 	req.Echo = f.nextSeq()
 	rsp, err := f.handleRequest(&req)
 	log.Debug("向服务器发送请求: ", req)

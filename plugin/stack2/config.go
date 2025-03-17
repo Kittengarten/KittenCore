@@ -1,24 +1,24 @@
 package stack2
 
 import (
+	_ "embed"
 	"fmt"
+
+	"github.com/Kittengarten/KittenCore/kitten"
+	"github.com/Kittengarten/KittenCore/kitten/core"
 
 	ctrl "github.com/FloatTech/zbpctrl"
 	"github.com/FloatTech/zbputils/control"
-	"github.com/Kittengarten/KittenCore/kitten"
-	"github.com/Kittengarten/KittenCore/kitten/core"
 	zero "github.com/wdvxdr1123/ZeroBot"
 )
 
 var (
 	// 叠猫猫配置文件名
-	configFile = core.FilePath(`plugin`, replyServiceName, `config.yaml`)
+	configFile = core.FilePath(`data`, `Stack2`, `config.yaml`)
+	//go:embed config.yaml
+	configStr string
 	// 叠猫猫配置文件
-	stackConfig, err = core.Load[config](configFile, `resthoursperkg: 1   # 每千克体重的休息小时数
-minresthours: 1     # 最小休息小时数
-ocminresthours: 24  # 加速的最小休息小时数`)
-	// 图片路径
-	imagePath = core.FilePath(kitten.MainConfig().Path, replyServiceName, `image`)
+	stackConfig, err = core.Load[config](configFile, configStr)
 	// bot 配置
 	botConfig = kitten.MainConfig()
 	// 帮助文本
@@ -56,6 +56,12 @@ ocminresthours: 24  # 加速的最小休息小时数`)
 		Help:             help,
 		PublicDataFolder: `Stack2`,
 	})
+	// 图片路径
+	imagePath = core.FilePath(kitten.ImagePath(), replyServiceName)
 	// 数据路径
 	dataPath = core.FilePath(engine.DataFolder(), dataFile)
+	// 缓存路径
+	bufferPath = core.FilePath(engine.DataFolder(), bufferFile)
+	// 小贴士路径
+	tipsPath = core.FilePath(engine.DataFolder(), tipsFile)
 )

@@ -15,6 +15,7 @@ import (
 
 	"github.com/FloatTech/floatbox/binary"
 	"github.com/FloatTech/floatbox/process"
+	sql "github.com/FloatTech/sqlite"
 
 	"github.com/FloatTech/zbputils/ctxext"
 )
@@ -85,13 +86,14 @@ func removeRegex(gid, uid int64, bots, pattern string) error {
 	}
 	cr += strconv.FormatInt(gid, 36) + ":" + pattern
 	c := &cmd{}
-	var delcmd []string
-	_ = db.FindFor(bots, c, "where cron='"+cr+"'", func() error {
-		delcmd = append(delcmd, "id="+strconv.FormatInt(c.ID, 10))
+	var delids []int64
+	_ = db.FindFor(bots, c, "WHERE cron = ?", func() error {
+		delids = append(delids, c.ID)
 		return nil
-	})
-	if len(delcmd) > 0 {
-		return db.Del(bots, "WHERE "+strings.Join(delcmd, " or "))
+	}, cr)
+	if len(delids) > 0 {
+		q, s := sql.QuerySet("WHERE id", "IN", delids)
+		return db.Del(bots, q, s...)
 	}
 	return nil
 }
@@ -104,13 +106,14 @@ func removeInjectRegex(gid, uid int64, bots, pattern string) error {
 	}
 	cr += strconv.FormatInt(gid, 36) + ":" + pattern
 	c := &cmd{}
-	var delcmd []string
-	_ = db.FindFor(bots, c, "where cron='"+cr+"'", func() error {
-		delcmd = append(delcmd, "id="+strconv.FormatInt(c.ID, 10))
+	var delids []int64
+	_ = db.FindFor(bots, c, "WHERE cron = ?", func() error {
+		delids = append(delids, c.ID)
 		return nil
-	})
-	if len(delcmd) > 0 {
-		return db.Del(bots, "WHERE "+strings.Join(delcmd, " or "))
+	}, cr)
+	if len(delids) > 0 {
+		q, s := sql.QuerySet("WHERE id", "IN", delids)
+		return db.Del(bots, q, s...)
 	}
 	return nil
 }
@@ -126,13 +129,13 @@ func init() {
 			all = false
 		}
 		if all && !zero.AdminPermission(ctx) {
-			ctx.Send(message.Text("非管理员/主人无法设置全局问答"))
+			ctx.SendChain(message.Text("非管理员/主人无法设置全局问答"))
 			return
 		}
 		isInject := false
 		if matched[4] == "做" || matched[4] == "执行" {
 			if !zero.AdminPermission(ctx) {
-				ctx.Send(message.Text("非管理员/主人无法设置注入"))
+				ctx.SendChain(message.Text("非管理员/主人无法设置注入"))
 				return
 			}
 			isInject = true
@@ -151,7 +154,7 @@ func init() {
 		}
 		compiled, err := regexp.Compile(transformPattern(pattern))
 		if err != nil {
-			ctx.Send(message.Text("ERROR:无法编译正则表达式:", err))
+			ctx.SendChain(message.Text("ERROR:无法编译正则表达式:", err))
 			return
 		}
 		regexInst := inst{
@@ -181,10 +184,10 @@ func init() {
 			}
 		}
 		if err != nil {
-			ctx.Send(message.Text("ERROR:无法保存正则表达式:", err))
+			ctx.SendChain(message.Text("ERROR:无法保存正则表达式:", err))
 			return
 		}
-		ctx.Send(message.Text("成功"))
+		ctx.SendChain(message.Text("成功"))
 	})
 
 	en.OnRegex(`^(查看|看看)(我|大家|有人)(说|问)`, zero.OnlyGroup, zero.OnlyToMe).Limit(ctxext.LimitByGroup).Handle(func(ctx *zero.Ctx) {
@@ -207,9 +210,9 @@ func init() {
 		w := binary.SelectWriter()
 		defer binary.PutWriter(w)
 		if all {
-			w.WriteString("该群设置的“有人问”有：\n")
+			fmt.Fprintln(w, `该群设置的“有人问”有：`)
 		} else {
-			_, _ = fmt.Fprintf(w, "你在该群设置的含有 %s 的问题有：\n", arg)
+			_, _ = fmt.Fprintln(w, `你在该群设置的含有`, arg, `的问题有：`)
 		}
 		show := func(insts []inst) {
 			for i := range insts {
@@ -228,7 +231,7 @@ func init() {
 		} else {
 			show(rg.Private[uid])
 		}
-		ctx.Send(message.Text(w.String()))
+		ctx.SendChain(message.Text(w.String()))
 	})
 
 	en.OnRegex(`^删除(大家|有人|我)(说|问|让你做|让你执行)`, zero.OnlyGroup, zero.OnlyToMe).Limit(ctxext.LimitByGroup).Handle(func(ctx *zero.Ctx) {
@@ -252,13 +255,13 @@ func init() {
 			all = false
 		}
 		if all && !zero.AdminPermission(ctx) {
-			ctx.Send(message.Text("非管理员/主人无法删除全局问答"))
+			ctx.SendChain(message.Text("非管理员/主人无法删除全局问答"))
 			return
 		}
 		isInject := false
 		if matched[2] == "让你做" || matched[2] == "让你执行" {
 			if !zero.AdminPermission(ctx) {
-				ctx.Send(message.Text("非管理员/主人无法删除注入"))
+				ctx.SendChain(message.Text("非管理员/主人无法删除注入"))
 				return
 			}
 			isInject = true
@@ -316,10 +319,10 @@ func init() {
 			}
 		}
 		if err != nil {
-			ctx.Send(message.Text("ERROR: ", err))
+			ctx.SendChain(message.Text("ERROR: ", err))
 			return
 		}
-		ctx.Send(message.Text("删除成功"))
+		ctx.SendChain(message.Text("删除成功"))
 	})
 
 	en.On(`message/group`, func(ctx *zero.Ctx) bool {
@@ -349,7 +352,7 @@ func init() {
 			})
 			if err != nil {
 				cl()
-				ctx.Send(message.Text("ERROR: ", err))
+				ctx.SendChain(message.Text("ERROR: ", err))
 				return
 			}
 			logrus.Debugln("[job] inject:", binary.BytesToString(vev))

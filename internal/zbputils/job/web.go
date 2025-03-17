@@ -9,6 +9,7 @@ import (
 
 	"github.com/FloatTech/floatbox/binary"
 	"github.com/FloatTech/floatbox/process"
+	sql "github.com/FloatTech/sqlite"
 	"github.com/sirupsen/logrus"
 	zero "github.com/wdvxdr1123/ZeroBot"
 	"github.com/wdvxdr1123/ZeroBot/message"
@@ -74,7 +75,7 @@ type Job struct {
 // List 任务列表
 func List() (jobList []Job, err error) {
 	jobList = make([]Job, 0, 16)
-	zero.RangeBot(func(id int64, ctx *zero.Ctx) bool {
+	zero.RangeBot(func(id int64, _ *zero.Ctx) bool {
 		c := &cmd{}
 		ids := strconv.FormatInt(id, 36)
 		_ = db.FindFor(ids, c, "", func() error {
@@ -335,14 +336,24 @@ type DeleteReq struct {
 
 // Delete 删除任务
 func Delete(req *DeleteReq) (err error) {
-	var (
-		c cmd
-	)
+	var c cmd
+	if len(req.IDList) == 0 {
+		return
+	}
 	mu.Lock()
 	defer mu.Unlock()
 	bots := strconv.FormatInt(req.SelfID, 36)
-	var delcmd []string
-	err = db.FindFor(bots, &c, "WHERE id in ( "+strings.Join(req.IDList, ",")+" )", func() error {
+	var (
+		delids []int64
+		reqids = make([]int64, len(req.IDList))
+	)
+	for i, idstr := range req.IDList {
+		reqids[i], err = strconv.ParseInt(idstr, 10, 64)
+		if err != nil {
+			return
+		}
+	}
+	err = db.FindFor(bots, &c, "WHERE id in ?", func() error {
 		switch {
 		case len(c.Cron) >= 3 && (c.Cron[:3] == "fm:" || c.Cron[:3] == "sm:"):
 			m, ok := matchers[c.ID]
@@ -429,14 +440,15 @@ func Delete(req *DeleteReq) (err error) {
 				delete(entries, c.ID)
 			}
 		}
-		delcmd = append(delcmd, "id="+strconv.FormatInt(c.ID, 10))
+		delids = append(delids, c.ID)
 		return nil
-	})
+	}, reqids)
 	if err != nil {
 		return
 	}
-	if len(delcmd) > 0 {
-		err = db.Del(bots, "WHERE "+strings.Join(delcmd, " or "))
+	if len(delids) > 0 {
+		q, s := sql.QuerySet("WHERE id", "IN", delids)
+		err = db.Del(bots, q, s...)
 		if err != nil {
 			return
 		}

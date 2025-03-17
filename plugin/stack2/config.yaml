@@ -1,0 +1,3 @@
+resthoursperkg: 1   # 每千克体重的休息小时数
+minresthours: 1     # 最小休息小时数
+ocminresthours: 24  # 加速的最小休息小时数

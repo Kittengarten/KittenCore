@@ -1,8 +1,9 @@
-go 1.23.0
+go 1.24.0
 
 use (
 	.
-	./internal/terasu
+	./internal/gorm
 	./internal/zap
 	./internal/zbputils
+	./terasu
 )

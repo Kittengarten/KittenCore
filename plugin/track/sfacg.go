@@ -2,6 +2,7 @@ package track
 
 import (
 	"fmt"
+	"slices"
 	"strconv"
 	"strings"
 
@@ -11,35 +12,35 @@ import (
 	"golang.org/x/net/html"
 )
 
-type stringCount int // 用于判断的字数
+type stringCount = int // 用于判断的字数
 
 const (
-	sf             platform    = `SF轻小说`
-	sfHost                     = `https://book.sfacg.com`
-	sfURL                      = sfHost + `/Novel/`
-	sfDateTime                 = `2006/1/2 15:04:05`
-	bookStrings    stringCount = 43
-	chapterStrings stringCount = 38
+	SF               Platform    = `SF轻小说`
+	sfHost                       = `https://book.sfacg.com`
+	sfURL                        = sfHost + `/Novel/`
+	sfDateTime                   = `2006/1/2 15:04:05`
+	sfBookStrings    stringCount = 43
+	sfChapterStrings stringCount = 38
 )
 
 // 小说网页信息获取
 func (nv *novel) initSF(bookID string) error {
 	// 初始化小说平台
-	nv.platform = string(sf)
+	nv.Platform = SF
 	// 向小说传入书号
 	nv.id = bookID
 	// 生成链接
 	nv.url = sfURL + nv.id + `/`
 	// 获取小说网页，失败则返回
-	doc, err := core.FetchNode(nv.url)
-	if nil != err {
+	doc, err := htmlquery.LoadURL(nv.url)
+	if err != nil {
 		return err
 	}
-	if err := mayExist(doc, nv.url, bookStrings); nil != err {
+	if err := mayExist(doc, nv.url, sfBookStrings); err != nil {
 		return err
 	}
 	// 获取书名
-	nv.name = core.InnerText(doc, `//h1[@class="title"]/span[@class="text"]`)
+	nv.name = strings.TrimSpace(core.InnerText(doc, `//h1[@class="title"]/span/text()`))
 	// 获取小说版权状态与项目
 	nv.getNovelRightItem(doc)
 	// 获取作者
@@ -59,7 +60,7 @@ func (nv *novel) initSF(bookID string) error {
 	// 获取简述
 	nv.introduce = core.InnerText(doc, `//p[@class="introduce"]`)
 	// 获取移动版简述
-	if introduceMobile, err := nv.getIntroduce(); nil == err &&
+	if introduceMobile, err := nv.getIntroduce(); err == nil &&
 		len(introduceMobile) >= len(nv.introduce) {
 		nv.introduce = introduceMobile
 	}
@@ -67,10 +68,12 @@ func (nv *novel) initSF(bookID string) error {
 	nv.collection = strings.TrimPrefix(
 		core.InnerText(doc, `//div[@id="BasicOperation"]/a[3]`), `收藏 `)
 	// 获取标签
-	for _, t := range htmlquery.Find(doc,
-		`//li[starts-with(@class,"tag")]/a/span[@class="text"]`) {
-		nv.tagList = append(nv.tagList, core.CleanAll(htmlquery.InnerText(t), false))
-	}
+	nv.tagList = core.ConvertSlice(
+		htmlquery.Find(doc, `//li[starts-with(@class,"tag")]/a/span[@class="text"]`),
+		func(n *html.Node) string {
+			return core.CleanAll(htmlquery.InnerText(n), false)
+		},
+	)
 	// 获取封面链接
 	nv.coverURL = core.InnerText(doc, `//div[@class="figure"]//img/@src`)
 	// 获取预览
@@ -78,7 +81,7 @@ func (nv *novel) initSF(bookID string) error {
 		doc, `//div[@class="chapter-info"]/p`), `　　`, "\n"), true), "\n")
 	// 获取新章节链接
 	newChapter := htmlquery.FindOne(doc, `//div[@class="chapter-info"]/h3/a/@href`)
-	if nil == newChapter {
+	if newChapter == nil {
 		// 如果新章节链接不存在，防止更新章节炸了跳转到网站首页引起程序报错
 		return fmt.Errorf(`新章节链接错误：%w`, errStatus(nv.url, noChapterURL))
 	}
@@ -87,22 +90,27 @@ func (nv *novel) initSF(bookID string) error {
 	defer chapterPool.Put(&nv.newChapter)
 	nv.newChapter.bookURL = nv.url
 	// 加载新章节
-	if err := nv.newChapter.initSF(
-		sfHost + htmlquery.InnerText(newChapter)); nil != err {
+	if err := nv.newChapter.init(SF, sfHost+htmlquery.InnerText(newChapter)); err != nil {
 		return err
 	}
 	// 如果不是 VIP 书籍，直接返回
-	if `VIP` != nv.right {
+	if !slices.Contains(nv.right, `VIP`) {
 		return nil
 	}
+	// 检查是否存在最新章节
+	return nv.checkUpdateSF(doc)
+}
+
+// 检查是否存在最新章节
+func (nv *novel) checkUpdateSF(doc *html.Node) error {
 	// 尝试获取新公众章节链接
-	newChapterFreeNode := htmlquery.FindOne(doc, `//div[@class="chapter-info"]/div/a/@href`)
-	if nil == newChapterFreeNode {
+	newChapterPublicNode := htmlquery.FindOne(doc, `//div[@class="chapter-info"]/div/a/@href`)
+	if newChapterPublicNode == nil {
 		// 如果新公众章节不存在，直接返回
 		return nil
 	}
-	newChapterFreeURL := htmlquery.InnerText(newChapterFreeNode)
-	if `` == newChapterFreeURL {
+	newChapterPublicURL := htmlquery.InnerText(newChapterPublicNode)
+	if newChapterPublicURL == `` {
 		// 如果新公众章节链接不存在，防止更新章节炸了跳转到网站首页引起程序报错
 		return fmt.Errorf(`新公众章节链接错误：%w`, errStatus(nv.url, noChapterURL))
 	}
@@ -111,12 +119,11 @@ func (nv *novel) initSF(bookID string) error {
 	defer chapterPool.Put(&newChapterFree)
 	newChapterFree.bookURL = nv.url
 	// 加载最新公众章节
-	if err := newChapterFree.initSF(
-		sfHost + newChapterFreeURL); nil != err {
+	if err := newChapterFree.initSF(sfHost + newChapterPublicURL); err != nil {
 		return err
 	}
 	// 如果最新公众章节比最新章节新，则以最新公众章节为准
-	if newChapterFree.update.After(nv.newChapter.update) {
+	if newChapterFree.After(nv.newChapter.Time) {
 		nv.newChapter = newChapterFree
 	}
 	return nil
@@ -131,29 +138,29 @@ func (cp *chapter) initSF(url string) error {
 	// 向章节传入链接
 	cp.url = url
 	// 获取章节网页，失败则返回
-	doc, err := core.FetchNode(cp.url)
-	if nil != err {
+	doc, err := htmlquery.LoadURL(cp.url)
+	if err != nil {
 		return err
 	}
-	if err := mayExist(doc, cp.url, bookStrings); nil != err {
+	if err := mayExist(doc, cp.url, sfChapterStrings); err != nil {
 		return err
 	}
 	// 获取章节标题
 	cp.title = core.InnerText(doc, `//h1[@class="article-title"]`)
 	// 获取更新时间
-	cp.update, err = parseTime(strings.TrimPrefix(
-		core.InnerText(doc, `//div[@class="article-desc"]/span[2]`), `更新时间：`), sf)
-	if nil != err {
+	cp.Time, err = SF.ParseTime(strings.TrimPrefix(
+		core.InnerText(doc, `//div[@class="article-desc"]/span[2]`), `更新时间：`))
+	if err != nil {
 		return err
 	}
-	// 获取新章节字数
-	cp.wordNum, err = strconv.Atoi(strings.TrimPrefix(
-		core.InnerText(doc, `//div[@class="article-desc"]/span[3]`), `字数：`))
-	if nil != err {
-		return err
+	// 获取章节字数
+	wordNum := core.InnerText(doc, `//div[@class="article-desc"]/span[3]`)
+	cp.wordNum, err = strconv.Atoi(strings.TrimPrefix(wordNum, `字数：`))
+	if err != nil {
+		return fmt.Errorf(`章节 %s 的字数获取错误喵！%w`, url, err)
 	}
 	// 获取上一章链接
-	cp.lastURL = sfHost +
+	cp.preURL = sfHost +
 		core.InnerText(doc, `//div[@id="article"]/div[@class="fn-btn"]/a[1]/@href`)
 	// 获取下一章链接
 	cp.nextURL = sfHost +
@@ -166,12 +173,12 @@ func (cp *chapter) initSF(url string) error {
 
 // 用关键词搜索书号
 func (key keyword) findSFBookID() (string, error) {
-	doc, err := core.FetchNode(fmt.Sprint(`http://s.sfacg.com/?Key=`, key, `&S=1&SS=0`))
-	if nil != err {
+	doc, err := htmlquery.LoadURL(fmt.Sprint(`http://s.sfacg.com/?Key=`, key, `&S=1&SS=0`))
+	if err != nil {
 		return ``, err
 	}
 	url, err := core.InnerText(doc, `//a[@id="SearchResultList1___ResultList_LinkInfo_0"]/@href`), nil
-	if `` == url {
+	if url == `` {
 		err = notFound(key)
 	}
 	return strings.TrimPrefix(url, sfURL), err
@@ -179,31 +186,39 @@ func (key keyword) findSFBookID() (string, error) {
 
 // 获取移动版简述
 func (nv *novel) getIntroduce() (string, error) {
-	doc, err := core.FetchNode(`https://m.sfacg.com/b/` + nv.id + `/`)
-	if nil != err {
+	doc, err := htmlquery.LoadURL(`https://m.sfacg.com/b/` + nv.id + `/`)
+	if err != nil {
 		return ``, err
 	}
-	return core.InnerText(doc, `//ul[@class="book_profile"]/li[@class="book_bk_qs1"]`),
-		mayExist(doc, nv.url, bookStrings)
+	return core.Compose(nil, core.InnerText(doc,
+		`//ul[@class="book_profile"]/li[@class="book_bk_qs1"]`),
+	), mayExist(doc, nv.url, sfBookStrings)
 }
 
 // 判断小说或章节是否可能存在
 func mayExist(doc *html.Node, url string, count stringCount) error {
-	if int(count) > len(core.InnerText(doc, `//title`)) {
-		return errStatus(url, bookUnreachable)
+	if len(core.InnerText(doc, `//title`)) >= count {
+		return nil
 	}
-	return nil
+	return errStatus(url, bookUnreachable)
 }
 
 // 获取小说版权状态与项目
 func (nv *novel) getNovelRightItem(doc *html.Node) {
 	for _, tt := range htmlquery.Find(doc,
-		`//h1[@class="title"]/span[starts-with(@class,"tag")]`) {
-		// 获取版权状态
-		nv.right += core.InnerText(tt, `.[contains(@class,"blue")]`)
-		// 获取版权状态
-		nv.right += core.InnerText(tt, `.[contains(@class,"yellow")]`)
-		// 获取项目
-		nv.item += core.InnerText(tt, `.[contains(@class,"green")]`)
+		`//h1[@class="title"]//span[starts-with(@class,"tag")]`) {
+		switch b, y, g := core.InnerText(tt, `.[contains(@class,"blue")]`),
+			core.InnerText(tt, `.[contains(@class,"yellow")]`),
+			core.InnerText(tt, `.[contains(@class,"green")]`); {
+		case b != ``:
+			// 获取版权状态
+			nv.right = append(nv.right, b)
+		case y != ``:
+			// 获取版权状态
+			nv.right = append(nv.right, y)
+		case g != ``:
+			// 获取项目
+			nv.item = append(nv.item, g)
+		}
 	}
 }

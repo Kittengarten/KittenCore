@@ -2,44 +2,43 @@ package protocol
 
 import (
 	"github.com/Kittengarten/KittenCore/kitten"
+	"github.com/Kittengarten/KittenCore/kitten/core"
 
 	"github.com/FloatTech/floatbox/process"
 	zero "github.com/wdvxdr1123/ZeroBot"
 	"github.com/wdvxdr1123/ZeroBot/driver"
 )
 
-func getDriver(forward bool, url, accessToken string) zero.Driver {
-	if forward {
-		return &driver.WSClient{
-			// OneBot 正向 WS 默认使用 6700 端口
-			Url:         url,
-			AccessToken: accessToken,
-		}
+// 代理类型
+type proxy bool
+
+const (
+	Forward proxy = true  // 正向代理
+	Reverse proxy = false // 反向代理
+)
+
+// 获取 WebSocket 驱动
+func wsDriver(p proxy, ws kitten.WebSocketConfig) zero.Driver {
+	if p {
+		// OneBot 正向 WS 默认使用 6700 端口
+		return driver.NewWebSocketClient(ws.URL, ws.AccessToken)
 	}
-	return &driver.WSServer{
-		// OneBot 反向 WS 默认使用 6700 端口
-		Url:         url,
-		AccessToken: accessToken,
-	}
+	// OneBot 反向 WS 默认使用 5140 端口
+	return driver.NewWebSocketServer(16, ws.URL, ws.AccessToken)
 }
 
 // Runbot 启动机器人
-func RunBot(forward bool) {
-	var (
-		config     = kitten.MainConfig()
-		superUsers = make([]int64, len(config.SuperUsers), len(config.SuperUsers))
-	)
-	for i, u := range config.SuperUsers {
-		superUsers[i] = u.Int()
-	}
+func RunBot(p proxy) {
+	config := kitten.MainConfig()
 	zero.RunAndBlock(&zero.Config{
 		NickName:      config.NickName,
 		CommandPrefix: config.CommandPrefix,
-		SuperUsers:    superUsers,
+		SuperUsers: core.ConvertSlice(
+			config.SuperUsers,
+			func(v kitten.QQ) int64 { return v.Int() },
+		),
 		Driver: []zero.Driver{
-			getDriver(forward,
-				config.WebSocket.URL,
-				config.WebSocket.AccessToken),
+			wsDriver(p, config.WebSocket),
 		},
 	}, process.GlobalInitMutex.Unlock)
 }

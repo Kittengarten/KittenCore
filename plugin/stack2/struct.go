@@ -1,10 +1,10 @@
 package stack2
 
 import (
+	"math"
 	"time"
 
 	"github.com/Kittengarten/KittenCore/kitten"
-	"github.com/Kittengarten/KittenCore/kitten/core"
 )
 
 const (
@@ -52,16 +52,17 @@ var mapMeow = map[meowTypeID]meowType{
 	猫猫巴士:    {weight: 150000, str: `猫猫巴士`},
 	猫卡:      {weight: 500000, str: `猫卡`},
 	虎式坦克:    {weight: 1000000, str: `虎式坦克`},
-	unknown: {weight: core.MaxInt, str: `■■■`},
+	unknown: {weight: math.MaxInt, str: `■■■`},
 }
 
 type (
 	// 叠猫猫退出原因
-	result byte
+	result = byte
 
 	// 猫猫类型序号
 	meowTypeID byte
 
+	// 猫猫类型
 	meowType struct {
 		weight int    // 达到下一个等级的重量
 		str    string // 字符串表示
@@ -72,6 +73,12 @@ type (
 		RestHoursPerKG int // 每千克体重的休息小时数
 		MinRestHours   int // 最小休息小时数
 		OCMinRestHours int // 加速的最小休息小时数
+	}
+
+	// 叠猫猫缓存
+	buffer struct {
+		MedianWeight int           // 当前猫池中位数重量（0.1 kg 数）
+		MaxRestTime  time.Duration // 最大休息时间
 	}
 
 	data []meow // 叠猫猫数据
@@ -88,8 +95,8 @@ type (
 
 	// Stat 统计信息
 	Stat struct {
-		In                  // 加入次数
-		Exit                // 退出次数
+		In        In        // 加入次数
+		Exit      Exit      // 退出次数
 		Time      time.Time // 总时长
 		Max       int       // 曾经达到的最大高度
 		MaxWeight int       // 曾经达到的最大重量

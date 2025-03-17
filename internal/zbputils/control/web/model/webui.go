@@ -6,7 +6,7 @@ import (
 	"sync"
 	"time"
 
-	sql "github.com/FloatTech/zbputils/sql"
+	sql "github.com/FloatTech/sqlite"
 )
 
 // User webui用户数据
@@ -19,13 +19,12 @@ type User struct {
 const webuiFolder = "data/webui/"
 
 var (
-	udb sql.Sqlite
+	udb = sql.New(webuiFolder + "user.db")
 	mu  sync.RWMutex
 )
 
 func init() {
 	_ = os.MkdirAll(webuiFolder, 0o755)
-	udb.DBPath = webuiFolder + "user.db"
 	err := udb.Open(time.Hour)
 	if err != nil {
 		panic(err)

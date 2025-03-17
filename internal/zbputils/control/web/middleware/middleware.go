@@ -5,14 +5,13 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/Kittengarten/KittenCore/kitten/core"
 	"github.com/gin-gonic/gin"
 	"github.com/patrickmn/go-cache"
 )
 
-var (
-	// LoginCache 登录缓存
-	LoginCache = cache.New(24*time.Hour, 12*time.Hour)
-)
+// LoginCache 登录缓存
+var LoginCache = cache.New(24*time.Hour, 12*time.Hour)
 
 // Cors 跨域
 /**
@@ -36,7 +35,7 @@ func Cors() gin.HandlerFunc {
 			// 设置缓存时间
 			c.Header("Access-Control-Max-Age", "172800")
 			// 允许客户端传递校验信息比如 cookie (重要)
-			c.Header("Access-Control-Allow-Credentials", "true")
+			c.Header("Access-Control-Allow-Credentials", core.BoolToString(true))
 		}
 
 		// 允许类型校验

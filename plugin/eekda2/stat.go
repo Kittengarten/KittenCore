@@ -20,45 +20,53 @@ type compare struct {
 func getStat(ctx *zero.Ctx) {
 	mu.RLock()
 	defer mu.RUnlock()
-	s, err := core.Load[stat](statPath, core.Empty)
-	if nil != err {
-		kitten.SendWithImageFail(ctx, err)
+	var (
+		s, err = core.Load[stat](statPath, core.Empty)
+		msgr   = kitten.New(ctx)
+	)
+	if err != nil {
+		msgr.SendWithImageFail(err)
 	}
-	if i := slices.IndexFunc(s, func(f food) bool {
+	i := slices.IndexFunc(s, func(f food) bool {
 		return ctx.Event.UserID == f.ID.Int()
-	}); 0 <= i {
-		c, err := core.Load[config](todayPath, core.Empty)
-		if nil != err {
-			kitten.SendWithImageFail(ctx, err)
-		}
-		for _, t := range c {
-			if slices.Contains(t.Group, ctx.Event.GroupID) {
-				// 如果当前角色在本群已注册，跳过
-				continue
-			}
-			// 如果当前角色在本群未注册，移除
-			maps.DeleteFunc(s[i].Stat, func(k string, v [count]int) bool {
-				return k == t.ID
-			})
-		}
-		kitten.SendText(ctx, true, &s[i])
+	})
+	if i == -1 {
+		msgr.DoNotKnow()
 		return
 	}
-	kitten.DoNotKnow(ctx)
+	c, err := core.Load[config](todayPath, core.Empty)
+	if err != nil {
+		msgr.SendWithImageFail(err)
+	}
+	for _, t := range c {
+		if slices.Contains(t.Group, *kitten.NewQQGroup(ctx.Event.GroupID)) {
+			// 如果当前角色在本群已注册，跳过
+			continue
+		}
+		// 如果当前角色在本群未注册，移除
+		maps.DeleteFunc(s[i].Stat, func(k string, _ [count]int) bool {
+			return k == t.ID
+		})
+	}
+	if len(s[i].Stat) == 0 {
+		msgr.DoNotKnow()
+		return
+	}
+	msgr.Reply().AtLf().Text(&s[i]).Send()
 }
 
 // 统计被吃次数
-func doStat(ctx *zero.Ctx, td today) {
+func doStat(msgr *kitten.Messager, td today) {
 	s, err := core.Load[stat](statPath, core.Empty)
-	if nil != err {
-		kitten.SendWithImageFail(ctx, err)
+	if err != nil {
+		msgr.SendWithImageFail(err)
 	}
 	var ok [count]bool
 	// 查询 QQ
 	for k, v := range s {
 		// 用餐类型
 		m := slices.Index(td.Meal[:], v.ID)
-		if 0 <= m {
+		if m >= 0 {
 			// 用餐类型有效
 			a := s[k].Stat[td.ID]
 			a[m]++
@@ -83,8 +91,8 @@ func doStat(ctx *zero.Ctx, td today) {
 	// 排序
 	s.sort()
 	// 写入文件
-	if err := core.Save(statPath, s); nil != err {
-		kitten.SendWithImageFail(ctx, err)
+	if err := core.Save(statPath, s); err != nil {
+		msgr.SendWithImageFail(err)
 	}
 }
 
@@ -103,7 +111,7 @@ func (s *stat) sort() {
 			return 1
 		}
 		// 如果总数相等，比较集齐五餐的数量
-		if c := cmp.Compare(i.cmpStat().min, j.cmpStat().min); 0 != c {
+		if c := cmp.Compare(i.cmpStat().min, j.cmpStat().min); c != 0 {
 			return c
 		}
 		// 如果集齐五餐的数量相等，比较单次最高
@@ -112,8 +120,8 @@ func (s *stat) sort() {
 }
 
 // 比较
-func (f food) cmpStat() (c compare) {
-	for _, v := range f.Stat {
+func (fd *food) cmpStat() (c compare) {
+	for _, v := range fd.Stat {
 		for _, n := range v {
 			c.sum += n
 			c.max = max(c.max, n)

@@ -7,10 +7,17 @@ import (
 	"github.com/Kittengarten/KittenCore/kitten/core"
 )
 
+// 时间布局
+var timeLayout = map[Platform]string{
+	CWM: time.DateTime,
+	FQ:  fqDateTime,
+	SF:  sfDateTime,
+}
+
 // 保存报更
 func (c *books) saveConfig() error {
-	c.SortByUpdate()
-	if err := core.Save(configPath, *c); nil != err {
+	c.sortByUpdate()
+	if err := core.Save(configPath, *c); err != nil {
 		return err
 	}
 	cu <- *c
@@ -18,23 +25,20 @@ func (c *books) saveConfig() error {
 }
 
 // 按更新时间倒序排列小说
-func (c *books) SortByUpdate() {
+func (c *books) sortByUpdate() {
 	slices.SortFunc(*c, func(j, i book) int {
 		return i.UpdateTime.Compare(j.UpdateTime)
 	})
 }
 
 // 时间解析，匹配不到支持的平台时使用默认时间格式
-func parseTime(str string, p platform) (time.Time, error) {
-	if `` == str {
+func (p Platform) ParseTime(str string) (time.Time, error) {
+	if str == `` {
 		return time.Time{}, nil
 	}
-	switch p {
-	case sf:
-		return time.Parse(sfDateTime, str)
-	case cwm:
-		return time.Parse(time.DateTime, str)
-	default:
+	layout, ok := timeLayout[p]
+	if !ok {
 		return time.Parse(core.Layout, str)
 	}
+	return time.Parse(layout, str)
 }

@@ -44,9 +44,7 @@ func JobList(context *gin.Context) {
 //	@Param			object	body		job.Job				false	"添加任务入参"
 //	@Success		200		{object}	types.Response	"成功"
 func JobAdd(context *gin.Context) {
-	var (
-		j job.Job
-	)
+	var j job.Job
 	err := context.ShouldBind(&j)
 	if err != nil {
 		context.JSON(http.StatusOK, types.Response{
@@ -84,9 +82,7 @@ func JobAdd(context *gin.Context) {
 //	@Param			object	body		job.DeleteReq		false	"删除任务的入参"
 //	@Success		200		{object}	types.Response	"成功"
 func JobDelete(context *gin.Context) {
-	var (
-		req job.DeleteReq
-	)
+	var req job.DeleteReq
 	err := context.ShouldBind(&req)
 	if err != nil {
 		context.JSON(http.StatusOK, types.Response{

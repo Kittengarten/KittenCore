@@ -5,14 +5,17 @@ import (
 	"time"
 )
 
-type loc byte // 地区
+type loc = byte // 地区
 
 const (
-	cockroachDoNotAnalysis     = `蟑螂不会分析，蟑螂只会勇敢地创上去`
-	cat                    loc = iota // 叠猫猫
-	fox                               // 叠狐狐
-	gpu                               // 叠显卡
-	cockroach                         // 叠蟑螂
+	cat       loc = iota // 叠猫猫
+	fox                  // 叠狐狐
+	gpu                  // 叠显卡
+	cockroach            // 叠蟑螂
+)
+
+const (
+	cockroachDoNotAnalysis = `蟑螂不会分析，蟑螂只会勇敢地创上去`
 )
 
 var (
@@ -20,6 +23,8 @@ var (
 	l10nStr = [...]map[loc]string{
 		{cat: `猫猫`, fox: `狐狐`, gpu: `显卡`, cockroach: `蟑螂`},
 		{cat: `只猫猫`, fox: `只狐狐`, gpu: `张显卡`},
+		{cat: ` 只`, gpu: ` 张`},
+		{cat: `	只`, gpu: `	张`},
 		{cat: `平地摔了喵`, gpu: `超到了5G`, fox: `平地摔了嘤`, cockroach: `翻了个身`},
 		{cat: `发生平地摔`, gpu: `超到了5G`, cockroach: `翻了个身`},
 		{cat: `的平地摔`, gpu: `要超5G`},
@@ -90,27 +95,25 @@ var (
 		{cat: `床头叠上床尾摔`, gpu: `核心超上显存崩`},
 		{cat: `锻炼`, fox: `化功`, gpu: `加速`, cockroach: `起飞`},
 	}
-	// 字符替换器
-	l10nReplacer = func(l loc) *strings.Replacer {
-		return strings.NewReplacer(mapToSlice(l10nStr[:], l)...)
-	}
 	// 地区标记位
 	globalLocation loc
 )
 
-func mapToSlice(m []map[loc]string, l loc) (s []string) {
-	if cat == l {
+// 字符替换器
+func l10nReplacer() *strings.Replacer {
+	if globalLocation == cat {
 		// 叠猫猫无需替换
-		return
+		return strings.NewReplacer()
 	}
-	for _, v := range m {
-		new, ok := v[l]
+	s := make([]string, 0, 2*len(l10nStr))
+	for _, v := range l10nStr {
+		newStr, ok := v[globalLocation]
 		if !ok {
 			continue
 		}
-		s = append(s, []string{v[cat], new}...)
+		s = append(s, v[cat], newStr)
 	}
-	return
+	return strings.NewReplacer(s...)
 }
 
 // 叠蟑螂活动日期判断，在愚人节的前三天或后七天范围内返回 true

@@ -80,7 +80,7 @@ func writePrioMap() {
 	if err != nil {
 		logrus.Warnln("[control] 反序列化优先级配置文件失败:", err)
 	}
-	if err = os.WriteFile(priofile, data, 0644); err != nil {
+	if err = os.WriteFile(priofile, data, 0o644); err != nil {
 		logrus.Warnln("[control] 写入优先级配置文件失败:", err)
 	}
 }

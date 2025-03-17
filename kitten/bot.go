@@ -1,15 +1,16 @@
 package kitten
 
 import (
+	"errors"
 	"fmt"
 	"image"
 	"os"
-	"os/exec"
 	"reflect"
 	"slices"
 	"strings"
 
 	"github.com/Kittengarten/KittenCore/kitten/core"
+	"github.com/Kittengarten/KittenCore/kitten/qqemoji"
 
 	"github.com/makiuchi-d/gozxing"
 	"github.com/makiuchi-d/gozxing/qrcode"
@@ -21,189 +22,184 @@ import (
 type Item byte // 对上下文的检查类型
 
 const (
-	noEvent      = `非消息的上下文中获取的 bot 实例无 *Event，不可使用`
-	Private      = `private`
-	Group        = `group`
-	Guild        = `guild`
-	Caller  Item = iota // APICaller
-	Event               // *Event
+	Caller Item = iota // APICaller
+	Event              // *Event
 )
 
-// Restart 重启 systemd 服务
-func Restart(s string) {
-	output, err := exec.Command(`sudo`, `systemctl`, `restart`, s).Output()
-	if nil != err {
-		Error(`重启 systemd 服务发生错误喵！`, string(output))
-	}
-}
-
-// SendMessage 向 QQ（负数代表群聊）发送消息
-func (u *QQ) SendMessage(ctx *zero.Ctx, message any) int64 {
-	if u.IsQQ() {
-		return ctx.SendPrivateMessage(u.Int(), message)
-	}
-	return ctx.SendGroupMessage(-u.Int(), message)
-}
+const (
+	noEvent = `上下文无 *Event，不可使用`
+	Private = `private`
+	Group   = `group`
+)
 
 /*
-SendText 发送文本
+Send 向 QQ（负数代表群聊）发送消息
 
-lf 控制群聊的 @ 后是否换行
-
-非消息的上下文中获取的 bot 实例无事件，不可使用
+发送完毕后不会重置 *Messager，可能需要调用 msgr.Reset() 手动重置
 */
-func SendText(ctx *zero.Ctx, lf bool, text ...any) message.MessageID {
-	if !CheckCtx(ctx, Event) || !CheckCtx(ctx, Caller) {
-		// 没有事件或 APICaller ，无法发送
-		Warn(text...)
+func (u *QQ) Send(msgr *Messager) message.ID {
+	if !msgr.Check(Caller) {
+		// 没有 APICaller ，无法发送
+		Warn(msgr)
 		return message.NewMessageIDFromInteger(0)
 	}
-	switch atUser := message.At(ctx.Event.UserID); ctx.Event.DetailType {
-	case Private:
-		return ctx.Send(Text(text...))
-	case Group, Guild:
-		if lf {
-			return ctx.SendChain(atUser, Text("\n"), Text(text...))
+	// 是否需要回复
+	if func() bool {
+		if msgr.ID.ID() == 0 {
+			return false
 		}
-		fallthrough
-	default:
-		return ctx.SendChain(atUser, Text(text...))
-	}
-}
-
-/*
-SendTextOf 发送格式化文本
-
-lf 控制群聊的 @ 后是否换行
-
-非消息的上下文中获取的 bot 实例无事件，不可使用
-*/
-func SendTextOf(ctx *zero.Ctx, lf bool, format string, a ...any) message.MessageID {
-	if !CheckCtx(ctx, Event) || !CheckCtx(ctx, Caller) {
-		// 没有事件或 APICaller ，无法发送
-		Warnf(format, a...)
-		return message.NewMessageIDFromInteger(0)
-	}
-	switch atUser := message.At(ctx.Event.UserID); ctx.Event.DetailType {
-	case Private:
-		return ctx.Send(TextOf(format, a...))
-	case Group, Guild:
-		if lf {
-			return ctx.SendChain(atUser, Text("\n"), TextOf(format, a...))
+		for _, seg := range msgr.Message {
+			switch seg.Type {
+			case `text`, `face`, `image`, `at`:
+				// 消息段兼容回复，不执行操作
+			default:
+				// 消息段不兼容回复，跳过回复程序
+				return false
+			}
 		}
-		fallthrough
-	default:
-		return ctx.SendChain(atUser, TextOf(format, a...))
+		return true
+	}() {
+		msgr.Message = message.ReplyWithMessage(msgr.ID, msgr.Message...)
 	}
+	var id int64
+	switch {
+	case u.IsQQ():
+		id = msgr.SendPrivateMessage(u.Int(), msgr.Message)
+	case u.IsGroup():
+		id = msgr.SendGroupMessage(u.Int(), msgr.Message)
+	default:
+		Error(`无效的发送对象：`, u)
+	}
+	return message.NewMessageIDFromInteger(id)
 }
 
-/*
-SendMessage 发送消息
+// SendWithImageFail 发送带有失败图片的文字消息
+func (m *Messager) SendWithImageFail(text ...any) message.ID {
+	return m.Reply().AtLf().Image(`no.png`).Text(text...).Send()
+}
 
-lf 控制群聊的 @ 后是否换行
+// SendWithImageFailOf 发送带有失败图片的文字消息
+func (m *Messager) SendWithImageFailOf(format string, a ...any) message.ID {
+	return m.Reply().AtLf().Image(`no.png`).TextOf(format, a...).Send()
+}
 
-非消息的上下文中获取的 bot 实例无事件，不可使用
-*/
-func SendMessage(ctx *zero.Ctx, lf bool, m ...message.MessageSegment) message.MessageID {
-	if !CheckCtx(ctx, Event) || !CheckCtx(ctx, Caller) {
-		// 没有事件或 APICaller ，无法发送
-		Warn(m)
-		return message.NewMessageIDFromInteger(0)
+// DoNotKnow 喵喵不知道哦
+func (m *Messager) DoNotKnow() message.ID {
+	handleErr := func(err error) message.ID {
+		Error(err)
+		return m.Reply().AtLf().Image(`哈——？.png`).Text(botConfig.NickName[0], `不知道哦`).Send()
 	}
-	switch messageChain := []message.MessageSegment{message.At(ctx.Event.UserID)}; ctx.Event.DetailType {
-	case Private:
-		return ctx.Send(m)
-	case Group, Guild:
-		if lf {
-			return ctx.SendChain(append(append(messageChain, Text("\n")), m...)...)
+	o, err := m.Object()
+	if err != nil {
+		return handleErr(err)
+	}
+	n, err := o.Name()
+	if err != nil {
+		return handleErr(err)
+	}
+	return m.Reply().AtLf().Image(`哈——？.png`).Text(n, `不知道哦`).Send()
+}
+
+// @ 全体成员，带有检查功能
+func atAll(msgr *Messager, g ...QQ) message.Segment {
+	if !msgr.Check(Caller) {
+		Error(`没有 APICaller ，无法获取`)
+		return message.Segment{}
+	}
+	if !msgr.Check(Event) {
+		if len(g) == 0 {
+			return message.Segment{}
 		}
-		fallthrough
-	default:
-		return ctx.SendChain(append(messageChain, m...)...)
+		msgr.Event = &zero.Event{GroupID: g[0].Int()}
+	}
+	g = []QQ{*NewQQGroup(msgr.Event.GroupID)}
+	if !g[0].IsGroup() {
+		Error(`无效的群聊：`, g)
+		return message.Segment{}
+	}
+	r := msgr.GetGroupAtAllRemain(g[0].Int())
+	if !r.Get(`can_at_all`).Bool() {
+		Info(`在该群聊不能 @ 全体成员：`, g)
+		return message.Segment{}
+	}
+	if r.Get(`remain_at_all_count_for_uin`).Int() <= 0 {
+		Info(`剩余 @ 全体成员次数不足`)
+		return message.Segment{}
+	}
+	return message.AtAll()
+}
+
+// SendEmojiLike 发送表情回复，emoji 为空则发送随机表情
+func (m *Messager) SendEmojiLike(emoji ...string) error {
+	if u := NewQQGroup(m.Event.GroupID); !u.IsGroup() {
+		Info(`无效的群聊：`, u)
+		return errors.New(`无效的群聊`)
+	}
+	return m.SetMessageEmojiLike(m.Event.MessageID, func() rune {
+		if len(emoji) == 0 {
+			return qqemoji.Random()
+		}
+		return qqemoji.New(emoji[0])
+	}())
+}
+
+// Poke 戳一戳
+func (m *Messager) Poke() {
+	if !m.Check(Caller) || !m.Check(Event) {
+		// 没有 APICaller 或 Event ，无法使用
+		return
+	}
+	if u, g := NewQQ(m.Event.UserID), NewQQGroup(m.Event.GroupID); u.IsQQ() {
+		if g.IsGroup() {
+			m.CallAction("group_poke", zero.H{
+				"group_id": g.Int(),
+				"user_id":  u.Int(),
+			})
+			return
+		}
+		m.CallAction("friend_poke", zero.H{
+			"user_id": u.Int(),
+		})
 	}
 }
 
-/*
-SendWithImage 发送带有自定义图片的文字消息
-
-非消息的上下文中获取的 bot 实例无事件，不可使用
-*/
-func SendWithImage(ctx *zero.Ctx, name core.Path, text ...any) message.MessageID {
-	img, err := imagePath.Image(name)
-	if nil != err {
-		return SendText(ctx, true, err)
-	}
-	return SendMessage(ctx, true, img, Text(text...))
-}
-
-/*
-SendWithImageOf 发送带有自定义图片的格式化文字消息
-
-非消息的事件中获取的 bot 实例可能无效
-*/
-func SendWithImageOf(ctx *zero.Ctx, name core.Path, format string, a ...any) message.MessageID {
-	img, err := imagePath.Image(name)
-	if nil != err {
-		return SendText(ctx, true, err)
-	}
-	return SendMessage(ctx, true, img, TextOf(format, a...))
-}
-
-// SendWithImageFail 发送带有失败图片的文字消息，非消息的事件中获取的 bot 实例可能无效
-func SendWithImageFail(ctx *zero.Ctx, text ...any) message.MessageID {
-	return SendWithImage(ctx, `no.png`, text...)
-}
-
-/*
-SendWithImageFailOf 发送带有失败图片的格式化文字消息
-
-非消息的事件中获取的 bot 实例可能无效
-*/
-func SendWithImageFailOf(ctx *zero.Ctx, format string, a ...any) message.MessageID {
-	return SendWithImageOf(ctx, `no.png`, format, a...)
-}
-
-/*
-DoNotKnow 喵喵不知道哦
-
-非消息的事件中获取的 bot 实例可能无效
-*/
-func DoNotKnow(ctx *zero.Ctx) message.MessageID {
-	return SendWithImageOf(ctx, `哈——？.png`, `%s不知道哦`, zero.BotConfig.NickName[0])
-}
-
-/*
-GetObject 获取发送对象
-
-返回正整数代表私聊，返回负整数代表群聊
-
-返回默认值 0 代表不支持的对象
-（非消息的事件中获取的 bot 实例 | 频道）
-*/
-func GetObject(ctx *zero.Ctx) QQ {
-	if !CheckCtx(ctx, Event) {
+// Object 获取发送对象
+func (m *Messager) Object() (*QQ, error) {
+	if !m.Check(Event) {
 		// 没有事件，无法获取
-		return 0
+		return nil, errors.New(noEvent)
 	}
-	switch ctx.Event.DetailType {
+	switch m.Event.DetailType {
 	case Private:
-		return QQ(ctx.Event.UserID)
+		// 私聊
+		return NewQQ(m.Event.UserID), nil
 	case Group:
-		return QQ(-ctx.Event.GroupID)
+		// 群聊
+		return NewQQGroup(m.Event.GroupID), nil
 	default:
-		return 0
+		if g := NewQQGroup(m.Event.GroupID); g.IsGroup() {
+			return g, nil
+		}
+		if u := NewQQ(m.Event.UserID); u.IsQQ() {
+			return u, nil
+		}
+		return nil, errors.New(`不支持的对象喵！`)
 	}
 }
 
-// CheckCtx 检查事件上下文的某个项目是否有效且不为空
-func CheckCtx(ctx *zero.Ctx, i Item) bool {
+// Check 检查上下文的某个项目是否有效且不为空
+func (m *Messager) Check(i Item) bool {
+	if m.Ctx == nil {
+		// 没有上下文，无法获取
+		return false
+	}
 	switch i {
 	case Caller:
-		c := reflect.ValueOf(ctx).Elem().FieldByName(`caller`)
+		c := reflect.ValueOf(m.Ctx).Elem().FieldByName(`caller`)
 		return c.IsValid() && !c.IsNil()
 	case Event:
-		if nil == ctx.Event {
-			// 非消息的事件，直接返回
+		if m.Event == nil {
+			// 非消息的上下文，直接返回
 			Info(noEvent)
 			return false
 		}
@@ -214,9 +210,9 @@ func CheckCtx(ctx *zero.Ctx, i Item) bool {
 	return true
 }
 
-// GetSth 获取事件上下文中的字段
-func GetSth[T any](ctx *zero.Ctx, name string) (t T) {
-	f, ok := ctx.State[name]
+// State 获取上下文中的字段
+func State[T any](msgr *Messager, name string) (t T) {
+	f, ok := msgr.State[name]
 	if !ok {
 		return
 	}
@@ -224,22 +220,66 @@ func GetSth[T any](ctx *zero.Ctx, name string) (t T) {
 	return
 }
 
-// GetArgs 获取事件上下文中的参数
-func GetArgs(ctx *zero.Ctx) string {
-	return GetSth[string](ctx, `args`)
+// Matched 获取上下文中的匹配项
+func (m *Messager) Matched() string {
+	return State[string](m, `matched`)
 }
 
-// GetArgsSlice 获取事件上下文中的参数切片
-func GetArgsSlice(ctx *zero.Ctx) []string {
-	return slices.DeleteFunc(strings.Split(GetArgs(ctx), ` `),
+// RegexMatched 获取上下文中的正则匹配项
+func (m *Messager) RegexMatched() []string {
+	return State[[]string](m, `regex_matched`)
+}
+
+// Prefix 获取上下文中的前缀
+func (m *Messager) Prefix() string {
+	return State[string](m, `prefix`)
+}
+
+// Suffix 获取上下文中的后缀
+func (m *Messager) Suffix() string {
+	return State[string](m, `suffix`)
+}
+
+// Keyword 获取上下文中的关键词
+func (m *Messager) Keyword() string {
+	return State[string](m, `keyword`)
+}
+
+// Command 获取上下文中的命令
+func (m *Messager) Command() string {
+	return State[string](m, `command`)
+}
+
+// Args 获取上下文中的参数
+func (m *Messager) Args() string {
+	return State[string](m, `args`)
+}
+
+// ArgsSlice 获取上下文中的参数切片
+func (m *Messager) ArgsSlice() []string {
+	return slices.DeleteFunc(strings.Split(m.Args(), ` `),
 		func(s string) bool {
-			return `` == s
+			return s == ``
 		})
 }
 
-// GetImageURL 获取事件上下文中的图片链接
-func GetImageURL(ctx *zero.Ctx) []string {
-	return GetSth[[]string](ctx, `image_url`)
+// ImageURL 获取上下文中的图片链接
+func (m *Messager) ImageURL() []string {
+	return State[[]string](m, `image_url`)
+}
+
+// （私有）扫描二维码
+func scanQRCode(imgfile *os.File) (fmt.Stringer, error) {
+	defer imgfile.Close()
+	img, _, err := image.Decode(imgfile)
+	if err != nil {
+		return nil, err
+	}
+	bmp, err := gozxing.NewBinaryBitmapFromImage(img)
+	if err != nil {
+		return bmp, err
+	}
+	return qrcode.NewQRCodeReader().DecodeWithoutHints(bmp)
 }
 
 // ScanQRCode 扫描二维码
@@ -248,21 +288,44 @@ func ScanQRCode(name string) (fmt.Stringer, error) {
 		msg = Image(name)
 		n   = core.FilePath(`data`, `zbp`, `code.png`)
 	)
-	if _, err := core.GetImage(msg.Data[`file`], n); nil != err {
+	bytes, err := n.DownloadImage(msg.Data[`file`])
+	if err != nil {
 		return core.Path(msg.Data[`file`]), err
 	}
+	Info(`正在扫描二维码喵！字节数：`, bytes)
 	imgfile, err := os.Open(n.String())
-	if nil != err {
+	if err != nil {
 		return core.Path(msg.Data[`file`]), err
 	}
-	defer imgfile.Close()
-	img, _, err := image.Decode(imgfile)
-	if nil != err {
-		return nil, err
+	return scanQRCode(imgfile)
+}
+
+// ScanQRCodeInQQ 扫描 QQ 消息中的二维码图片
+func (m *Messager) ScanQRCodeInQQ(file string) (fmt.Stringer, error) {
+	imgfile, err := os.Open(m.GetImage(file).Get(`file`).String())
+	if err != nil {
+		return core.Path(file), err
 	}
-	bmp, err := gozxing.NewBinaryBitmapFromImage(img)
-	if nil != err {
-		return bmp, err
+	return scanQRCode(imgfile)
+}
+
+// 对象
+type obj bool
+
+const (
+	// ForSelf 为自己
+	ForSelf obj = true
+	// ForUser 为对方
+	ForUser obj = false
+)
+
+// Age 获取年龄，self 为 true 则获取自己的年龄，否则获取对方的年龄
+func (m *Messager) Age(self obj) int64 {
+	if m == nil {
+		return 0
 	}
-	return qrcode.NewQRCodeReader().DecodeWithoutHints(bmp)
+	if self {
+		return botConfig.SelfID.Age(m)
+	}
+	return NewQQ(m.Event.UserID).Age(m)
 }

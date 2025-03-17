@@ -1,0 +1,1 @@
+go build -ldflags=-checklinkname=0 -v -o KittenCore.exe main.go

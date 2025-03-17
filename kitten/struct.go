@@ -30,8 +30,9 @@ type (
 	LogConfig struct {
 		Level      string // 日志等级
 		Path       string // 日志路径
+		Crash      string // 崩溃日志路径
 		MaxSize    int    // 文件大小限制，单位 MB
 		MaxBackups int    // 最大保留日志文件数量
-		Expire     int    `yaml:"expire"` // 日志文件的过期天数，大于该天数前的日志文件会被清理。设置为 -1 可以禁用。
+		Expire     int    // 日志文件的过期天数，大于该天数前的日志文件会被清理。设置为 -1 可以禁用。
 	}
 )

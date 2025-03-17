@@ -2,7 +2,7 @@
 package main
 
 import (
-	// 内置库
+	// 标准库
 	"runtime/debug"
 
 	// KittenCore 的核心库
@@ -10,15 +10,18 @@ import (
 	"github.com/Kittengarten/KittenCore/kitten"
 
 	// 内部插件
-	// _ "github.com/Kittengarten/KittenCore/internal/auth"    // 内置黑名单控制插件
-	// _ "github.com/Kittengarten/KittenCore/plugin/draw"    // 牌堆
+	// _ "github.com/Kittengarten/KittenCore/internal/auth" // 内置黑名单控制插件
+
+	// _ "github.com/Kittengarten/KittenCore/plugin/draw"   // 牌堆
+
 	_ "github.com/Kittengarten/KittenCore/plugin/eekda2" // XX 今天吃什么
-	// _ "github.com/Kittengarten/KittenCore/plugin/essence" // 精华消息
 	_ "github.com/Kittengarten/KittenCore/plugin/rcon"   // RCON
 	_ "github.com/Kittengarten/KittenCore/plugin/repeat" // 喵类的本质
 	_ "github.com/Kittengarten/KittenCore/plugin/stack2" // 叠猫猫
 	_ "github.com/Kittengarten/KittenCore/plugin/track"  // 小说报更
 	_ "github.com/Kittengarten/KittenCore/plugin/view"   // 查看 XX
+
+	//_ "github.com/Kittengarten/KittenCore/plugin/weather" // 查看天气
 
 	_ "github.com/FloatTech/ZeroBot-Plugin/plugin/sleepmanage" // 统计睡眠时间
 
@@ -36,7 +39,6 @@ import (
 	_ "github.com/FloatTech/ZeroBot-Plugin/plugin/baseamasiro"     // base天城文加解密
 	_ "github.com/FloatTech/ZeroBot-Plugin/plugin/bilibili"        // b站相关
 	_ "github.com/FloatTech/ZeroBot-Plugin/plugin/chatcount"       // 聊天时长统计
-	_ "github.com/FloatTech/ZeroBot-Plugin/plugin/chess"           // 国际象棋
 	_ "github.com/FloatTech/ZeroBot-Plugin/plugin/choose"          // 选择困难症帮手
 	_ "github.com/FloatTech/ZeroBot-Plugin/plugin/chouxianghua"    // 说抽象话
 	_ "github.com/FloatTech/ZeroBot-Plugin/plugin/chrev"           // 英文字符翻转
@@ -59,7 +61,6 @@ import (
 	_ "github.com/FloatTech/ZeroBot-Plugin/plugin/lolicon"         // lolicon 随机图片
 	_ "github.com/FloatTech/ZeroBot-Plugin/plugin/lolimi"          // 桑帛云 API
 	_ "github.com/FloatTech/ZeroBot-Plugin/plugin/magicprompt"     // magicprompt吟唱提示
-	_ "github.com/FloatTech/ZeroBot-Plugin/plugin/mcfish"          // 钓鱼模拟器
 	_ "github.com/FloatTech/ZeroBot-Plugin/plugin/midicreate"      // 简易midi音乐制作
 	_ "github.com/FloatTech/ZeroBot-Plugin/plugin/moyu"            // 摸鱼
 	_ "github.com/FloatTech/ZeroBot-Plugin/plugin/moyucalendar"    // 摸鱼人日历
@@ -87,7 +88,9 @@ import (
 	_ "github.com/FloatTech/ZeroBot-Plugin/plugin/ymgal"           // 月幕galgame
 	_ "github.com/FloatTech/ZeroBot-Plugin/plugin/yujn"            // 遇见API
 
-	// _ "github.com/Kittengarten/KittenCore/plugin/aireply" // 人工智能回复
+	// _ "github.com/Kittengarten/KittenCore/kitten/ai/check"   // 检查自身信息
+	// _ "github.com/Kittengarten/KittenCore/kitten/ai/comment" // 评论小说信息
+	// _ "github.com/Kittengarten/KittenCore/plugin/aireply"    // 人工智能回复
 
 	_ "github.com/FloatTech/ZeroBot-Plugin/plugin/thesaurus" // 词典匹配回复
 
@@ -103,9 +106,9 @@ func init() {
 func main() {
 	// 处理 panic，防止程序崩溃
 	defer func() {
-		if err := recover(); nil != err {
+		if err := recover(); err != nil {
 			kitten.Error(`主函数有 Bug 喵！`, err, string(debug.Stack()))
 		}
 	}()
-	protocol.RunBot(true)
+	protocol.RunBot(protocol.Forward)
 }

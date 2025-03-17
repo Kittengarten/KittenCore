@@ -13,7 +13,7 @@ import (
 
 // 加载数据库
 func init() {
-	_ = os.MkdirAll(FontPath, 0755)
+	_ = os.MkdirAll(FontPath, 0o755)
 }
 
 // RenderToBase64 文字转base64
