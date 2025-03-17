@@ -242,7 +242,7 @@ func Ping(msgr *kitten.Messager) message.ID {
 	pingURL := msgr.Args()
 	pg, err := probing.NewPinger(pingURL)
 	if err != nil {
-		return msgr.Reply().AtLf().Image(`哈——？.png`).Text(err).Send()
+		return msgr.Reply().AtLf().Image(`哈.png`).Text(err).Send()
 	}
 	pg.Count = 4                                                             // 检测 4 次
 	pg.Timeout = time.Duration(pg.Count) * core.TimeOutSeconds * time.Second // 超时时间设置

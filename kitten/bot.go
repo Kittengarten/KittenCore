@@ -87,7 +87,7 @@ func (m *Messager) SendWithImageFailOf(format string, a ...any) message.ID {
 func (m *Messager) DoNotKnow() message.ID {
 	handleErr := func(err error) message.ID {
 		Error(err)
-		return m.Reply().AtLf().Image(`哈——？.png`).Text(botConfig.NickName[0], `不知道哦`).Send()
+		return m.Reply().AtLf().Image(`哈.png`).Text(botConfig.NickName[0], `不知道哦`).Send()
 	}
 	o, err := m.Object()
 	if err != nil {
@@ -97,7 +97,7 @@ func (m *Messager) DoNotKnow() message.ID {
 	if err != nil {
 		return handleErr(err)
 	}
-	return m.Reply().AtLf().Image(`哈——？.png`).Text(n, `不知道哦`).Send()
+	return m.Reply().AtLf().Image(`哈.png`).Text(n, `不知道哦`).Send()
 }
 
 // @ 全体成员，带有检查功能
