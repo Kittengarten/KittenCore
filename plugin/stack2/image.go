@@ -2,7 +2,7 @@ package stack2
 
 import (
 	"github.com/Kittengarten/KittenCore/kitten"
-	"github.com/Kittengarten/KittenCore/kitten/core"
+	"github.com/Kittengarten/KittenCore/kitten/core/io"
 
 	"github.com/vicanso/go-charts/v2"
 
@@ -16,7 +16,7 @@ func sendImage(msgr *kitten.Messager, p *charts.Painter) message.ID {
 	if err != nil {
 		return sendWithImageFail(msgr, err)
 	}
-	path := core.FilePath(imagePath, `叠猫猫.png`)
+	path := io.FilePath(imagePath, `叠猫猫.png`)
 	if err = path.WriteBytes(buf); err != nil {
 		return sendWithImageFail(msgr, err)
 	}

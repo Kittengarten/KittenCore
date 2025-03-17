@@ -8,7 +8,8 @@ import (
 	"time"
 
 	"github.com/Kittengarten/KittenCore/kitten"
-	"github.com/Kittengarten/KittenCore/kitten/core"
+	"github.com/Kittengarten/KittenCore/kitten/core/io"
+	"github.com/Kittengarten/KittenCore/kitten/core/times"
 
 	"github.com/wdvxdr1123/ZeroBot/message"
 )
@@ -24,7 +25,7 @@ func eatExe(msgr *kitten.Messager) {
 		return
 	}
 	GlobalMessager = msgr
-	d, err := core.Load[data](dataPath, core.Empty)
+	d, err := io.Load[data](dataPath, io.Empty)
 	if err != nil {
 		sendWithImageFail(msgr, `加载叠猫猫数据文件时发生错误喵！`, err)
 		return
@@ -32,7 +33,7 @@ func eatExe(msgr *kitten.Messager) {
 	stackBuffer.refresh(msgr, &d)
 	_ = d.eat(msgr)
 	if !selfEat(msgr, d) {
-		core.RandomDelayRange(time.Second, 2*time.Second)
+		times.RandomDelayRange(time.Second, 2*time.Second)
 		selfIn(msgr, d)
 	}
 }
@@ -80,7 +81,7 @@ func (d *data) eat(msgr *kitten.Messager) message.ID {
 	// 清理过期玩家
 	d.clear(msgr, false)
 	// 存储叠猫猫数据
-	if err := core.Save(dataPath, d); err != nil {
+	if err := io.Save(dataPath, d); err != nil {
 		return sendWithImageFail(msgr, `存储叠猫猫数据时发生错误喵！`, err)
 	}
 	return message.ID{}
@@ -137,7 +138,7 @@ func (d *data) doEat(msgr *kitten.Messager, m *meow) bool {
 			kitten.Error(err)
 		}
 		fmt.Fprintf(&r, `吃猫猫失败，杂鱼～杂鱼❤需要休息 %s。`,
-			core.ConvertTimeDuration(m.Time.Sub(time.Unix(msgr.Event.Time, 0))))
+			times.ConvertTimeDuration(m.Time.Sub(time.Unix(msgr.Event.Time, 0))))
 		doClear(msgr, l, c, m.Weight, m, &r)
 		r.WriteRune('🐅')
 		sendWithZako(msgr, &r)
@@ -147,7 +148,7 @@ func (d *data) doEat(msgr *kitten.Messager, m *meow) bool {
 		kitten.Error(err)
 	}
 	fmt.Fprintf(&r, `吃猫猫成功，你吃掉了 %d 只猫猫！需要休息 %s。`,
-		c, core.ConvertTimeDuration(m.Time.Sub(time.Unix(msgr.Event.Time, 0))))
+		c, times.ConvertTimeDuration(m.Time.Sub(time.Unix(msgr.Event.Time, 0))))
 	doClear(msgr, l, c, m.Weight-w, m, &r)
 	r.WriteRune('🐯')
 	for range c {

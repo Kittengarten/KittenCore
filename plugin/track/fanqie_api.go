@@ -9,7 +9,7 @@ import (
 	"time"
 
 	"github.com/Kittengarten/KittenCore/kitten"
-	"github.com/Kittengarten/KittenCore/kitten/core"
+	"github.com/Kittengarten/KittenCore/kitten/core/http"
 
 	"github.com/tidwall/gjson"
 )
@@ -44,7 +44,7 @@ func (nv *novel) initFQAPI(bookID string) error {
 	}
 	apiURL.RawQuery = values.Encode()
 	// 获取小说网页，失败则返回
-	data, err := core.GETData(apiURL.String())
+	data, err := http.GETData(apiURL.String())
 	if err != nil {
 		return err
 	}
@@ -114,7 +114,7 @@ func (cp *chapter) initFQAPI(cURL string) error {
 	// 向章节传入链接
 	cp.url = cURL
 	// 获取章节网页，失败则返回
-	data, err := core.GETData(cp.url)
+	data, err := http.GETData(cp.url)
 	if err != nil {
 		return err
 	}
@@ -167,7 +167,7 @@ func (key keyword) findFQAPIBookID() (string, error) {
 		return ``, err
 	}
 	searchURL.RawQuery = values.Encode()
-	data, err := core.GETData(searchURL.String())
+	data, err := http.GETData(searchURL.String())
 	if err != nil {
 		return ``, err
 	}

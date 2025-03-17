@@ -10,7 +10,8 @@ import (
 	"time"
 
 	"github.com/Kittengarten/KittenCore/kitten"
-	"github.com/Kittengarten/KittenCore/kitten/core"
+	"github.com/Kittengarten/KittenCore/kitten/core/io"
+	"github.com/Kittengarten/KittenCore/kitten/core/times"
 
 	"github.com/vicanso/go-charts/v2"
 
@@ -59,7 +60,7 @@ func (d *data) analysis(msgr *kitten.Messager) {
 		// 初始化时已经发送了相关信息
 		return
 	}
-	core.RandomDelayRange(time.Second, 2*time.Second)
+	times.RandomDelayRange(time.Second, 2*time.Second)
 	d.analysisImage(msgr, c, f)
 }
 
@@ -207,7 +208,7 @@ func chanceClear(msgr *kitten.Messager, s data, m meow) float64 {
 
 // 平地摔小贴士
 func tipFlat() string {
-	if tipSlice, err = core.Load[tips](tipsPath, string(tipYAML)); err != nil {
+	if tipSlice, err = io.Load[tips](tipsPath, string(tipYAML)); err != nil {
 		return err.Error()
 	}
 	if l := len(tipSlice.Flat); l != 0 {
@@ -218,7 +219,7 @@ func tipFlat() string {
 
 // 叠猫猫小贴士，除平地摔以外
 func tip(w int, c chance) string {
-	if tipSlice, err = core.Load[tips](tipsPath, string(tipYAML)); err != nil {
+	if tipSlice, err = io.Load[tips](tipsPath, string(tipYAML)); err != nil {
 		return err.Error()
 	}
 	t := make([]string, 0, 128)

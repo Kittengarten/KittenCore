@@ -6,7 +6,9 @@ import (
 	"strings"
 	"time"
 
-	"github.com/Kittengarten/KittenCore/kitten/core"
+	"github.com/Kittengarten/KittenCore/kitten/core/equal"
+	"github.com/Kittengarten/KittenCore/kitten/core/io"
+	"github.com/Kittengarten/KittenCore/kitten/core/times"
 
 	zero "github.com/wdvxdr1123/ZeroBot"
 	"github.com/wdvxdr1123/ZeroBot/message"
@@ -29,7 +31,7 @@ func equalSegment(a, b message.Segment) bool {
 		`location`, `music`, `forward`, `node`, `xml`, `json`:
 		// 忽略的类型，将导致停止比较，视为不相等
 	default:
-		if core.IsSameMap(a.Data, b.Data) {
+		if equal.IsSameMap(a.Data, b.Data) {
 			// 相等，继续遍历比较
 			return true
 		}
@@ -53,12 +55,12 @@ func equalMessage(a, b message.Message) bool {
 
 // 比较多个消息段是否相等
 func IsSameSegment(s ...message.Segment) bool {
-	return core.IsSameByFunc(equalSegment, s...)
+	return equal.IsSameByFunc(equalSegment, s...)
 }
 
 // 比较多个消息段切片是否相等
 func IsSameMessage(m ...message.Message) bool {
-	return core.IsSameByFunc(equalMessage, m...)
+	return equal.IsSameByFunc(equalMessage, m...)
 }
 
 // 待发送的消息
@@ -82,7 +84,7 @@ func equalContainedMessage(a, b *Messager) bool {
 
 // 比较待发送的消息是否相等
 func hasSameMessage(m ...*Messager) bool {
-	return core.IsSameByFunc(equalContainedMessage, m...)
+	return equal.IsSameByFunc(equalContainedMessage, m...)
 }
 
 // 设置回复消息 ID
@@ -177,12 +179,12 @@ Image 从图片的相对 | 绝对路径（文件夹），
 
 或网络路径中附带图片
 */
-func (m *Messager) Image(name ...core.Path) *Messager {
+func (m *Messager) Image(name ...io.Path) *Messager {
 	for _, n := range name {
 		img, err := imagePath.Image(n)
 		if err != nil {
 			m.err = errors.Join(m.err, fmt.Errorf(`附带图片错误：%w`, err))
-			img, err = imagePath.Image(core.Path(`error.jpg`))
+			img, err = imagePath.Image(io.Path(`error.jpg`))
 			if err != nil {
 				m.err = errors.Join(m.err, fmt.Errorf(`附带图片错误：%w`, err))
 			}
@@ -230,7 +232,7 @@ func (m *Messager) SendMulti(u ...QQ) (id []message.ID) {
 			switch {
 			case o.IsGroup(), o.IsQQ():
 				id = append(id, o.Send(m))
-				core.RandomDelayRange(time.Second, 2*time.Second)
+				times.RandomDelayRange(time.Second, 2*time.Second)
 			}
 		}
 		return id

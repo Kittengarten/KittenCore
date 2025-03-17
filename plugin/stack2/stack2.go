@@ -13,7 +13,8 @@ import (
 	"time"
 
 	"github.com/Kittengarten/KittenCore/kitten"
-	"github.com/Kittengarten/KittenCore/kitten/core"
+	"github.com/Kittengarten/KittenCore/kitten/core/io"
+	"github.com/Kittengarten/KittenCore/kitten/core/times"
 	"github.com/Kittengarten/KittenCore/kitten/rate"
 
 	"gopkg.in/yaml.v3"
@@ -131,7 +132,7 @@ func stackExe(msgr *kitten.Messager) {
 		return
 	}
 	GlobalMessager = msgr
-	d, err := core.Load[data](dataPath, core.Empty)
+	d, err := io.Load[data](dataPath, io.Empty)
 	if err != nil {
 		sendWithImageFail(msgr, `加载叠猫猫数据文件时发生错误喵！`, err)
 		return
@@ -152,7 +153,7 @@ func stackExe(msgr *kitten.Messager) {
 			kitten.Error(err)
 		}
 		d.view(msgr, zero.UserOrGrpAdmin(msgr.Ctx))
-		core.RandomDelayRange(time.Second, 2*time.Second)
+		times.RandomDelayRange(time.Second, 2*time.Second)
 		d.viewImage(msgr)
 		if selfEat(msgr, d) {
 			return
@@ -208,16 +209,16 @@ func stackExe(msgr *kitten.Messager) {
 			`(抱枕突破所需体重/当前体重)`,
 			fmt.Sprintf(` %.2f%% `, 100*chanceFlat(m)),
 			`N(0, 体重²)`,
-			fmt.Sprintf(`N(0, (%s)²)`, core.ConvertTimeDuration(
+			fmt.Sprintf(`N(0, (%s)²)`, times.ConvertTimeDuration(
 				time.Hour*time.Duration(stackConfig.RestHoursPerKG*w)/10,
 			)),
 			`N(0, (e*体重)²)`,
-			fmt.Sprintf(`N(0, (%s)²)`, core.ConvertTimeDuration(
+			fmt.Sprintf(`N(0, (%s)²)`, times.ConvertTimeDuration(
 				time.Duration(
 					float64(stackConfig.RestHoursPerKG)*float64(time.Hour)*math.E*itof(w),
 				))),
 			`[最大休息时间]`,
-			core.ConvertTimeDuration(stackBuffer.MaxRestTime).String(),
+			times.ConvertTimeDuration(stackBuffer.MaxRestTime).String(),
 		).Replace(strings.Join(helpText, "\n\n")))
 	}
 }
@@ -389,7 +390,7 @@ func (d *data) in(msgr *kitten.Messager) error {
 	// 清理过期玩家
 	d.clear(msgr, false)
 	// 存储叠猫猫数据
-	if err = core.Save(dataPath, d); err != nil {
+	if err = io.Save(dataPath, d); err != nil {
 		sendWithImageFail(msgr, `存储叠猫猫数据时发生错误喵！`, err)
 		return err
 	}
@@ -676,13 +677,13 @@ func (d *data) oc(msgr *kitten.Messager) {
 	// 清理过期玩家
 	d.clear(msgr, false)
 	// 存储叠猫猫数据
-	if err := core.Save(dataPath, d); err != nil {
+	if err := io.Save(dataPath, d); err != nil {
 		sendWithImageFail(msgr, `存储叠猫猫数据时发生错误喵！`, err)
 	}
 	_ = sendTextOf(msgr, `锻炼成功喵！
 你剩余的休息时间变为 %s喵！
 你的体重减少至 %.1f kg 喵！`,
-		core.ConvertTimeDuration(after.Time.Sub(time.Unix(msgr.Event.Time, 0))),
+		times.ConvertTimeDuration(after.Time.Sub(time.Unix(msgr.Event.Time, 0))),
 		itof(after.Weight),
 	)
 }

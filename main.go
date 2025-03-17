@@ -107,7 +107,7 @@ func main() {
 	// 处理 panic，防止程序崩溃
 	defer func() {
 		if err := recover(); err != nil {
-			kitten.Error(`主函数有 Bug 喵！`, err, string(debug.Stack()))
+			kitten.Errorln(`主函数有 Bug 喵！`, err, string(debug.Stack()))
 		}
 	}()
 	protocol.RunBot(protocol.Forward)

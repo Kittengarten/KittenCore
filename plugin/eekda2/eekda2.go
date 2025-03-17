@@ -7,7 +7,10 @@ import (
 	"time"
 
 	"github.com/Kittengarten/KittenCore/kitten"
-	"github.com/Kittengarten/KittenCore/kitten/core"
+	"github.com/Kittengarten/KittenCore/kitten/core/equal"
+	"github.com/Kittengarten/KittenCore/kitten/core/io"
+	"github.com/Kittengarten/KittenCore/kitten/core/str"
+	"github.com/Kittengarten/KittenCore/kitten/core/utils"
 	"github.com/Kittengarten/KittenCore/kitten/rate"
 
 	"github.com/tidwall/gjson"
@@ -45,9 +48,9 @@ var (
 		PrivateDataFolder: replyServiceName,
 	}).ApplySingle(ctxext.DefaultSingle)
 	// 今日文件路径
-	todayPath = core.FilePath(engine.DataFolder(), todayFile)
+	todayPath = io.FilePath(engine.DataFolder(), todayFile)
 	// 统计文件路径
-	statPath = core.FilePath(engine.DataFolder(), statFile)
+	statPath = io.FilePath(engine.DataFolder(), statFile)
 	// 读写锁
 	mu sync.RWMutex
 )
@@ -67,13 +70,13 @@ func todayMeal(ctx *zero.Ctx) {
 	mu.Lock()
 	defer mu.Unlock()
 	var (
-		c, err = core.Load[config](todayPath, core.Empty)
+		c, err = io.Load[config](todayPath, io.Empty)
 		msgr   = kitten.New(ctx)
 	)
 	if err != nil {
 		msgr.SendWithImageFail(err)
 	}
-	name := core.MidText(``, cEEKDA, core.CleanAll(msgr.Event.RawMessage, false))
+	name := str.Mid(``, cEEKDA, str.CleanAll(msgr.Event.RawMessage, false))
 	name, needRegister := strings.CutPrefix(name, cRegister)
 	name, needUnegister := strings.CutPrefix(name, cUnregister)
 	if name == `` {
@@ -110,7 +113,7 @@ func todayMeal(ctx *zero.Ctx) {
 			Group: []kitten.QQ{*g},
 		})
 		// 写入文件
-		if err := core.Save(todayPath, c); err != nil {
+		if err := io.Save(todayPath, c); err != nil {
 			msgr.SendWithImageFail(err)
 			return
 		}
@@ -134,7 +137,7 @@ func todayMeal(ctx *zero.Ctx) {
 		// 注册
 		c[ci].Group = append(c[ci].Group, *g)
 		// 写入文件
-		if err := core.Save(todayPath, c); err != nil {
+		if err := io.Save(todayPath, c); err != nil {
 			msgr.SendWithImageFail(err)
 			return
 		}
@@ -164,7 +167,7 @@ func todayMeal(ctx *zero.Ctx) {
 			})
 		}
 		// 写入文件
-		if err := core.Save(todayPath, c); err != nil {
+		if err := io.Save(todayPath, c); err != nil {
 			msgr.SendWithImageFail(err)
 			return
 		}
@@ -172,7 +175,7 @@ func todayMeal(ctx *zero.Ctx) {
 	default:
 		// 执行通常指令，写入上下文
 		c[ci].Messager = msgr
-		if core.IsSameDate(c[ci].Time, time.Unix(msgr.Event.Time, 0)) {
+		if equal.IsSameDate(c[ci].Time, time.Unix(msgr.Event.Time, 0)) {
 			// 今天已经生成了，直接播报
 			msgr.Reply().AtLf().Text(&c[ci]).Send()
 			return
@@ -190,11 +193,11 @@ func todayMeal(ctx *zero.Ctx) {
 		t.Stop()
 		// 只保留昨天一天的群员
 		list = slices.DeleteFunc(list, func(v gjson.Result) bool {
-			return !core.IsSameDate(time.Unix(v.Get(`last_sent_time`).Int(), 0),
+			return !equal.IsSameDate(time.Unix(v.Get(`last_sent_time`).Int(), 0),
 				time.Unix(msgr.Event.Time, 0).AddDate(0, 0, -1))
 		})
 		// 在其中取足够人的下标
-		nums, err := core.GenerateRandomNumber(0, len(list), count)
+		nums, err := utils.GenerateRandomNumber(0, len(list), count)
 		if err != nil {
 			msgr.SendWithImageFail(`没有足够的食物喵！`, err)
 			return
@@ -206,7 +209,7 @@ func todayMeal(ctx *zero.Ctx) {
 		// 写入时间
 		c[ci].Time = time.Unix(msgr.Event.Time, 0)
 		// 写入文件
-		if err := core.Save(todayPath, c); err != nil {
+		if err := io.Save(todayPath, c); err != nil {
 			msgr.SendWithImageFail(err)
 			return
 		}

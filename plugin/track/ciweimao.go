@@ -5,10 +5,12 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/Kittengarten/KittenCore/kitten/core"
-	"golang.org/x/net/html"
+	"github.com/Kittengarten/KittenCore/kitten/core/http"
+	"github.com/Kittengarten/KittenCore/kitten/core/str"
+	"github.com/Kittengarten/KittenCore/kitten/core/utils"
 
 	"github.com/antchfx/htmlquery"
+	"golang.org/x/net/html"
 )
 
 const (
@@ -30,24 +32,24 @@ func (nv *novel) initCWM(bookID string) error {
 	if err != nil {
 		return err
 	}
-	if core.InnerText(doc, `//title`) == `刺猬猫` {
+	if http.InnerText(doc, `//title`) == `刺猬猫` {
 		return errStatus(nv.url, bookUnreachable)
 	}
 	// 获取小说信息
 	bookInfo := htmlquery.FindOne(doc, `//div[@class="book-info"]`)
 	// 获取书名
-	nv.name = core.InnerText(bookInfo, `/h1[@class="title"]/text()`)
+	nv.name = http.InnerText(bookInfo, `/h1[@class="title"]/text()`)
 	// 获取作者
-	nv.writer = core.InnerText(bookInfo, `/h1[@class="title"]/span/a`)
+	nv.writer = http.InnerText(bookInfo, `/h1[@class="title"]/span/a`)
 	// 获取标签
-	nv.tagList = core.ConvertSlice(
+	nv.tagList = utils.ConvertSlice(
 		htmlquery.Find(bookInfo, `/p/span[starts-with(@class,"label")]/a`),
 		func(n *html.Node) string {
-			return core.CleanAll(htmlquery.InnerText(n), false)
+			return str.CleanAll(htmlquery.InnerText(n), false)
 		},
 	)
 	// 获取小说状态
-	nv.status = core.InnerText(bookInfo, `/p[@class="update-state"]`)
+	nv.status = http.InnerText(bookInfo, `/p[@class="update-state"]`)
 	// 获取小说成绩
 	bookGrade := htmlquery.Find(bookInfo, `/p[@class="book-grade"]/b`)
 	if len(bookGrade) < 3 {
@@ -68,7 +70,7 @@ func (nv *novel) initCWM(bookID string) error {
 	for _, i := range htmlquery.Find(doc, `//div[starts-with(@class,"book-desc")]/text()`) {
 		s.WriteString(htmlquery.InnerText(i))
 	}
-	nv.introduce = core.CleanAll(s.String(), true)
+	nv.introduce = str.CleanAll(s.String(), true)
 	// 获取小说数据
 	property := htmlquery.Find(doc, `//div[starts-with(@class,"book-property")]/span/i`)
 	if len(property) < 9 {
@@ -79,9 +81,9 @@ func (nv *novel) initCWM(bookID string) error {
 	// 获取小说类别
 	nv.theme = htmlquery.InnerText(property[4])
 	// 获取头像链接
-	nv.headURL = core.InnerText(doc, `//div[@class="author-info"]//img/@data-original`)
+	nv.headURL = http.InnerText(doc, `//div[@class="author-info"]//img/@data-original`)
 	// 获取封面
-	nv.coverURL = core.InnerText(doc, `//a[@class="cover"]//img/@data-original`)
+	nv.coverURL = http.InnerText(doc, `//a[@class="cover"]//img/@data-original`)
 	// 不支持的字段
 	nv.preview = ``
 	// 获取新章节链接
@@ -111,20 +113,20 @@ func (cp *chapter) initCWM(url string) error {
 	if err != nil {
 		return err
 	}
-	if core.InnerText(doc, `//title`) == `刺猬猫` {
+	if http.InnerText(doc, `//title`) == `刺猬猫` {
 		return errStatus(cp.url, chapterUnreachable)
 	}
 	// 获取章节标题
-	cp.title = core.InnerText(doc, `//div[@class="read-hd"]/h1[@class="chapter"]`)
+	cp.title = http.InnerText(doc, `//div[@class="read-hd"]/h1[@class="chapter"]`)
 	// 获取更新时间
 	cp.Time, err = CWM.ParseTime(strings.TrimPrefix(
-		core.InnerText(doc, `//div[@class="read-hd"]/p/span[3]`), `更新时间：`))
+		http.InnerText(doc, `//div[@class="read-hd"]/p/span[3]`), `更新时间：`))
 	if err != nil {
 		return err
 	}
 	// 获取章节字数
 	cp.wordNum, err = strconv.Atoi(strings.TrimPrefix(
-		core.InnerText(doc, `//div[@class="read-hd"]/p/span[5]`), `字数：`))
+		http.InnerText(doc, `//div[@class="read-hd"]/p/span[5]`), `字数：`))
 	if err != nil {
 		return fmt.Errorf(`章节 %s 的字数获取错误喵！%w`, url, err)
 	}
@@ -139,7 +141,7 @@ func (cp *chapter) initCWM(url string) error {
 		cp.nextURL = htmlquery.InnerText(next)
 	}
 	// 获取付费状态
-	switch core.InnerText(doc, `//div[@class="read-bd"]/@id`) {
+	switch http.InnerText(doc, `//div[@class="read-bd"]/@id`) {
 	case `J_BookRead`:
 		cp.isVIP = false
 	case `J_ImgRead`:

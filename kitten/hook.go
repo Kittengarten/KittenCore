@@ -4,7 +4,7 @@ import (
 	"log"
 	_ "unsafe"
 
-	"github.com/Kittengarten/KittenCore/kitten/core"
+	"github.com/Kittengarten/KittenCore/kitten/core/str"
 
 	"github.com/brahma-adshonor/gohook"
 
@@ -40,11 +40,11 @@ func ctxCardOrNickName(ctx *zero.Ctx, uid int64) string {
 	}
 	if NewQQGroup(msgr.Event.GroupID).IsGroup() {
 		// 是群聊，获取修剪后的群昵称
-		if card := core.CleanAll(u.memberInfo(msgr).Get(`card`).Str, false); card != `` {
+		if card := str.CleanAll(u.memberInfo(msgr).Get(`card`).Str, false); card != `` {
 			// 如果不为空，返回群昵称
 			return card
 		}
 	}
 	// 不是群聊或群昵称为空，返回修剪后的昵称
-	return core.CleanAll(u.info(msgr).Get(`nickname`).Str, false)
+	return str.CleanAll(u.info(msgr).Get(`nickname`).Str, false)
 }

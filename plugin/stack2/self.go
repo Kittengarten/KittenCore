@@ -8,7 +8,7 @@ import (
 	"time"
 
 	"github.com/Kittengarten/KittenCore/kitten"
-	"github.com/Kittengarten/KittenCore/kitten/core"
+	"github.com/Kittengarten/KittenCore/kitten/core/times"
 )
 
 // 评估叠猫猫，返回叠入的权重作为概率
@@ -78,9 +78,9 @@ func selfIn(msgr *kitten.Messager, d data) bool {
 		// 以评估的概率，触发喵喵使用 /叠猫猫 加入
 		return false
 	}
-	core.RandomDelayRange(time.Second, 2*time.Second)
+	times.RandomDelayRange(time.Second, 2*time.Second)
 	msgr.ID = msgr.Ctx.Send(botConfig.CommandPrefix + cStack + cMeow + ` ` + cIn)
-	core.RandomDelayRange(time.Second, 2*time.Second)
+	times.RandomDelayRange(time.Second, 2*time.Second)
 	_ = d.in(msgr)
 	return true
 }
@@ -92,9 +92,9 @@ func selfAnalysis(msgr *kitten.Messager, d data) {
 		// 以评估的概率，触发喵喵使用 /叠猫猫 分析
 		return
 	}
-	core.RandomDelayRange(time.Second, 2*time.Second)
+	times.RandomDelayRange(time.Second, 2*time.Second)
 	msgr.ID = msgr.Ctx.Send(botConfig.CommandPrefix + cStack + cMeow + ` ` + cAnalysis)
-	core.RandomDelayRange(time.Second, 2*time.Second)
+	times.RandomDelayRange(time.Second, 2*time.Second)
 	d.analysis(msgr)
 }
 
@@ -105,9 +105,9 @@ func selfRank(msgr *kitten.Messager, d data) {
 		// 以 0.1 的概率，触发喵喵使用 /叠猫猫 排行
 		return
 	}
-	core.RandomDelayRange(time.Second, 2*time.Second)
+	times.RandomDelayRange(time.Second, 2*time.Second)
 	msgr.ID = msgr.Ctx.Send(botConfig.CommandPrefix + cStack + cMeow + ` ` + cRank)
-	core.RandomDelayRange(time.Second, 2*time.Second)
+	times.RandomDelayRange(time.Second, 2*time.Second)
 	d.rank(msgr)
 }
 
@@ -140,9 +140,9 @@ func selfEat(msgr *kitten.Messager, d data) bool {
 		// 以评估的概率，触发喵喵使用 /吃猫猫
 		return false
 	}
-	core.RandomDelayRange(time.Second, 2*time.Second)
+	times.RandomDelayRange(time.Second, 2*time.Second)
 	msgr.ID = msgr.Ctx.Send(botConfig.CommandPrefix + cEat + cMeow)
-	core.RandomDelayRange(time.Second, 2*time.Second)
+	times.RandomDelayRange(time.Second, 2*time.Second)
 	_ = d.eat(msgr)
 	return true
 }
@@ -186,9 +186,9 @@ func selfOC(msgr *kitten.Messager, d data) bool {
 		// 以评估的概率，触发喵喵使用 /叠猫猫 锻炼
 		return false
 	}
-	core.RandomDelayRange(time.Second, 2*time.Second)
+	times.RandomDelayRange(time.Second, 2*time.Second)
 	msgr.ID = msgr.Ctx.Send(botConfig.CommandPrefix + cStack + cMeow + ` ` + cOCCat)
-	core.RandomDelayRange(time.Second, 2*time.Second)
+	times.RandomDelayRange(time.Second, 2*time.Second)
 	d.oc(msgr)
 	return true
 }

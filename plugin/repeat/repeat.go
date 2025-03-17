@@ -9,6 +9,7 @@ import (
 
 	"github.com/Kittengarten/KittenCore/kitten"
 	"github.com/Kittengarten/KittenCore/kitten/core"
+	"github.com/Kittengarten/KittenCore/kitten/core/io"
 
 	"github.com/RomiChan/syncx"
 
@@ -51,7 +52,7 @@ var (
 		PrivateDataFolder: replyServiceName,
 	})
 	// 配置文件路径
-	configPath = core.FilePath(engine.DataFolder(), configFile)
+	configPath = io.FilePath(engine.DataFolder(), configFile)
 	// 触发复读的次数
 	times uint = 2
 	// 触发复读的概率
@@ -73,7 +74,7 @@ func init() {
 }
 
 func repeatInit() {
-	repeatConfig, err := core.Load[config](configPath, "times: 2\nchance: 0.5") // 复读姬配置文件
+	repeatConfig, err := io.Load[config](configPath, "times: 2\nchance: 0.5") // 复读姬配置文件
 	if err != nil {
 		kitten.Error(`复读姬配置文件错误喵！`, err)
 		return
@@ -131,7 +132,7 @@ func repeatSet(ctx *zero.Ctx) {
 	}
 	mu.Lock()
 	defer mu.Unlock()
-	err = core.Save(configPath, config{
+	err = io.Save(configPath, config{
 		Times:  times,
 		Chance: chance,
 	})

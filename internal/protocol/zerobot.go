@@ -2,7 +2,7 @@ package protocol
 
 import (
 	"github.com/Kittengarten/KittenCore/kitten"
-	"github.com/Kittengarten/KittenCore/kitten/core"
+	"github.com/Kittengarten/KittenCore/kitten/core/utils"
 
 	"github.com/FloatTech/floatbox/process"
 	zero "github.com/wdvxdr1123/ZeroBot"
@@ -33,7 +33,7 @@ func RunBot(p proxy) {
 	zero.RunAndBlock(&zero.Config{
 		NickName:      config.NickName,
 		CommandPrefix: config.CommandPrefix,
-		SuperUsers: core.ConvertSlice(
+		SuperUsers: utils.ConvertSlice(
 			config.SuperUsers,
 			func(v kitten.QQ) int64 { return v.Int() },
 		),

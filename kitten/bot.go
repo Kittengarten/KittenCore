@@ -9,7 +9,7 @@ import (
 	"slices"
 	"strings"
 
-	"github.com/Kittengarten/KittenCore/kitten/core"
+	"github.com/Kittengarten/KittenCore/kitten/core/io"
 	"github.com/Kittengarten/KittenCore/kitten/qqemoji"
 
 	"github.com/makiuchi-d/gozxing"
@@ -286,16 +286,16 @@ func scanQRCode(imgfile *os.File) (fmt.Stringer, error) {
 func ScanQRCode(name string) (fmt.Stringer, error) {
 	var (
 		msg = Image(name)
-		n   = core.FilePath(`data`, `zbp`, `code.png`)
+		n   = io.FilePath(`data`, `zbp`, `code.png`)
 	)
 	bytes, err := n.DownloadImage(msg.Data[`file`])
 	if err != nil {
-		return core.Path(msg.Data[`file`]), err
+		return io.Path(msg.Data[`file`]), err
 	}
 	Info(`正在扫描二维码喵！字节数：`, bytes)
 	imgfile, err := os.Open(n.String())
 	if err != nil {
-		return core.Path(msg.Data[`file`]), err
+		return io.Path(msg.Data[`file`]), err
 	}
 	return scanQRCode(imgfile)
 }
@@ -304,7 +304,7 @@ func ScanQRCode(name string) (fmt.Stringer, error) {
 func (m *Messager) ScanQRCodeInQQ(file string) (fmt.Stringer, error) {
 	imgfile, err := os.Open(m.GetImage(file).Get(`file`).String())
 	if err != nil {
-		return core.Path(file), err
+		return io.Path(file), err
 	}
 	return scanQRCode(imgfile)
 }

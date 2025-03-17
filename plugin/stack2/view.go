@@ -6,7 +6,8 @@ import (
 	"time"
 
 	"github.com/Kittengarten/KittenCore/kitten"
-	"github.com/Kittengarten/KittenCore/kitten/core"
+	"github.com/Kittengarten/KittenCore/kitten/core/io"
+	"github.com/Kittengarten/KittenCore/kitten/core/times"
 
 	"github.com/vicanso/go-charts/v2"
 
@@ -40,7 +41,7 @@ func (d *data) view(msgr *kitten.Messager, all bool) {
 		return
 	}
 	for len(s) > 0 {
-		core.RandomDelayRange(time.Second, 2*time.Second)
+		times.RandomDelayRange(time.Second, 2*time.Second)
 		// 发送剩余部分的前 50 条
 		sr := s[max(0, len(s)-50):]
 		sendText(msgr, &sr)
@@ -52,7 +53,7 @@ func (d *data) view(msgr *kitten.Messager, all bool) {
 // 初始化字体
 func initFont() error {
 	// 获取字体数据
-	buf, err := core.FilePath(text.GlowSansFontFile).ReadBytes()
+	buf, err := io.FilePath(text.GlowSansFontFile).ReadBytes()
 	if err != nil {
 		return err
 	}

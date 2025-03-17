@@ -1,4 +1,4 @@
-package core
+package str
 
 import (
 	"cmp"
@@ -149,21 +149,21 @@ func FirstText[T str](s T) T {
 }
 
 /*
-MidText 获取中间最长字符串，前缀后缀为空则忽略
+Mid 获取中间最长字符串，前缀后缀为空则忽略
 
 pre 为前缀（不包含），suf 为后缀（不包含），str 为整个字符串
 */
-func MidText(pre, suf, str string) string {
-	return midText(pre, suf, str, false)
+func Mid(pre, suf, str string) string {
+	return mid(pre, suf, str, false)
 }
 
 /*
-MidTextMin 获取中间最短字符串，前缀后缀找不到则忽略（建议使用 "\u0000"）
+MidMin 获取中间最短字符串，前缀后缀找不到则忽略（建议使用 "\u0000"）
 
 pre 为前缀（不包含），suf 为后缀（不包含），str 为整个字符串
 */
-func MidTextMin(pre, suf, str string) string {
-	return midText(pre, suf, str, true)
+func MidMin(pre, suf, str string) string {
+	return mid(pre, suf, str, true)
 }
 
 /*
@@ -171,7 +171,7 @@ func MidTextMin(pre, suf, str string) string {
 
 pre 为前缀（不包含），suf 为后缀（不包含），str 为整个字符串
 */
-func midText(pre, suf, str string, min bool) string {
+func mid(pre, suf, str string, min bool) string {
 	var (
 		low = func() int {
 			// 截掉前缀及之前部分

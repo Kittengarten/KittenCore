@@ -11,7 +11,8 @@ import (
 	"time"
 
 	"github.com/Kittengarten/KittenCore/kitten"
-	"github.com/Kittengarten/KittenCore/kitten/core"
+	"github.com/Kittengarten/KittenCore/kitten/core/http"
+	"github.com/Kittengarten/KittenCore/kitten/core/io"
 
 	human "github.com/dustin/go-humanize"
 	probing "github.com/prometheus-community/pro-bing"
@@ -106,7 +107,7 @@ func cpuInfo() string {
 
 // CPU 使用率 %
 func cpuPercent() float64 {
-	p, err := cpu.Percent(core.TimeOutSeconds*time.Second, false)
+	p, err := cpu.Percent(http.TimeOutSeconds*time.Second, false)
 	if err != nil {
 		kitten.Warnln(`获取 CPU 使用率失败了喵！`, err)
 		return 0
@@ -171,7 +172,7 @@ func diskUsedAll() string {
 }
 
 // 获取 CPU 温度（默认为所有传感器温度中最高的）
-func cpuTemperature(l core.Path) string {
+func cpuTemperature(l io.Path) string {
 	t, err := sensors.SensorsTemperatures()
 	if err != nil {
 		kitten.Warn(err)
@@ -188,7 +189,7 @@ func cpuTemperature(l core.Path) string {
 }
 
 // Windows 系统下获取 CPU 温度，通过微星小飞机（需要自行安装配置，并确保温度在其 log 中的位置）
-func cpuTemperatureOnWindows(l core.Path) string {
+func cpuTemperatureOnWindows(l io.Path) string {
 	if err := l.Delete(); err != nil {
 		kitten.Error(err)
 		return err.Error()
@@ -245,7 +246,7 @@ func Ping(msgr *kitten.Messager) message.ID {
 		return msgr.Reply().AtLf().Image(`哈.png`).Text(err).Send()
 	}
 	pg.Count = 4                                                             // 检测 4 次
-	pg.Timeout = time.Duration(pg.Count) * core.TimeOutSeconds * time.Second // 超时时间设置
+	pg.Timeout = time.Duration(pg.Count) * http.TimeOutSeconds * time.Second // 超时时间设置
 	var nbytes int
 	pg.OnSend = func(pkt *probing.Packet) {
 		nbytes = pkt.Nbytes

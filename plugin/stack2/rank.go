@@ -8,7 +8,7 @@ import (
 	"time"
 
 	"github.com/Kittengarten/KittenCore/kitten"
-	"github.com/Kittengarten/KittenCore/kitten/core"
+	"github.com/Kittengarten/KittenCore/kitten/core/times"
 
 	"github.com/vicanso/go-charts/v2"
 	zero "github.com/wdvxdr1123/ZeroBot"
@@ -114,7 +114,7 @@ func (d *data) rank(msgr *kitten.Messager) {
 		q.奶猫,
 		q.绒布球,
 	)
-	core.RandomDelayRange(time.Second, 2*time.Second)
+	times.RandomDelayRange(time.Second, 2*time.Second)
 	d.rankImage(msgr, q)
 }
 

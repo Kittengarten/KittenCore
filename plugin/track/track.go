@@ -5,7 +5,7 @@ import (
 	"cmp"
 	"fmt"
 	"log"
-	"net/http"
+	stdhttp "net/http"
 	"runtime/debug"
 	"slices"
 	"strconv"
@@ -14,7 +14,9 @@ import (
 	"time"
 
 	"github.com/Kittengarten/KittenCore/kitten"
-	"github.com/Kittengarten/KittenCore/kitten/core"
+	"github.com/Kittengarten/KittenCore/kitten/core/http"
+	"github.com/Kittengarten/KittenCore/kitten/core/io"
+	"github.com/Kittengarten/KittenCore/kitten/core/times"
 	"github.com/Kittengarten/KittenCore/kitten/rate"
 
 	"github.com/FloatTech/floatbox/process"
@@ -65,7 +67,7 @@ var (
 		PrivateDataFolder: replyServiceName,
 	}).ApplySingle(ctxext.DefaultSingle)
 	// 配置文件路径
-	configPath = core.FilePath(engine.DataFolder(), configFile)
+	configPath = io.FilePath(engine.DataFolder(), configFile)
 	// 报更更新的信号
 	cu = make(chan books)
 	// 读写锁
@@ -140,8 +142,8 @@ func updateTest(msgr *kitten.Messager) {
 		msgr,
 		msgr.Reply().AtLf().
 			Image(
-				core.Path(nv.coverURL),
-				core.Path(nv.headURL),
+				io.Path(nv.coverURL),
+				io.Path(nv.headURL),
 			).
 			Text(nv.update()).
 			SendMulti(),
@@ -181,7 +183,7 @@ func novelInfo(msgr *kitten.Messager, comment bool) {
 		return
 	}
 	msgr = msgr.Reply().AtLf().
-		Image(core.Path(nv.coverURL)).
+		Image(io.Path(nv.coverURL)).
 		Text(&nv)
 	if comment {
 		msgr.Text(Comment(&nv))
@@ -198,7 +200,7 @@ func add(msgr *kitten.Messager) {
 	}
 	mu.Lock()
 	defer mu.Unlock()
-	c, err := core.Load[books](configPath, core.Empty) // 报更配置
+	c, err := io.Load[books](configPath, io.Empty) // 报更配置
 	if err != nil {
 		msgr.SendWithImageFail(errLoad, err)
 		return
@@ -251,7 +253,7 @@ func cancel(msgr *kitten.Messager) {
 	}
 	mu.Lock()
 	defer mu.Unlock()
-	c, err := core.Load[books](configPath, core.Empty) // 报更配置
+	c, err := io.Load[books](configPath, io.Empty) // 报更配置
 	if err != nil {
 		msgr.SendWithImageFail(errLoad, err)
 		return
@@ -299,7 +301,7 @@ func query(msgr *kitten.Messager) {
 		return
 	}
 	mu.RLock()
-	c, err := core.Load[books](configPath, core.Empty) // 报更配置
+	c, err := io.Load[books](configPath, io.Empty) // 报更配置
 	mu.RUnlock()
 	if err != nil {
 		msgr.SendWithImageFail(errLoad, err)
@@ -381,16 +383,16 @@ func track() {
 	// 处理 panic，防止程序崩溃
 	defer func() {
 		if err := recover(); err != nil {
-			kitten.Error(replyServiceName, ` 协程出现错误喵！`, err, string(debug.Stack()))
+			kitten.Errorln(replyServiceName, `协程出现错误喵！`, err, string(debug.Stack()))
 		}
 	}()
 	// 初始化报更配置文件
-	if err := configPath.InitFile(core.Empty); err != nil {
+	if err := configPath.InitFile(io.Empty); err != nil {
 		kitten.Error(`初始化报更配置文件时发生错误喵！`, err)
 		return
 	}
 	mu.RLock()
-	data, err := core.Load[books](configPath, core.Empty)
+	data, err := io.Load[books](configPath, io.Empty)
 	mu.RUnlock()
 	if err != nil {
 		kitten.Error(errLoad, err)
@@ -408,8 +410,8 @@ func track() {
 		defer process.GlobalInitMutex.Unlock()
 	}()
 	var (
-		t   = time.NewTicker(core.TimeOutSeconds * time.Second) // 定期检测，间隔为超时时间
-		st  = time.NewTicker(core.TimeOutSeconds * time.Minute) // 专用慢速时钟
+		t   = time.NewTicker(http.TimeOutSeconds * time.Second) // 定期检测，间隔为超时时间
+		st  = time.NewTicker(http.TimeOutSeconds * time.Minute) // 专用慢速时钟
 		sid = kitten.Self()
 		bot = kitten.New(zero.GetBot(sid.Int()))
 	)
@@ -433,11 +435,11 @@ func (c *books) report(msgr *kitten.Messager, st *time.Ticker) {
 	// 将小说重新收回小说池
 	defer novelPool.Put(&nv)
 	for i, b := range *c {
-		core.RandomDelayRange(core.TimeOutSeconds*time.Second,
-			2*core.TimeOutSeconds*time.Second)
+		times.RandomDelayRange(http.TimeOutSeconds*time.Second,
+			2*http.TimeOutSeconds*time.Second)
 		switch b.Platform {
 		case FQ:
-			res, err := http.Get(fqAPIHOST)
+			res, err := stdhttp.Get(fqAPIHOST)
 			if err != nil {
 				// API 无法访问，使用网页模式
 				// 接收到专用的慢速定时器信号才释放
@@ -477,8 +479,8 @@ func (c *books) report(msgr *kitten.Messager, st *time.Ticker) {
 		go tryCommentUpdate(
 			msgr,
 			msgr.Image(
-				core.Path(nv.coverURL),
-				core.Path(nv.headURL),
+				io.Path(nv.coverURL),
+				io.Path(nv.headURL),
 			).Text(nv.update()).SendMulti(b.Users...),
 			b.Users,
 			nv,

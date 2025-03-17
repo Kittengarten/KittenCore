@@ -9,7 +9,7 @@ import (
 	"os"
 	"runtime/debug"
 
-	"github.com/Kittengarten/KittenCore/kitten/core"
+	"github.com/Kittengarten/KittenCore/kitten/core/io"
 )
 
 const (
@@ -23,14 +23,14 @@ var (
 	botConfig     config // 来自 Bot 的配置文件
 	//go:embed data
 	data      embed.FS
-	imagePath core.Path // 图片路径
-	Weight    int       // 自身叠猫猫体重（0.1 kg 数）
+	imagePath io.Path // 图片路径
+	Weight    int     // 自身叠猫猫体重（0.1 kg 数）
 )
 
 func init() {
 	var err error
 	// 配置文件初始化
-	if botConfig, err = core.Load[config](core.Path(configFile), defaultConfig); err != nil {
+	if botConfig, err = io.Load[config](io.Path(configFile), defaultConfig); err != nil {
 		log.Fatalln(err, `请按 YAML 格式配置`, configFile, `后重新启动喵！`)
 	}
 	// 启用 zap 日志格式
@@ -56,7 +56,7 @@ func init() {
 		log.Println(err, `请正确配置`, configFile, `中的 path 喵！`)
 	}
 	// 图片路径
-	imagePath = core.FilePath(botConfig.Path, imageFolder)
+	imagePath = io.FilePath(botConfig.Path, imageFolder)
 }
 
 // 重定向崩溃日志
@@ -96,6 +96,6 @@ func MainConfig() config {
 }
 
 // ImagePath 获取图片路径
-func ImagePath() core.Path {
+func ImagePath() io.Path {
 	return imagePath
 }

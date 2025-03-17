@@ -4,7 +4,8 @@ import (
 	"slices"
 	"time"
 
-	"github.com/Kittengarten/KittenCore/kitten/core"
+	"github.com/Kittengarten/KittenCore/kitten/core/io"
+	"github.com/Kittengarten/KittenCore/kitten/core/times"
 )
 
 // 时间布局
@@ -17,7 +18,7 @@ var timeLayout = map[Platform]string{
 // 保存报更
 func (c *books) saveConfig() error {
 	c.sortByUpdate()
-	if err := core.Save(configPath, *c); err != nil {
+	if err := io.Save(configPath, *c); err != nil {
 		return err
 	}
 	cu <- *c
@@ -38,7 +39,7 @@ func (p Platform) ParseTime(str string) (time.Time, error) {
 	}
 	layout, ok := timeLayout[p]
 	if !ok {
-		return time.Parse(core.Layout, str)
+		return time.Parse(times.Layout, str)
 	}
 	return time.Parse(layout, str)
 }

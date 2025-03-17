@@ -5,7 +5,9 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/Kittengarten/KittenCore/kitten/core"
+	"github.com/Kittengarten/KittenCore/kitten/core/http"
+	"github.com/Kittengarten/KittenCore/kitten/core/str"
+	"github.com/Kittengarten/KittenCore/kitten/core/utils"
 
 	"github.com/antchfx/htmlquery"
 	"github.com/tidwall/gjson"
@@ -31,26 +33,26 @@ func (nv *novel) initFQ(bookID string) error {
 	// 生成链接
 	nv.url = fqURL + nv.id
 	// 获取小说网页，失败则返回
-	core.SetUserAgent(core.RandomUserAgent())
-	defer core.SetUserAgent(core.UserAgent)
+	http.SetUserAgent(http.RandomUserAgent())
+	defer http.SetUserAgent(http.UserAgent)
 	doc, err := htmlquery.LoadURL(nv.url)
 	if err != nil {
 		return err
 	}
-	if !strings.Contains(core.InnerText(doc, `//title`), `在线免费阅读`) {
+	if !strings.Contains(http.InnerText(doc, `//title`), `在线免费阅读`) {
 		return errStatus(nv.url, bookUnreachable)
 	}
 	// 获取封面
-	nv.coverURL = gjson.Get(core.InnerText(doc,
+	nv.coverURL = gjson.Get(http.InnerText(doc,
 		`//script[@type="application/ld+json"]`), `image.0`).String()
 	// 获取书名
-	nv.name = core.InnerText(doc, `//div[@class="info-name"]`)
+	nv.name = http.InnerText(doc, `//div[@class="info-name"]`)
 	// 获取小说信息
 	bookInfo := htmlquery.FindOne(doc, `//div[@class="info-label"]`)
 	// 获取小说状态
-	nv.status = core.InnerText(bookInfo, `//span[@class="info-label-yellow"]`)
+	nv.status = http.InnerText(bookInfo, `//span[@class="info-label-yellow"]`)
 	// 获取标签
-	nv.tagList = core.ConvertSlice(
+	nv.tagList = utils.ConvertSlice(
 		htmlquery.Find(bookInfo, `//span[@class="info-label-grey"]`),
 		func(n *html.Node) string {
 			return htmlquery.InnerText(n)
@@ -58,20 +60,20 @@ func (nv *novel) initFQ(bookID string) error {
 	)
 	// 获取小说字数
 	nv.wordNum = func(wordNum *html.Node) (s string) {
-		s = core.InnerText(wordNum, `/span[@class="detail"]`)
-		if core.InnerText(wordNum, `/span[@class="text"]`) == `万字` {
+		s = http.InnerText(wordNum, `/span[@class="detail"]`)
+		if http.InnerText(wordNum, `/span[@class="text"]`) == `万字` {
 			s += `万`
 		}
 		return
 	}(htmlquery.FindOne(doc, `//div[@class="info-count-word"]`))
 	// 获取头像链接
-	nv.headURL = core.InnerText(doc, `//img[@class="author-img"]/@src`)
+	nv.headURL = http.InnerText(doc, `//img[@class="author-img"]/@src`)
 	// 获取作者
-	nv.writer = core.InnerText(doc, `//span[@class="author-name-text"]`)
+	nv.writer = http.InnerText(doc, `//span[@class="author-name-text"]`)
 	// 获取简述
-	nv.introduce = core.InnerText(doc, `//div[@class="page-abstract-content"]/p`)
+	nv.introduce = http.InnerText(doc, `//div[@class="page-abstract-content"]/p`)
 	// 获取新章节链接
-	newChapter := core.InnerText(doc, `//div[@class="info-last"]/a[@class="chapter-item-title"]/@href`)
+	newChapter := http.InnerText(doc, `//div[@class="info-last"]/a[@class="chapter-item-title"]/@href`)
 	// 获取上架状态（番茄均为免费）
 	nv.right = []string{`免费`}
 	// 不支持的字段
@@ -97,20 +99,20 @@ func (cp *chapter) initFQ(url string) error {
 	// 向章节传入链接
 	cp.url = url
 	// 获取章节网页，失败则返回
-	core.SetUserAgent(core.RandomUserAgent())
-	defer core.SetUserAgent(core.UserAgent)
+	http.SetUserAgent(http.RandomUserAgent())
+	defer http.SetUserAgent(http.UserAgent)
 	doc, err := htmlquery.LoadURL(cp.url)
 	if err != nil {
 		return err
 	}
-	if !strings.Contains(core.InnerText(doc, `//title`), `在线免费阅读`) {
+	if !strings.Contains(http.InnerText(doc, `//title`), `在线免费阅读`) {
 		return errStatus(cp.url, chapterUnreachable)
 	}
 	// 获取章节标题
-	cp.title = core.InnerText(doc, `//h1[@class="muye-reader-title"]`)
+	cp.title = http.InnerText(doc, `//h1[@class="muye-reader-title"]`)
 	// 获取章节字数
-	wordNum := core.InnerText(doc, `//span[@class="desc-item"]`)
-	cp.wordNum, err = strconv.Atoi(core.MidText(`本章字数：`, `字`, wordNum))
+	wordNum := http.InnerText(doc, `//span[@class="desc-item"]`)
+	cp.wordNum, err = strconv.Atoi(str.Mid(`本章字数：`, `字`, wordNum))
 	if err != nil {
 		return fmt.Errorf(`章节 %s 的字数获取错误喵！%w`, url, err)
 	}
@@ -121,12 +123,12 @@ func (cp *chapter) initFQ(url string) error {
 			if !strings.Contains(s, pre) {
 				continue
 			}
-			return core.MidText(pre, `;`, s)
+			return str.Mid(pre, `;`, s)
 		}
 		return ``
 	}()
 	// 获取更新时间
-	cp.Time, err = FQ.ParseTime(gjson.Get(core.InnerText(doc,
+	cp.Time, err = FQ.ParseTime(gjson.Get(http.InnerText(doc,
 		`//script[@type="application/ld+json"]`), `dateModified`).String())
 	if err != nil {
 		return err

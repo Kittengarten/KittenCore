@@ -2,7 +2,7 @@ package rcon
 
 import (
 	"github.com/Kittengarten/KittenCore/kitten"
-	"github.com/Kittengarten/KittenCore/kitten/core"
+	"github.com/Kittengarten/KittenCore/kitten/core/io"
 	"github.com/Kittengarten/KittenCore/plugin/rcon/utils"
 
 	ctrl "github.com/FloatTech/zbpctrl"
@@ -31,7 +31,7 @@ var (
 		PrivateDataFolder: replyServiceName,
 	}).ApplySingle(ctxext.DefaultSingle)
 	// 配置文件路径
-	configPath = core.FilePath(engine.DataFolder(), configFile)
+	configPath = io.FilePath(engine.DataFolder(), configFile)
 )
 
 func init() {

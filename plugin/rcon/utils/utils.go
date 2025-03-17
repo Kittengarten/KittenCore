@@ -9,7 +9,7 @@ import (
 	"net"
 	"time"
 
-	"github.com/Kittengarten/KittenCore/kitten/core"
+	"github.com/Kittengarten/KittenCore/kitten/core/http"
 )
 
 const (
@@ -38,7 +38,7 @@ type Header struct {
 }
 
 func (c *MCConn) Open(addr, password string) error {
-	conn, err := net.DialTimeout(`tcp`, addr, core.TimeOutSeconds*time.Second)
+	conn, err := net.DialTimeout(`tcp`, addr, http.TimeOutSeconds*time.Second)
 	if err != nil {
 		return err
 	}

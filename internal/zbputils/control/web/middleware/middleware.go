@@ -5,7 +5,8 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/Kittengarten/KittenCore/kitten/core"
+	"github.com/Kittengarten/KittenCore/kitten/core/utils"
+
 	"github.com/gin-gonic/gin"
 	"github.com/patrickmn/go-cache"
 )
@@ -35,7 +36,7 @@ func Cors() gin.HandlerFunc {
 			// 设置缓存时间
 			c.Header("Access-Control-Max-Age", "172800")
 			// 允许客户端传递校验信息比如 cookie (重要)
-			c.Header("Access-Control-Allow-Credentials", core.BoolToString(true))
+			c.Header("Access-Control-Allow-Credentials", utils.BoolToString(true))
 		}
 
 		// 允许类型校验

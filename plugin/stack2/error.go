@@ -6,7 +6,7 @@ import (
 	"time"
 
 	"github.com/Kittengarten/KittenCore/kitten"
-	"github.com/Kittengarten/KittenCore/kitten/core"
+	"github.com/Kittengarten/KittenCore/kitten/core/times"
 )
 
 type (
@@ -45,7 +45,7 @@ func alreadyJoined() *alreadyJoinedError {
 func (e *needRestError) Error() string {
 	return fmt.Sprintf(`还需要休息 %s才能活动喵！
 你的当前体重为 %.1f kg。`,
-		core.ConvertTimeDuration(e.Duration),
+		times.ConvertTimeDuration(e.Duration),
 		itof(e.w))
 }
 
@@ -72,7 +72,7 @@ func (e *stackError) Error() string {
 		exit(e.Messager, e.m, e.r, e.n) // 让失败的猫猫退出
 		fmt.Fprintf(e, `你平地摔了喵！需要休息 %s。
 你的体重由 %.1f kg 变为 %.1f kg。`,
-			core.ConvertTimeDuration(e.m.Time.Sub(time.Unix(e.Event.Time, 0))),
+			times.ConvertTimeDuration(e.m.Time.Sub(time.Unix(e.Event.Time, 0))),
 			itof(w), itof(e.m.Weight))
 	case press:
 		// 压坏了别的猫猫

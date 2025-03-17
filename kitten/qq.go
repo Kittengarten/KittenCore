@@ -7,7 +7,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/Kittengarten/KittenCore/kitten/core"
+	"github.com/Kittengarten/KittenCore/kitten/core/str"
+
 	"github.com/RomiChan/syncx"
 	"github.com/tidwall/gjson"
 
@@ -221,7 +222,7 @@ func (u *QQ) TitleCardOrNickName(msgr *Messager) string {
 
 // CallName 从 QQ 获取用于称呼的简单昵称
 func (u *QQ) CallName(msgr *Messager) string {
-	return core.FirstText(ctxCardOrNickName(msgr.Ctx, u.Int()))
+	return str.First(ctxCardOrNickName(msgr.Ctx, u.Int()))
 }
 
 // MemberList 获取特定群的成员列表

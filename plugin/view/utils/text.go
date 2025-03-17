@@ -6,11 +6,11 @@ import (
 	"io"
 	"strings"
 
-	"github.com/Kittengarten/KittenCore/kitten"
-	"github.com/Kittengarten/KittenCore/kitten/core"
-	"github.com/Kittengarten/KittenCore/kitten/mahjong"
-
 	"github.com/Kittengarten/KittenAnno/wta"
+	"github.com/Kittengarten/KittenCore/kitten"
+	"github.com/Kittengarten/KittenCore/kitten/core/http"
+	"github.com/Kittengarten/KittenCore/kitten/core/str"
+	"github.com/Kittengarten/KittenCore/kitten/mahjong"
 
 	"github.com/wdvxdr1123/ZeroBot/message"
 )
@@ -25,7 +25,7 @@ const (
 // 发送网页内容，lf 控制内容是否换行
 func send(msgr *kitten.Messager, url string, lf bool) message.ID {
 	// 获取 HTTP 响应体，失败则返回
-	b, err := core.GET(url)
+	b, err := http.GET(url)
 	if err != nil {
 		return msgr.SendWithImageFail(err)
 	}
@@ -33,14 +33,14 @@ func send(msgr *kitten.Messager, url string, lf bool) message.ID {
 	if _, err := io.Copy(&s, b); err != nil {
 		return msgr.SendWithImageFail(err)
 	}
-	return msgr.Reply().AtLf().Text(core.CleanAll(s.String(), lf)).Send()
+	return msgr.Reply().AtLf().Text(str.CleanAll(s.String(), lf)).Send()
 }
 
 // 发送一言
 func sendYiYan(msgr *kitten.Messager) message.ID {
 	var (
 		// 获取 HTTP 响应体，失败则返回
-		b, err = core.GET(yiYan)
+		b, err = http.GET(yiYan)
 		rsp    struct {
 			Hitokoto string `json:"hitokoto"`
 			From     string `json:"from"`
@@ -74,7 +74,7 @@ func getWTA(msgr *kitten.Messager) string {
 	if err != nil {
 		return err.Error()
 	}
-	n := core.CleanAll(msgr.Args(), false)
+	n := str.CleanAll(msgr.Args(), false)
 	if err = o.SetName(n); err != nil {
 		return err.Error()
 	}

@@ -1,13 +1,18 @@
-package core
+package io
 
 import (
 	"bytes"
+	"errors"
 	"fmt"
 	"io"
+	"io/fs"
 	"os"
 	"path/filepath"
 	"runtime"
 	"strings"
+
+	"github.com/Kittengarten/KittenCore/kitten/core/http"
+	"github.com/Kittengarten/KittenCore/kitten/core/utils"
 
 	"go.uber.org/zap"
 	"gopkg.in/yaml.v3"
@@ -16,6 +21,24 @@ import (
 )
 
 type Path string // Path 是一个表示文件路径的字符串
+
+const (
+	Empty = `[]` // Empty YAML 空数组（slice）
+	Blank = `{}` // Blank YAML 空集合（map）
+)
+
+func init() {
+	fs.ErrInvalid = errors.New(`无效的参数喵！`)
+	fs.ErrPermission = errors.New(`没有权限喵！`)
+	fs.ErrExist = errors.New(`文件已存在喵！`)
+	fs.ErrNotExist = errors.New(`文件不存在喵！`)
+	fs.ErrClosed = errors.New(`文件已关闭喵！`)
+	os.ErrInvalid = fs.ErrInvalid
+	os.ErrPermission = fs.ErrPermission
+	os.ErrExist = fs.ErrExist
+	os.ErrNotExist = fs.ErrNotExist
+	os.ErrClosed = fs.ErrClosed
+}
 
 // 加载 YAML 配置文件，def 为默认值（加载不到的时候会尝试初始化）
 func Load[T any](p Path, def string) (c T, err error) {
@@ -54,7 +77,7 @@ func FilePath[T ~string](elem ...T) Path {
 	return Path(
 		strings.Replace(
 			filepath.Join(
-				ConvertSlice(
+				utils.ConvertSlice(
 					elem,
 					func(e T) string {
 						return string(e)
@@ -269,7 +292,7 @@ func (p Path) Image(name Path) (message.Segment, error) {
 // DownloadImage 从 url 下载图片到 path
 func (p Path) DownloadImage(url string) (int64, error) {
 	// 获取 HTTP 响应体，失败则返回
-	b, err := GET(url)
+	b, err := http.GET(url)
 	if err != nil {
 		return 0, err
 	}

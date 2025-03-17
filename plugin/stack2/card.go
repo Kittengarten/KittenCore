@@ -4,7 +4,7 @@ import (
 	"time"
 
 	"github.com/Kittengarten/KittenCore/kitten"
-	"github.com/Kittengarten/KittenCore/kitten/core"
+	"github.com/Kittengarten/KittenCore/kitten/core/times"
 
 	"github.com/RomiChan/syncx"
 )
@@ -19,7 +19,7 @@ func setCard(msgr *kitten.Messager, h int) {
 	}
 	active.Range(func(g kitten.QQ, t time.Time) bool {
 		msgr.SetCard(func() int {
-			if time.Since(t) <= core.HoursPerDay*time.Hour {
+			if time.Since(t) <= times.HoursPerDay*time.Hour {
 				return h
 			}
 			// 如果群距上次活跃时间大于一天，则删除

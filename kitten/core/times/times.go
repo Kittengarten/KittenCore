@@ -1,4 +1,4 @@
-package core
+package times
 
 import (
 	"math/rand/v2"
@@ -14,6 +14,11 @@ type TimeDuration struct {
 	m time.Duration // 分钟
 	s time.Duration // 秒
 }
+
+const (
+	Layout      = `2006.1.2	❤	15:04:05` // Layout 日期时间格式
+	HoursPerDay = 24                    // HoursPerDay 每天小时数
+)
 
 // RandomDelay 随机阻塞等待
 func RandomDelay(t time.Duration) {

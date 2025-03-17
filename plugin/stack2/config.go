@@ -5,7 +5,7 @@ import (
 	"fmt"
 
 	"github.com/Kittengarten/KittenCore/kitten"
-	"github.com/Kittengarten/KittenCore/kitten/core"
+	"github.com/Kittengarten/KittenCore/kitten/core/io"
 
 	ctrl "github.com/FloatTech/zbpctrl"
 	"github.com/FloatTech/zbputils/control"
@@ -14,11 +14,11 @@ import (
 
 var (
 	// 叠猫猫配置文件名
-	configFile = core.FilePath(`data`, `Stack2`, `config.yaml`)
+	configFile = io.FilePath(`data`, `Stack2`, `config.yaml`)
 	//go:embed config.yaml
 	configStr string
 	// 叠猫猫配置文件
-	stackConfig, err = core.Load[config](configFile, configStr)
+	stackConfig, err = io.Load[config](configFile, configStr)
 	// bot 配置
 	botConfig = kitten.MainConfig()
 	// 帮助文本
@@ -57,11 +57,11 @@ var (
 		PublicDataFolder: `Stack2`,
 	})
 	// 图片路径
-	imagePath = core.FilePath(kitten.ImagePath(), replyServiceName)
+	imagePath = io.FilePath(kitten.ImagePath(), replyServiceName)
 	// 数据路径
-	dataPath = core.FilePath(engine.DataFolder(), dataFile)
+	dataPath = io.FilePath(engine.DataFolder(), dataFile)
 	// 缓存路径
-	bufferPath = core.FilePath(engine.DataFolder(), bufferFile)
+	bufferPath = io.FilePath(engine.DataFolder(), bufferFile)
 	// 小贴士路径
-	tipsPath = core.FilePath(engine.DataFolder(), tipsFile)
+	tipsPath = io.FilePath(engine.DataFolder(), tipsFile)
 )

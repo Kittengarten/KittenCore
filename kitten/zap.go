@@ -4,7 +4,7 @@ import (
 	"os"
 	"time"
 
-	"github.com/Kittengarten/KittenCore/kitten/core"
+	"github.com/Kittengarten/KittenCore/kitten/core/times"
 
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
@@ -26,7 +26,7 @@ var encoderConfig = zapcore.EncoderConfig{
 	LineEnding:    zapcore.DefaultLineEnding,
 	EncodeLevel:   zapcore.CapitalColorLevelEncoder, // 指定颜色
 	EncodeTime: func(t time.Time, enc zapcore.PrimitiveArrayEncoder) {
-		enc.AppendString(`[` + t.Format(core.Layout) + `]`)
+		enc.AppendString(`[` + t.Format(times.Layout) + `]`)
 	}, // 时间格式
 	EncodeDuration: zapcore.SecondsDurationEncoder,
 	EncodeCaller: func(caller zapcore.EntryCaller, enc zapcore.PrimitiveArrayEncoder) {

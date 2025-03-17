@@ -9,7 +9,9 @@ import (
 	"time"
 
 	"github.com/Kittengarten/KittenCore/kitten"
-	"github.com/Kittengarten/KittenCore/kitten/core"
+	"github.com/Kittengarten/KittenCore/kitten/core/equal"
+	"github.com/Kittengarten/KittenCore/kitten/core/times"
+
 	"github.com/wdvxdr1123/ZeroBot/message"
 )
 
@@ -165,7 +167,7 @@ func (nv *novel) HitNum() string {
 
 // 获取小说更新、简介
 func (nv *novel) UpdateAndIntroduce() string {
-	return `更新：` + nv.newChapter.Format(core.Layout) + func() string {
+	return `更新：` + nv.newChapter.Format(times.Layout) + func() string {
 		switch nv.Platform {
 		case CWM:
 			return ``
@@ -215,7 +217,7 @@ func (b book) String() string {
 		if b.UpdateTime.IsZero() {
 			return unknown
 		}
-		return b.UpdateTime.Format(core.Layout)
+		return b.UpdateTime.Format(times.Layout)
 	}()
 }
 
@@ -240,9 +242,9 @@ func (nv *novel) makeCompare() error {
 	}
 	nv.todayWordNum = this.wordNum
 	nv.Duration = max(time.Second, this.Sub(pre.Time))
-	for nv.times = 1; core.IsSameDate(pre.Time, this.Time) &&
+	for nv.times = 1; equal.IsSameDate(pre.Time, this.Time) &&
 		pre.preURL != nv.url; nv.times++ {
-		core.RandomDelayRange(time.Second, 2*time.Second)
+		times.RandomDelayRange(time.Second, 2*time.Second)
 		this = pre
 		nv.todayWordNum += this.wordNum
 		if err := pre.init(nv.Platform, this.preURL); err != nil {
@@ -355,12 +357,12 @@ func (nv *novel) todayReport() (string, error) {
 }
 
 // 距上次更新时间的时间差转换为时间间隔的结构体
-func (nv *novel) DurationConvert() (core.TimeDuration, error) {
+func (nv *novel) DurationConvert() (times.TimeDuration, error) {
 	// 如果时间早于 2006.1.2 15:04:05
-	if s, _ := Platform(``).ParseTime(core.Layout); nv.Duration > time.Since(s) {
-		return core.TimeDuration{}, errStatus(nv.url, timeException)
+	if s, _ := Platform(``).ParseTime(times.Layout); nv.Duration > time.Since(s) {
+		return times.TimeDuration{}, errStatus(nv.url, timeException)
 	}
-	return core.ConvertTimeDuration(nv.Duration), nil
+	return times.ConvertTimeDuration(nv.Duration), nil
 }
 
 // 今日更新信息
@@ -371,6 +373,6 @@ func (nv *novel) todayUpdate() string {
 	case 1:
 		return `当日第 1 更`
 	default:
-		return fmt.Sprintf(`当日第 %d 更，日更 %d 字`, nv.times, nv.todayWordNum)
+		return fmt.Sprint(`当日第`, nv.times, `更，日更`, nv.todayWordNum, `字`)
 	}
 }

@@ -6,7 +6,9 @@ import (
 	"time"
 
 	"github.com/Kittengarten/KittenCore/kitten"
-	"github.com/Kittengarten/KittenCore/kitten/core"
+	"github.com/Kittengarten/KittenCore/kitten/core/io"
+	"github.com/Kittengarten/KittenCore/kitten/core/str"
+	"github.com/Kittengarten/KittenCore/kitten/core/times"
 	"github.com/Kittengarten/KittenCore/kitten/rate"
 
 	"github.com/wdvxdr1123/ZeroBot/message"
@@ -15,9 +17,9 @@ import (
 var pokeLimiter = rate.New(rate.ByGroup, 5*time.Minute, 9) // 戳一戳限速
 
 // View 查看
-func View(msgr *kitten.Messager, service string, logFilePath core.Path) message.ID {
+func View(msgr *kitten.Messager, service string, logFilePath io.Path) message.ID {
 	switch name, who := func() (name, who string) {
-		name = core.CleanAll(msgr.Args(), false)
+		name = str.CleanAll(msgr.Args(), false)
 		who = name
 		for _, n := range kitten.MainConfig().NickName {
 			if name == n {
@@ -31,7 +33,7 @@ func View(msgr *kitten.Messager, service string, logFilePath core.Path) message.
 		return msgr.
 			Reply().
 			AtLf().
-			Image(core.FilePath(service,
+			Image(io.FilePath(service,
 				strconv.Itoa(
 					getPerf(cpuPercent(), percent(getMem()), t),
 				)+`.png`),
@@ -75,7 +77,7 @@ func Poke(msgr *kitten.Messager) message.ID {
 	switch limiter := pokeLimiter(msgr.Ctx); {
 	case limiter.AcquireN(5):
 		// 5 分钟共 9 块命令牌 一次消耗 5 块命令牌
-		core.RandomDelayRange(time.Second, 2*time.Second)
+		times.RandomDelayRange(time.Second, 2*time.Second)
 		msgr.Poke()
 		msgr.CallAction(`send_like`, map[string]any{
 			`user_id`: msgr.Event.UserID,

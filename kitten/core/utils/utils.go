@@ -1,40 +1,14 @@
-package core
+package utils
 
 import (
-	"errors"
 	"fmt"
-	"io/fs"
 	"maps"
 	"math"
 	"math/rand/v2"
-	"os"
 	"slices"
 
 	"github.com/Kittengarten/KittenCore/internal/wr"
-
-	zero "github.com/wdvxdr1123/ZeroBot"
 )
-
-const (
-	Empty        = `[]`                   // Empty YAML 空数组（slice）
-	Blank        = `{}`                   // Blank YAML 空集合（map）
-	Layout       = `2006.1.2	❤	15:04:05`  // Layout 日期时间格式
-	PlatformBits = 32 << (^uint(0) >> 63) // PlatformBits 平台位数
-	HoursPerDay  = 24                     // HoursPerDay 每天小时数
-)
-
-func init() {
-	fs.ErrInvalid = errors.New(`无效的参数喵！`)
-	fs.ErrPermission = errors.New(`没有权限喵！`)
-	fs.ErrExist = errors.New(`文件已存在喵！`)
-	fs.ErrNotExist = errors.New(`文件不存在喵！`)
-	fs.ErrClosed = errors.New(`文件已关闭喵！`)
-	os.ErrInvalid = fs.ErrInvalid
-	os.ErrPermission = fs.ErrPermission
-	os.ErrExist = fs.ErrExist
-	os.ErrNotExist = fs.ErrNotExist
-	os.ErrClosed = fs.ErrClosed
-}
 
 type (
 	// Choicer 随机项目的抽象接口
@@ -92,11 +66,6 @@ func GenerateRandomNumber(start, end, count int) ([]int, error) {
 	}
 	// 集合转换为切片
 	return slices.Collect(maps.Keys(set)), nil
-}
-
-// NotOnlyToMe 不是（@ 自己 | 以自己的名字之一开头 | 私聊）任何之一
-func NotOnlyToMe(ctx *zero.Ctx) bool {
-	return !zero.OnlyToMe(ctx)
 }
 
 // ConvertSlice 将 src 中的每个元素由 T 类型转换为 U 类型

@@ -1,4 +1,4 @@
-package core
+package http
 
 import (
 	"io"
@@ -11,14 +11,11 @@ import (
 	"github.com/antchfx/htmlquery"
 	"golang.org/x/net/html"
 	"golang.org/x/net/html/charset"
-
-	trshttp "github.com/fumiama/terasu/http"
-	trshttp2 "github.com/fumiama/terasu/http2"
 )
 
 type (
-	// HTTPError 是一个表示 HTTP 错误的结构体
-	HTTPError struct {
+	// Error 是一个表示 HTTP 错误的结构体
+	Error struct {
 		URL        string // 请求的 URL
 		Method     string // 请求的方法
 		StatusCode int    // HTTP 状态码
@@ -38,6 +35,11 @@ const (
 	TimeOutSeconds = 10 // TimeOutSeconds 超时时间
 )
 
+var (
+	TLSClient      http.Client // TLSClient TLS HTTP 客户端
+	TLSHTTP2Client http.Client // TLSHTTP2Client TLS HTTP2 客户端
+)
+
 func init() {
 	// 设置默认 User-Agent
 	SetUserAgent(RandomUserAgent())
@@ -46,7 +48,7 @@ func init() {
 }
 
 // Error 实现 error
-func (e *HTTPError) Error() string {
+func (e *Error) Error() string {
 	return `链接：` + e.URL + `
 方法：` + e.Method + `
 HTTP 错误：` + strconv.Itoa(e.StatusCode)
@@ -62,10 +64,10 @@ func (f uaSetter) RoundTrip(r *http.Request) (*http.Response, error) {
 func GET(url string) (io.Reader, error) {
 	res, err := tryTLS(
 		func(string, string, io.Reader) (*http.Response, error) {
-			return trshttp2.Get(url)
+			return TLSHTTP2Client.Get(url)
 		},
 		func(string, string, io.Reader) (*http.Response, error) {
-			return trshttp.Get(url)
+			return TLSClient.Get(url)
 		},
 		http.MethodGet, url, ``, nil)
 	if err != nil {
@@ -78,10 +80,10 @@ func GET(url string) (io.Reader, error) {
 func GETData(url string) ([]byte, error) {
 	res, err := tryTLS(
 		func(string, string, io.Reader) (*http.Response, error) {
-			return trshttp2.Get(url)
+			return TLSHTTP2Client.Get(url)
 		},
 		func(string, string, io.Reader) (*http.Response, error) {
-			return trshttp.Get(url)
+			return TLSClient.Get(url)
 		},
 		http.MethodGet, url, ``, nil)
 	if err != nil {
@@ -92,7 +94,12 @@ func GETData(url string) ([]byte, error) {
 
 // POST 获取 HTTP POST 响应体（无需关闭）
 func POST(url, contentType string, body io.Reader) (io.Reader, error) {
-	res, err := tryTLS(trshttp2.Post, trshttp.Post, http.MethodPost, url, contentType, body)
+	res, err := tryTLS(
+		TLSHTTP2Client.Post,
+		TLSClient.Post,
+		http.MethodPost,
+		url, contentType, body,
+	)
 	if err != nil {
 		return nil, err
 	}
@@ -101,7 +108,12 @@ func POST(url, contentType string, body io.Reader) (io.Reader, error) {
 
 // POSTData 获取 HTTP POST 数据
 func POSTData(url, contentType string, body io.Reader) ([]byte, error) {
-	res, err := tryTLS(trshttp2.Post, trshttp.Post, http.MethodPost, url, contentType, body)
+	res, err := tryTLS(
+		TLSHTTP2Client.Post,
+		TLSClient.Post,
+		http.MethodPost,
+		url, contentType, body,
+	)
 	if err != nil {
 		return nil, err
 	}
@@ -146,7 +158,7 @@ func checkError(res *http.Response, url string) error {
 		return nil
 	}
 	defer res.Body.Close()
-	return &HTTPError{
+	return &Error{
 		URL:        url,
 		Method:     res.Request.Method,
 		StatusCode: res.StatusCode,
@@ -201,8 +213,8 @@ func ExtractText(doc *html.Node) string {
 // SetTimeOut 设置超时时间
 func SetTimeOut(d time.Duration) {
 	http.DefaultClient.Timeout = d
-	trshttp.DefaultClient.Timeout = d
-	trshttp2.DefaultClient.Timeout = d
+	TLSClient.Timeout = d
+	TLSHTTP2Client.Timeout = d
 }
 
 // SetUserAgent 设置用户代理
@@ -212,8 +224,8 @@ func SetUserAgent(ua string) {
 	}
 	s := uaSetter{ua: ua}
 	http.DefaultClient.Transport = s
-	trshttp.DefaultClient.Transport = s
-	trshttp2.DefaultClient.Transport = s
+	TLSClient.Transport = s
+	TLSHTTP2Client.Transport = s
 }
 
 // RandomUserAgent 是一个随机的 User-Agent
