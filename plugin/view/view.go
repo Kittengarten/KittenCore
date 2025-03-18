@@ -43,7 +43,7 @@ var (
 	// bot 自身 ID
 	sid = kitten.Self()
 	// 日志文件
-	logPath = io.FilePath(engine.DataFolder(), `logPath.txt`)
+	logPath = io.NewPath(engine.DataFolder(), `logPath.txt`)
 	// 日志文件路径
 	logFilePath io.Path
 )

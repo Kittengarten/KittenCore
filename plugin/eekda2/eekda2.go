@@ -48,9 +48,9 @@ var (
 		PrivateDataFolder: replyServiceName,
 	}).ApplySingle(ctxext.DefaultSingle)
 	// 今日文件路径
-	todayPath = io.FilePath(engine.DataFolder(), todayFile)
+	todayPath = io.NewPath(engine.DataFolder(), todayFile)
 	// 统计文件路径
-	statPath = io.FilePath(engine.DataFolder(), statFile)
+	statPath = io.NewPath(engine.DataFolder(), statFile)
 	// 读写锁
 	mu sync.RWMutex
 )

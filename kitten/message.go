@@ -179,12 +179,12 @@ Image 从图片的相对 | 绝对路径（文件夹），
 
 或网络路径中附带图片
 */
-func (m *Messager) Image(name ...io.Path) *Messager {
+func (m *Messager) Image(name ...io.FilePath) *Messager {
 	for _, n := range name {
 		img, err := imagePath.Image(n)
 		if err != nil {
 			m.err = errors.Join(m.err, fmt.Errorf(`附带图片错误：%w`, err))
-			img, err = imagePath.Image(io.Path(`error.jpg`))
+			img, err = imagePath.Image(io.NewPath(`error.jpg`))
 			if err != nil {
 				m.err = errors.Join(m.err, fmt.Errorf(`附带图片错误：%w`, err))
 			}

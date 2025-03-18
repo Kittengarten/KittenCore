@@ -10,6 +10,7 @@ import (
 	"runtime/debug"
 
 	"github.com/Kittengarten/KittenCore/kitten/core/io"
+	"github.com/Kittengarten/KittenCore/kitten/core/io/zero"
 )
 
 const (
@@ -21,16 +22,16 @@ var (
 	//go:embed config_example.yaml
 	defaultConfig string
 	botConfig     config // 来自 Bot 的配置文件
-	//go:embed data
+	//go:embed data_internal
 	data      embed.FS
-	imagePath io.Path // 图片路径
-	Weight    int     // 自身叠猫猫体重（0.1 kg 数）
+	imagePath zero.MsgPath // 图片路径
+	Weight    int          // 自身叠猫猫体重（0.1 kg 数）
 )
 
 func init() {
 	var err error
 	// 配置文件初始化
-	if botConfig, err = io.Load[config](io.Path(configFile), defaultConfig); err != nil {
+	if botConfig, err = io.Load[config](io.NewPath(configFile), defaultConfig); err != nil {
 		log.Fatalln(err, `请按 YAML 格式配置`, configFile, `后重新启动喵！`)
 	}
 	// 启用 zap 日志格式
@@ -56,7 +57,8 @@ func init() {
 		log.Println(err, `请正确配置`, configFile, `中的 path 喵！`)
 	}
 	// 图片路径
-	imagePath = io.FilePath(botConfig.Path, imageFolder)
+	imagePath = zero.New(io.NewPath(botConfig.Path, imageFolder))
+	log.Println(`图片路径：`, imagePath)
 }
 
 // 重定向崩溃日志
@@ -80,7 +82,7 @@ func initResource() error {
 		return nil
 	}
 	log.Println(`没有找到资源文件，正在初始化喵！目标：`, botConfig.Path)
-	data, err := fs.Sub(data, `data`)
+	data, err := fs.Sub(data, `data_internal`)
 	if err != nil {
 		return err
 	}
@@ -96,6 +98,6 @@ func MainConfig() config {
 }
 
 // ImagePath 获取图片路径
-func ImagePath() io.Path {
+func ImagePath() zero.MsgPath {
 	return imagePath
 }

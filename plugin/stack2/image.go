@@ -16,8 +16,9 @@ func sendImage(msgr *kitten.Messager, p *charts.Painter) message.ID {
 	if err != nil {
 		return sendWithImageFail(msgr, err)
 	}
-	path := io.FilePath(imagePath, `叠猫猫.png`)
-	if err = path.WriteBytes(buf); err != nil {
+	path := io.NewPath(imagePath, `叠猫猫.png`)
+	if err = io.NewPath(kitten.ImagePath().String(), path.String()).
+		WriteBytes(buf); err != nil {
 		return sendWithImageFail(msgr, err)
 	}
 	return msgr.Reply().Image(path).Send()

@@ -31,7 +31,7 @@ var (
 		PrivateDataFolder: replyServiceName,
 	}).ApplySingle(ctxext.DefaultSingle)
 	// 配置文件路径
-	configPath = io.FilePath(engine.DataFolder(), configFile)
+	configPath = io.NewPath(engine.DataFolder(), configFile)
 )
 
 func init() {

@@ -140,5 +140,5 @@ func sendWithImageFail(msgr *kitten.Messager, text ...any) message.ID {
 
 // 发送带有杂鱼图片的本地化文字消息
 func sendWithZako(msgr *kitten.Messager, text ...any) message.ID {
-	return msgr.Reply().AtLf().Image(io.Path(zako)).Text(rangeAssertion(text)...).Send()
+	return msgr.Reply().AtLf().Image(io.NewPath(zako)).Text(rangeAssertion(text)...).Send()
 }

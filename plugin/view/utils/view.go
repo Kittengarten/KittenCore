@@ -33,7 +33,7 @@ func View(msgr *kitten.Messager, service string, logFilePath io.Path) message.ID
 		return msgr.
 			Reply().
 			AtLf().
-			Image(io.FilePath(service,
+			Image(io.NewPath(service,
 				strconv.Itoa(
 					getPerf(cpuPercent(), percent(getMem()), t),
 				)+`.png`),

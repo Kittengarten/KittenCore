@@ -67,7 +67,7 @@ var (
 		PrivateDataFolder: replyServiceName,
 	}).ApplySingle(ctxext.DefaultSingle)
 	// 配置文件路径
-	configPath = io.FilePath(engine.DataFolder(), configFile)
+	configPath = io.NewPath(engine.DataFolder(), configFile)
 	// 报更更新的信号
 	cu = make(chan books)
 	// 读写锁
@@ -142,8 +142,8 @@ func updateTest(msgr *kitten.Messager) {
 		msgr,
 		msgr.Reply().AtLf().
 			Image(
-				io.Path(nv.coverURL),
-				io.Path(nv.headURL),
+				io.NewPath(nv.coverURL),
+				io.NewPath(nv.headURL),
 			).
 			Text(nv.update()).
 			SendMulti(),
@@ -183,7 +183,7 @@ func novelInfo(msgr *kitten.Messager, comment bool) {
 		return
 	}
 	msgr = msgr.Reply().AtLf().
-		Image(io.Path(nv.coverURL)).
+		Image(io.NewPath(nv.coverURL)).
 		Text(&nv)
 	if comment {
 		msgr.Text(Comment(&nv))
@@ -479,8 +479,8 @@ func (c *books) report(msgr *kitten.Messager, st *time.Ticker) {
 		go tryCommentUpdate(
 			msgr,
 			msgr.Image(
-				io.Path(nv.coverURL),
-				io.Path(nv.headURL),
+				io.NewPath(nv.coverURL),
+				io.NewPath(nv.headURL),
 			).Text(nv.update()).SendMulti(b.Users...),
 			b.Users,
 			nv,

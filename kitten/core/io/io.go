@@ -6,21 +6,40 @@ import (
 	"fmt"
 	"io"
 	"io/fs"
+	"log/slog"
 	"os"
 	"path/filepath"
-	"runtime"
 	"strings"
 
 	"github.com/Kittengarten/KittenCore/kitten/core/http"
 	"github.com/Kittengarten/KittenCore/kitten/core/utils"
 
-	"go.uber.org/zap"
 	"gopkg.in/yaml.v3"
-
-	"github.com/wdvxdr1123/ZeroBot/message"
 )
 
-type Path string // Path 是一个表示文件路径的字符串
+type (
+	// Path 文件路径
+	Path interface {
+		FileName() string
+		Delete() error
+		Load(write bool) (f *os.File, err error)
+		ReadBytes() (*bytes.Buffer, error)
+		ReadString() (string, error)
+		WriteBytes(b []byte) error
+		WriteString(s string) error
+		Len() int
+		Size() (int64, error)
+		TryMakeDir() error
+		String() string
+		DownloadImage(url string) (int64, error)
+		InitFile(def string) error
+		Get(def FilePath) FilePath
+		GetString(def string) string
+	}
+
+	// FilePath 是一个表示文件路径的字符串
+	FilePath string
+)
 
 const (
 	Empty = `[]` // Empty YAML 空数组（slice）
@@ -67,14 +86,14 @@ func Save[T any](p Path, c T) error {
 	return err
 }
 
-// FilePath 文件路径构建
-func FilePath[T ~string](elem ...T) Path {
+// NewPath 文件路径构建
+func NewPath[T ~string](elem ...T) FilePath {
 	if len(elem) == 0 {
 		return ``
 	}
 	const symbol, symbol_ = `://`, `%symbol%`
 	elem[0] = T(strings.Replace(string(elem[0]), symbol, symbol_, 1))
-	return Path(
+	return FilePath(
 		strings.Replace(
 			filepath.Join(
 				utils.ConvertSlice(
@@ -92,17 +111,17 @@ func FilePath[T ~string](elem ...T) Path {
 }
 
 // FileName 文件名
-func (p Path) FileName() string {
+func (p FilePath) FileName() string {
 	return filepath.Base(p.String())
 }
 
 // Delete 删除文件
-func (p Path) Delete() error {
+func (p FilePath) Delete() error {
 	return os.Remove(p.String())
 }
 
 // 载入文件以供操作，当 write 为 false 时只读
-func (p Path) Load(write bool) (f *os.File, err error) {
+func (p FilePath) Load(write bool) (f *os.File, err error) {
 	// 检查其父文件夹是否存在，不存在则创建
 	if err := p.TryMakeDir(); err != nil {
 		err = fmt.Errorf(`创建 %s 的父文件夹失败喵！%w`, filepath.Dir(p.String()), err)
@@ -120,7 +139,7 @@ func (p Path) Load(write bool) (f *os.File, err error) {
 }
 
 // ReadBytes 从文件读取字节切片
-func (p Path) ReadBytes() (*bytes.Buffer, error) {
+func (p FilePath) ReadBytes() (*bytes.Buffer, error) {
 	f, err := p.Load(false)
 	if err != nil {
 		return nil, err
@@ -132,7 +151,7 @@ func (p Path) ReadBytes() (*bytes.Buffer, error) {
 }
 
 // ReadString 从文件读取字符串
-func (p Path) ReadString() (string, error) {
+func (p FilePath) ReadString() (string, error) {
 	f, err := p.Load(false)
 	if err != nil {
 		return ``, err
@@ -148,7 +167,7 @@ WriteBytes 向文件写入字节切片（会从头覆盖文件）
 
 如文件不存在会尝试新建
 */
-func (p Path) WriteBytes(b []byte) error {
+func (p FilePath) WriteBytes(b []byte) error {
 	f, err := p.Load(true)
 	if err != nil {
 		return err
@@ -163,7 +182,7 @@ WriteString 向文件写入字符串
 
 如文件不存在会尝试新建
 */
-func (p Path) WriteString(s string) error {
+func (p FilePath) WriteString(s string) error {
 	f, err := p.Load(true)
 	if err != nil {
 		return err
@@ -174,12 +193,12 @@ func (p Path) WriteString(s string) error {
 }
 
 // Len 获取路径长度
-func (p Path) Len() int {
+func (p FilePath) Len() int {
 	return len(p)
 }
 
 // Size 获取文件大小
-func (p Path) Size() (int64, error) {
+func (p FilePath) Size() (int64, error) {
 	info, err := os.Stat(p.String())
 	if err != nil {
 		return 0, err
@@ -188,18 +207,18 @@ func (p Path) Size() (int64, error) {
 }
 
 // TryMakeDir 检查其父文件夹是否存在，不存在则创建
-func (p Path) TryMakeDir() error {
+func (p FilePath) TryMakeDir() error {
 	return os.MkdirAll(filepath.Dir(p.String()), 0o755)
 }
 
 // Exists 判断文件或文件夹是否存在
-func (p Path) Exists() bool {
+func (p FilePath) Exists() bool {
 	_, err := os.Stat(p.String())
 	return err == nil || os.IsExist(err)
 }
 
-// （私有）判断路径是否文件夹
-func (p Path) isDir() (bool, error) {
+// IsDir 判断路径是否文件夹
+func (p FilePath) IsDir() (bool, error) {
 	info, err := os.Stat(p.String())
 	if err != nil {
 		return false, err
@@ -208,7 +227,7 @@ func (p Path) isDir() (bool, error) {
 }
 
 // String 实现 fmt.Stringer，返回路径规范化后的字符串表示
-func (p Path) String() string {
+func (p FilePath) String() string {
 	path := string(p)
 	if strings.Contains(path, `://`) {
 		// Windows → 类 Unix 跨平台处理
@@ -217,80 +236,20 @@ func (p Path) String() string {
 	return filepath.Clean(path)
 }
 
-// 加载文件中保存的相对路径或绝对路径
-func (p Path) loadPath() (Path, error) {
+// LoadPath 加载文件中保存的相对路径或绝对路径
+func (p FilePath) LoadPath() (FilePath, error) {
 	s, err := p.ReadString()
 	if err != nil {
 		return p, err
 	}
 	if s = strings.TrimSpace(s); filepath.IsAbs(s) {
-		return FilePath(`file://`, s), nil
+		return NewPath(`file://`, s), nil
 	}
-	return FilePath(s), nil
-}
-
-/*
-Image 从图片的相对 | 绝对路径（文件夹），
-
-或相对 | 绝对路径文件中保存的相对 | 绝对路径，
-
-或网络路径中加载图片
-*/
-func (p Path) Image(name Path) (message.Segment, error) {
-	var (
-		pre = func() string {
-			switch runtime.GOOS {
-			case `linux`:
-				return `file://`
-			default:
-				return ``
-			}
-		}()
-		fn = `[` + name.FileName() + `]`
-	)
-	if filepath.IsAbs(name.String()) {
-		// 传入的是绝对路径
-		if isDir, err := name.isDir(); err == nil && !isDir {
-			// 传入的是文件
-			return message.Image(pre+name.String(), fn), nil
-		}
-	}
-	if strings.Contains(name.String(), `://`) {
-		// 传入的是网络路径
-		return message.Image(name.String(), fn), nil
-	}
-	// 传入的是相对路径
-	path := p.String()
-	if strings.Contains(path, `://`) {
-		// 请求的是网络路径
-		return message.Image(FilePath(p, name).String(), fn), nil
-	}
-	if filepath.IsAbs(path) {
-		// 请求的是绝对路径
-		isDir, err := p.isDir()
-		if err != nil {
-			return message.Segment{}, err
-		}
-		if isDir {
-			// 请求的是文件夹
-			return message.Image(pre+FilePath(p, name).String(), fn), nil
-		}
-		// 请求的是文件
-		p, err := p.loadPath()
-		return message.Image(pre+FilePath(p, name).String(), fn), err
-	}
-	// 请求的是相对路径
-	if isDir, err := p.isDir(); isDir {
-		// 请求的是文件夹
-		return message.Image(FilePath(p, name).String(), fn), err
-	}
-	// 请求的是文件
-	p, err := p.loadPath()
-	return message.Image(FilePath(p, name).String(), fn), err
+	return NewPath(s), nil
 }
 
 // DownloadImage 从 url 下载图片到 path
-func (p Path) DownloadImage(url string) (int64, error) {
+func (p FilePath) DownloadImage(url string) (int64, error) {
 	// 获取 HTTP 响应体，失败则返回
 	b, err := http.GET(url)
 	if err != nil {
@@ -305,32 +264,41 @@ func (p Path) DownloadImage(url string) (int64, error) {
 }
 
 // InitFile 初始化文本文件，要求传入路径事先规范化过
-func (p Path) InitFile(text string) error {
+func (p FilePath) InitFile(def string) error {
 	// 如果文件存在，直接返回，以免覆盖文件
 	if p.Exists() {
 		return nil
 	}
 	// 如果文件不存在，初始化该文件
-	return p.WriteString(text)
+	return p.WriteString(def)
 }
 
 // Get 从文件获取路径，def 为默认值（加载不到的时候会尝试初始化）
-func (p Path) Get(def Path) Path {
-	return Path(p.GetString(def.String()))
+func (p FilePath) Get(def FilePath) FilePath {
+	return NewPath(p.GetString(def.String()))
 }
 
 // GetString 从文件获取字符串，def 为默认值（加载不到的时候会尝试初始化）
-func (p Path) GetString(def string) string {
+func (p FilePath) GetString(def string) string {
 	if err := p.InitFile(def); err != nil {
-		zap.S().Error(`初始化文件 `, p, ` 失败了喵！`, err)
+		slog.Error(`初始化文件失败了喵！`, slog.Any(`路径`, p), slog.Any(`错误`, err))
 		return def
 	}
 	s, err := p.ReadString()
 	if err != nil {
-		zap.S().Error(`打开文件 `, p, ` 失败了喵！`, err)
+		slog.Error(`打开文件失败了喵！`, slog.Any(`路径`, p), slog.Any(`错误`, err))
 		return def
 	}
 	return s
+}
+
+// ProcessPath 获取程序运行的绝对路径
+func ProcessPath() (FilePath, error) {
+	ex, err := os.Executable()
+	if err != nil {
+		return ``, err
+	}
+	return NewPath(filepath.Dir(ex)), nil
 }
 
 // HandleFileName 处理文件名中不支持的字符

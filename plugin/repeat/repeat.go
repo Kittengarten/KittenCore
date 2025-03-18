@@ -52,7 +52,7 @@ var (
 		PrivateDataFolder: replyServiceName,
 	})
 	// 配置文件路径
-	configPath = io.FilePath(engine.DataFolder(), configFile)
+	configPath = io.NewPath(engine.DataFolder(), configFile)
 	// 触发复读的次数
 	times uint = 2
 	// 触发复读的概率

@@ -9,12 +9,12 @@ import (
 
 	ctrl "github.com/FloatTech/zbpctrl"
 	"github.com/FloatTech/zbputils/control"
-	zero "github.com/wdvxdr1123/ZeroBot"
+	zb "github.com/wdvxdr1123/ZeroBot"
 )
 
 var (
 	// 叠猫猫配置文件名
-	configFile = io.FilePath(`data`, `Stack2`, `config.yaml`)
+	configFile = io.NewPath(`data`, `Stack2`, `config.yaml`)
 	//go:embed config.yaml
 	configStr string
 	// 叠猫猫配置文件
@@ -50,18 +50,18 @@ var (
 		botConfig.CommandPrefix, cEat, cMeow,
 		stackConfig.MinRestHours)
 	// 注册插件
-	engine = control.AutoRegister(&ctrl.Options[*zero.Ctx]{
+	engine = control.AutoRegister(&ctrl.Options[*zb.Ctx]{
 		DisableOnDefault: false,
 		Brief:            brief,
 		Help:             help,
 		PublicDataFolder: `Stack2`,
 	})
 	// 图片路径
-	imagePath = io.FilePath(kitten.ImagePath(), replyServiceName)
+	imagePath = io.NewPath(replyServiceName)
 	// 数据路径
-	dataPath = io.FilePath(engine.DataFolder(), dataFile)
+	dataPath = io.NewPath(engine.DataFolder(), dataFile)
 	// 缓存路径
-	bufferPath = io.FilePath(engine.DataFolder(), bufferFile)
+	bufferPath = io.NewPath(engine.DataFolder(), bufferFile)
 	// 小贴士路径
-	tipsPath = io.FilePath(engine.DataFolder(), tipsFile)
+	tipsPath = io.NewPath(engine.DataFolder(), tipsFile)
 )

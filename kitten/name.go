@@ -16,8 +16,8 @@ import (
 type name map[QQ]string // 昵称配置
 
 var (
-	nameFile = io.FilePath(`data`, `zbp`, `name.yaml`) // 当前昵称文件
-	nameMu   sync.RWMutex                              // 当前昵称文件锁
+	nameFile = io.NewPath(`data`, `zbp`, `name.yaml`) // 当前昵称文件
+	nameMu   sync.RWMutex                             // 当前昵称文件锁
 )
 
 // Name 获取当前的 bot 昵称

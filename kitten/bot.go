@@ -286,16 +286,16 @@ func scanQRCode(imgfile *os.File) (fmt.Stringer, error) {
 func ScanQRCode(name string) (fmt.Stringer, error) {
 	var (
 		msg = Image(name)
-		n   = io.FilePath(`data`, `zbp`, `code.png`)
+		n   = io.NewPath(`data`, `zbp`, `code.png`)
 	)
 	bytes, err := n.DownloadImage(msg.Data[`file`])
 	if err != nil {
-		return io.Path(msg.Data[`file`]), err
+		return io.NewPath(msg.Data[`file`]), err
 	}
 	Info(`正在扫描二维码喵！字节数：`, bytes)
 	imgfile, err := os.Open(n.String())
 	if err != nil {
-		return io.Path(msg.Data[`file`]), err
+		return io.NewPath(msg.Data[`file`]), err
 	}
 	return scanQRCode(imgfile)
 }
@@ -304,7 +304,7 @@ func ScanQRCode(name string) (fmt.Stringer, error) {
 func (m *Messager) ScanQRCodeInQQ(file string) (fmt.Stringer, error) {
 	imgfile, err := os.Open(m.GetImage(file).Get(`file`).String())
 	if err != nil {
-		return io.Path(file), err
+		return io.NewPath(file), err
 	}
 	return scanQRCode(imgfile)
 }
