@@ -10,6 +10,7 @@ import (
 	"strings"
 
 	"github.com/Kittengarten/KittenCore/kitten/core/io"
+	ms "github.com/Kittengarten/KittenCore/kitten/core/msg/seg"
 	"github.com/Kittengarten/KittenCore/kitten/qqemoji"
 
 	"github.com/makiuchi-d/gozxing"
@@ -26,8 +27,9 @@ const (
 	Event              // *Event
 )
 
+const noEvent = `上下文无 *Event，不可使用`
+
 const (
-	noEvent = `上下文无 *Event，不可使用`
 	Private = `private`
 	Group   = `group`
 )
@@ -50,10 +52,10 @@ func (u *QQ) Send(msgr *Messager) message.ID {
 		}
 		for _, seg := range msgr.Message {
 			switch seg.Type {
-			case `text`, `face`, `image`, `at`:
+			case ms.Text, ms.Face, ms.Image, ms.At:
 				// 消息段兼容回复，不执行操作
 			default:
-				// 消息段不兼容回复，跳过回复程序
+				// 消息段不兼容回复，或未经验证，跳过回复程序
 				return false
 			}
 		}

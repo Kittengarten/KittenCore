@@ -1,4 +1,5 @@
-package zero
+// Package mio 用于处理涉及消息处理的文件 IO
+package mio
 
 import (
 	"path/filepath"
@@ -10,22 +11,14 @@ import (
 	"github.com/wdvxdr1123/ZeroBot/message"
 )
 
-type (
-	// Path 文件路径
-	Path interface {
-		io.Path
-		Image(name io.FilePath) (message.Segment, error)
-	}
-
-	// MsgPath 是一个表示文件路径的结构体
-	MsgPath struct {
-		io.FilePath
-	}
-)
+// Path 是一个表示文件路径的结构体
+type Path struct {
+	io.Path
+}
 
 // New MsgPath 的构造函数
-func New(p io.FilePath) MsgPath {
-	return MsgPath{p}
+func New(p io.Path) Path {
+	return Path{p}
 }
 
 /*
@@ -35,7 +28,7 @@ Image 从图片的相对 | 绝对路径（文件夹），
 
 或网络路径中加载图片
 */
-func (p MsgPath) Image(name io.FilePath) (message.Segment, error) {
+func (p Path) Image(name io.Path) (message.Segment, error) {
 	var (
 		pre = func() string {
 			switch runtime.GOOS {
@@ -59,7 +52,7 @@ func (p MsgPath) Image(name io.FilePath) (message.Segment, error) {
 		return message.Image(name.String(), fn), nil
 	}
 	// 传入的是相对路径
-	path := p.String()
+	path := string(p.Path)
 	if strings.Contains(path, `://`) {
 		// 请求的是网络路径
 		return message.Image(io.NewPath(p.String(), name.String()).String(), fn), nil
@@ -72,7 +65,7 @@ func (p MsgPath) Image(name io.FilePath) (message.Segment, error) {
 		}
 		if isDir {
 			// 请求的是文件夹
-			return message.Image(pre+io.NewPath(p.String(), name.String()).String(), fn), nil
+			return message.Image(pre+io.NewPath(path, name.String()).String(), fn), nil
 		}
 		// 请求的是文件
 		np, err := p.LoadPath()

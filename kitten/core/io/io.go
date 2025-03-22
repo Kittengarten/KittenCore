@@ -1,3 +1,4 @@
+// Package io 处理文件 IO
 package io
 
 import (
@@ -17,29 +18,8 @@ import (
 	"gopkg.in/yaml.v3"
 )
 
-type (
-	// Path 文件路径
-	Path interface {
-		FileName() string
-		Delete() error
-		Load(write bool) (f *os.File, err error)
-		ReadBytes() (*bytes.Buffer, error)
-		ReadString() (string, error)
-		WriteBytes(b []byte) error
-		WriteString(s string) error
-		Len() int
-		Size() (int64, error)
-		TryMakeDir() error
-		String() string
-		DownloadImage(url string) (int64, error)
-		InitFile(def string) error
-		Get(def FilePath) FilePath
-		GetString(def string) string
-	}
-
-	// FilePath 是一个表示文件路径的字符串
-	FilePath string
-)
+// Path 是一个表示文件路径的字符串
+type Path string
 
 const (
 	Empty = `[]` // Empty YAML 空数组（slice）
@@ -87,13 +67,13 @@ func Save[T any](p Path, c T) error {
 }
 
 // NewPath 文件路径构建
-func NewPath[T ~string](elem ...T) FilePath {
+func NewPath[T ~string](elem ...T) Path {
 	if len(elem) == 0 {
 		return ``
 	}
 	const symbol, symbol_ = `://`, `%symbol%`
 	elem[0] = T(strings.Replace(string(elem[0]), symbol, symbol_, 1))
-	return FilePath(
+	return Path(
 		strings.Replace(
 			filepath.Join(
 				utils.ConvertSlice(
@@ -111,35 +91,35 @@ func NewPath[T ~string](elem ...T) FilePath {
 }
 
 // FileName 文件名
-func (p FilePath) FileName() string {
-	return filepath.Base(p.String())
+func (p Path) FileName() string {
+	return filepath.Base(string(p))
 }
 
 // Delete 删除文件
-func (p FilePath) Delete() error {
-	return os.Remove(p.String())
+func (p Path) Delete() error {
+	return os.Remove(string(p))
 }
 
 // 载入文件以供操作，当 write 为 false 时只读
-func (p FilePath) Load(write bool) (f *os.File, err error) {
+func (p Path) Load(write bool) (f *os.File, err error) {
 	// 检查其父文件夹是否存在，不存在则创建
 	if err := p.TryMakeDir(); err != nil {
-		err = fmt.Errorf(`创建 %s 的父文件夹失败喵！%w`, filepath.Dir(p.String()), err)
+		err = fmt.Errorf(`创建 %s 的父文件夹失败喵！%w`, filepath.Dir(string(p)), err)
 		return nil, err
 	}
 	if !write {
 		// 只读，打开文件
-		f, err = os.Open(p.String())
+		f, err = os.Open(string(p))
 		if err == nil {
 			return f, nil
 		}
 	}
 	// 需要写入或不存在，尝试创建文件
-	return os.Create(p.String())
+	return os.Create(string(p))
 }
 
 // ReadBytes 从文件读取字节切片
-func (p FilePath) ReadBytes() (*bytes.Buffer, error) {
+func (p Path) ReadBytes() (*bytes.Buffer, error) {
 	f, err := p.Load(false)
 	if err != nil {
 		return nil, err
@@ -151,7 +131,7 @@ func (p FilePath) ReadBytes() (*bytes.Buffer, error) {
 }
 
 // ReadString 从文件读取字符串
-func (p FilePath) ReadString() (string, error) {
+func (p Path) ReadString() (string, error) {
 	f, err := p.Load(false)
 	if err != nil {
 		return ``, err
@@ -167,7 +147,7 @@ WriteBytes 向文件写入字节切片（会从头覆盖文件）
 
 如文件不存在会尝试新建
 */
-func (p FilePath) WriteBytes(b []byte) error {
+func (p Path) WriteBytes(b []byte) error {
 	f, err := p.Load(true)
 	if err != nil {
 		return err
@@ -182,7 +162,7 @@ WriteString 向文件写入字符串
 
 如文件不存在会尝试新建
 */
-func (p FilePath) WriteString(s string) error {
+func (p Path) WriteString(s string) error {
 	f, err := p.Load(true)
 	if err != nil {
 		return err
@@ -193,13 +173,13 @@ func (p FilePath) WriteString(s string) error {
 }
 
 // Len 获取路径长度
-func (p FilePath) Len() int {
+func (p Path) Len() int {
 	return len(p)
 }
 
 // Size 获取文件大小
-func (p FilePath) Size() (int64, error) {
-	info, err := os.Stat(p.String())
+func (p Path) Size() (int64, error) {
+	info, err := os.Stat(string(p))
 	if err != nil {
 		return 0, err
 	}
@@ -207,19 +187,19 @@ func (p FilePath) Size() (int64, error) {
 }
 
 // TryMakeDir 检查其父文件夹是否存在，不存在则创建
-func (p FilePath) TryMakeDir() error {
-	return os.MkdirAll(filepath.Dir(p.String()), 0o755)
+func (p Path) TryMakeDir() error {
+	return os.MkdirAll(filepath.Dir(string(p)), 0o755)
 }
 
 // Exists 判断文件或文件夹是否存在
-func (p FilePath) Exists() bool {
-	_, err := os.Stat(p.String())
+func (p Path) Exists() bool {
+	_, err := os.Stat(string(p))
 	return err == nil || os.IsExist(err)
 }
 
 // IsDir 判断路径是否文件夹
-func (p FilePath) IsDir() (bool, error) {
-	info, err := os.Stat(p.String())
+func (p Path) IsDir() (bool, error) {
+	info, err := os.Stat(string(p))
 	if err != nil {
 		return false, err
 	}
@@ -227,17 +207,18 @@ func (p FilePath) IsDir() (bool, error) {
 }
 
 // String 实现 fmt.Stringer，返回路径规范化后的字符串表示
-func (p FilePath) String() string {
+func (p Path) String() string {
+	const sep = `://`
 	path := string(p)
-	if strings.Contains(path, `://`) {
+	if before, after, found := strings.Cut(path, sep); found {
 		// Windows → 类 Unix 跨平台处理
-		return strings.ReplaceAll(path, `\`, `/`)
+		return before + sep + strings.ReplaceAll(after, `\`, `/`)
 	}
 	return filepath.Clean(path)
 }
 
 // LoadPath 加载文件中保存的相对路径或绝对路径
-func (p FilePath) LoadPath() (FilePath, error) {
+func (p Path) LoadPath() (Path, error) {
 	s, err := p.ReadString()
 	if err != nil {
 		return p, err
@@ -249,7 +230,7 @@ func (p FilePath) LoadPath() (FilePath, error) {
 }
 
 // DownloadImage 从 url 下载图片到 path
-func (p FilePath) DownloadImage(url string) (int64, error) {
+func (p Path) DownloadImage(url string) (int64, error) {
 	// 获取 HTTP 响应体，失败则返回
 	b, err := http.GET(url)
 	if err != nil {
@@ -264,7 +245,7 @@ func (p FilePath) DownloadImage(url string) (int64, error) {
 }
 
 // InitFile 初始化文本文件，要求传入路径事先规范化过
-func (p FilePath) InitFile(def string) error {
+func (p Path) InitFile(def string) error {
 	// 如果文件存在，直接返回，以免覆盖文件
 	if p.Exists() {
 		return nil
@@ -274,12 +255,12 @@ func (p FilePath) InitFile(def string) error {
 }
 
 // Get 从文件获取路径，def 为默认值（加载不到的时候会尝试初始化）
-func (p FilePath) Get(def FilePath) FilePath {
-	return NewPath(p.GetString(def.String()))
+func (p Path) Get(def Path) Path {
+	return NewPath(p.GetString(string(def)))
 }
 
 // GetString 从文件获取字符串，def 为默认值（加载不到的时候会尝试初始化）
-func (p FilePath) GetString(def string) string {
+func (p Path) GetString(def string) string {
 	if err := p.InitFile(def); err != nil {
 		slog.Error(`初始化文件失败了喵！`, slog.Any(`路径`, p), slog.Any(`错误`, err))
 		return def
@@ -293,7 +274,7 @@ func (p FilePath) GetString(def string) string {
 }
 
 // ProcessPath 获取程序运行的绝对路径
-func ProcessPath() (FilePath, error) {
+func ProcessPath() (Path, error) {
 	ex, err := os.Executable()
 	if err != nil {
 		return ``, err

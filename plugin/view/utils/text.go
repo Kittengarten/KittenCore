@@ -6,11 +6,12 @@ import (
 	"io"
 	"strings"
 
-	"github.com/Kittengarten/KittenAnno/wta"
 	"github.com/Kittengarten/KittenCore/kitten"
 	"github.com/Kittengarten/KittenCore/kitten/core/http"
 	"github.com/Kittengarten/KittenCore/kitten/core/str"
 	"github.com/Kittengarten/KittenCore/kitten/mahjong"
+
+	"github.com/Kittengarten/KittenAnno/wta"
 
 	"github.com/wdvxdr1123/ZeroBot/message"
 )

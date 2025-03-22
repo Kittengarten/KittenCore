@@ -2,10 +2,8 @@
 package track
 
 import (
-	"cmp"
 	"fmt"
 	"log"
-	stdhttp "net/http"
 	"runtime/debug"
 	"slices"
 	"strconv"
@@ -16,8 +14,14 @@ import (
 	"github.com/Kittengarten/KittenCore/kitten"
 	"github.com/Kittengarten/KittenCore/kitten/core/http"
 	"github.com/Kittengarten/KittenCore/kitten/core/io"
-	"github.com/Kittengarten/KittenCore/kitten/core/times"
 	"github.com/Kittengarten/KittenCore/kitten/rate"
+	"github.com/Kittengarten/KittenCore/plugin/track/book"
+	"github.com/Kittengarten/KittenCore/plugin/track/novel"
+	"github.com/Kittengarten/KittenCore/plugin/track/platform"
+	"github.com/Kittengarten/KittenCore/plugin/track/platform/ciweimao"
+	"github.com/Kittengarten/KittenCore/plugin/track/platform/fanqie"
+	"github.com/Kittengarten/KittenCore/plugin/track/platform/sfacg"
+	"github.com/Kittengarten/KittenCore/plugin/track/search"
 
 	"github.com/FloatTech/floatbox/process"
 	ctrl "github.com/FloatTech/zbpctrl"
@@ -39,11 +43,7 @@ const (
 	cAddUpdate       = `添加报更`
 	cCancelUpdate    = `取消报更`
 	cQueryUpdate     = `查询报更`
-	without          = `这里没有添加小说报更喵～`
-	errConfig        = `报更配置文件错误喵！`
-	errLoad          = `加载` + errConfig
-	errSave          = `保存` + errConfig
-	unknown          = `未知`
+	cycle            = http.TimeOutSeconds * time.Second // 最小循环间隔（最大可翻倍）
 )
 
 var (
@@ -69,7 +69,7 @@ var (
 	// 配置文件路径
 	configPath = io.NewPath(engine.DataFolder(), configFile)
 	// 报更更新的信号
-	cu = make(chan books)
+	cu = make(chan book.Books)
 	// 读写锁
 	mu sync.RWMutex
 )
@@ -138,18 +138,18 @@ func updateTest(msgr *kitten.Messager) {
 	if err != nil {
 		kitten.Error(err)
 	}
-	go tryCommentUpdate(
+	go novel.TryCommentUpdate(
 		msgr,
 		msgr.Reply().AtLf().
 			Image(
-				io.NewPath(nv.coverURL),
-				io.NewPath(nv.headURL),
+				io.NewPath(nv.CoverURL),
+				io.NewPath(nv.HeadURL),
 			).
-			Text(nv.update()).
+			Text(nv.Update()).
 			SendMulti(),
 		[]kitten.QQ{*o},
 		nv,
-		getChapterID(nv.Platform, nv.newChapter.url),
+		platform.Get(nv.Platform).ChapterID(nv.Chapter.URL),
 	)
 }
 
@@ -160,19 +160,13 @@ func updatePreview(msgr *kitten.Messager) {
 		msgr.SendWithImageFail(err)
 		return
 	}
-	if r := n.preview; r != `` {
-		msgr.Reply().AtLf().Text(`《`, n.name, `》
-`, &n.newChapter, `
+	if r := n.Preview; r != `` {
+		msgr.Reply().AtLf().Text(`《`, n.Name, `》
+`, &n.Chapter, `
 `, r).Send()
 		return
 	}
 	msgr.SendWithImageFail(`不存在的喵！`)
-}
-
-// Comment 评论
-var Comment = func(nv fmt.Stringer) string {
-	// 默认为空实现
-	return ``
 }
 
 // 小说信息
@@ -183,10 +177,10 @@ func novelInfo(msgr *kitten.Messager, comment bool) {
 		return
 	}
 	msgr = msgr.Reply().AtLf().
-		Image(io.NewPath(nv.coverURL)).
-		Text(&nv)
+		Image(io.NewPath(nv.CoverURL)).
+		Text(nv)
 	if comment {
-		msgr.Text(Comment(&nv))
+		msgr.Text(novel.Comment(nv))
 	}
 	msgr.Send()
 }
@@ -200,9 +194,9 @@ func add(msgr *kitten.Messager) {
 	}
 	mu.Lock()
 	defer mu.Unlock()
-	c, err := io.Load[books](configPath, io.Empty) // 报更配置
+	c, err := io.Load[book.Books](configPath, io.Empty) // 报更配置
 	if err != nil {
-		msgr.SendWithImageFail(errLoad, err)
+		msgr.SendWithImageFail(book.ErrLoad, err)
 		return
 	}
 	nv, err := getNovel(msgr) // 小说实例
@@ -210,38 +204,39 @@ func add(msgr *kitten.Messager) {
 		msgr.SendWithImageFail(err)
 		return
 	}
-	if i := slices.IndexFunc(c, func(b book) bool {
-		return b.Platform == nv.Platform && b.BookID == nv.id
+	// 本书下标
+	if i := slices.IndexFunc(c, func(b book.Book) bool {
+		return equal(nv, b)
 	}); i == -1 {
 		// 没有该小说，新建并添加
-		c = append(c, book{
-			Platform: func() Platform {
-				if nv.Platform == FQAPI {
-					return FQ
+		c = append(c, book.Book{
+			Platform: func() string {
+				if nv.Platform != fanqie.API.String() {
+					return nv.Platform
 				}
-				return nv.Platform
+				return fanqie.Platform.String()
 			}(),
-			BookID:   nv.id,
-			BookName: nv.name,
-			Writer:   nv.writer,
+			BookID:   nv.ID,
+			BookName: nv.Name,
+			Writer:   nv.Writer,
 			Users:    []kitten.QQ{*o},
 		})
 	} else {
 		// 已经有该小说
 		if slices.Contains(c[i].Users, *o) {
 			// 已有该用户，无需添加
-			msgr.SendWithImageFail(`《`, nv.name, `》已经添加报更了喵！`)
+			msgr.SendWithImageFail(`《`, nv.Name, `》已经添加报更了喵！`)
 			return
 		}
 		// 尚无该用户，需要添加
 		c[i].Users = append(c[i].Users, *o)
 		slices.Sort(c[i].Users)
 	}
-	if err := c.saveConfig(); err != nil {
-		msgr.SendWithImageFail(`添加《`, nv.name, `》时`, errSave, err)
+	if err := c.SaveConfig(cu, configPath); err != nil {
+		msgr.SendWithImageFail(`添加《`, nv.Name, `》时`, book.ErrSave, err)
 		return
 	}
-	msgr.Reply().AtLf().Text(`添加《`, nv.name, `》报更成功喵！`).Send()
+	msgr.Reply().AtLf().Text(`添加《`, nv.Name, `》报更成功喵！`).Send()
 }
 
 // 取消报更
@@ -253,13 +248,13 @@ func cancel(msgr *kitten.Messager) {
 	}
 	mu.Lock()
 	defer mu.Unlock()
-	c, err := io.Load[books](configPath, io.Empty) // 报更配置
+	c, err := io.Load[book.Books](configPath, io.Empty) // 报更配置
 	if err != nil {
-		msgr.SendWithImageFail(errLoad, err)
+		msgr.SendWithImageFail(book.ErrLoad, err)
 		return
 	}
 	if len(c) == 0 {
-		msgr.Reply().AtLf().Text(without).Send()
+		msgr.Reply().AtLf().Text(book.Without).Send()
 		return
 	}
 	nv, err := getNovel(msgr) // 小说实例
@@ -268,17 +263,17 @@ func cancel(msgr *kitten.Messager) {
 		return
 	}
 	// 本书下标
-	i := slices.IndexFunc(c, func(b book) bool {
-		return b.Platform == nv.Platform && b.BookID == nv.id
+	i := slices.IndexFunc(c, func(b book.Book) bool {
+		return equal(nv, b)
 	})
 	if i == -1 {
-		msgr.SendWithImageFail(`未在追更《`, nv.name, `》喵！`)
+		msgr.SendWithImageFail(`未在追更《`, nv.Name, `》喵！`)
 		return
 	}
 	// 用户下标
 	uid := slices.Index(c[i].Users, *o)
 	if uid == -1 {
-		msgr.SendWithImageFail(`未在追更《`, nv.name, `》喵！`)
+		msgr.SendWithImageFail(`未在追更《`, nv.Name, `》喵！`)
 		return
 	}
 	// 移除在当前发送对象的报更
@@ -286,11 +281,11 @@ func cancel(msgr *kitten.Messager) {
 		// 如果移除后，不再有报更对象（也可能本来就没有报更对象），则整体移除该小说
 		c = slices.Delete(c, i, i+1)
 	}
-	if err := c.saveConfig(); err != nil {
-		msgr.SendWithImageFail(`取消《`, nv.name, `》时`, errSave, err)
+	if err := c.SaveConfig(cu, configPath); err != nil {
+		msgr.SendWithImageFail(`取消《`, nv.Name, `》时`, book.ErrSave, err)
 		return
 	}
-	msgr.Reply().AtLf().Text(`取消《`, nv.name, `》报更成功喵！`).Send()
+	msgr.Reply().AtLf().Text(`取消《`, nv.Name, `》报更成功喵！`).Send()
 }
 
 // 查询报更
@@ -301,14 +296,14 @@ func query(msgr *kitten.Messager) {
 		return
 	}
 	mu.RLock()
-	c, err := io.Load[books](configPath, io.Empty) // 报更配置
+	c, err := io.Load[book.Books](configPath, io.Empty) // 报更配置
 	mu.RUnlock()
 	if err != nil {
-		msgr.SendWithImageFail(errLoad, err)
+		msgr.SendWithImageFail(book.ErrLoad, err)
 		return
 	}
 	if len(c) == 0 {
-		msgr.Reply().AtLf().Text(without).Send()
+		msgr.Reply().AtLf().Text(book.Without).Send()
 		return
 	}
 	const h = `【报更列表】`
@@ -327,24 +322,24 @@ func query(msgr *kitten.Messager) {
 }
 
 // 平台匹配器
-func getPlatform(keyword string) Platform {
+func getPlatform(keyword string) (platform.Platform, error) {
 	switch {
 	case strings.ContainsAny(keyword, `刺猬猫客`),
 		strings.Contains(strings.ToUpper(keyword), `CWM`),
 		strings.Contains(strings.ToLower(keyword), `ciweimao`):
-		return CWM
+		return ciweimao.Platform, nil
 	case strings.ContainsAny(keyword, `菠萝包`),
 		strings.Contains(strings.ToUpper(keyword), `SF`),
 		strings.Contains(strings.ToLower(keyword), `blb`):
-		return SF
+		return sfacg.Platform, nil
 	case strings.ContainsAny(keyword, `番茄柿`),
 		strings.Contains(strings.ToUpper(keyword), `FQ`):
 		if strings.HasPrefix(keyword, `#`) {
-			return FQ
+			return fanqie.Platform, nil
 		}
-		return FQAPI
+		return fanqie.API, nil
 	default:
-		return Platform(keyword)
+		return nil, platform.NotSupported(nil)
 	}
 }
 
@@ -353,10 +348,10 @@ func getPlatform(keyword string) Platform {
 
 如果传入值不为书号，则先获取书号
 */
-func getNovel(msgr *kitten.Messager) (novel, error) {
+func getNovel(msgr *kitten.Messager) (*novel.Novel, error) {
 	args := msgr.ArgsSlice()
 	if len(args) != 2 {
-		return novel{}, fmt.Errorf(`本命令参数数量：2
+		return nil, fmt.Errorf(`本命令参数数量：2
 %s %s
 传入的参数数量：%d
 参数数量错误喵！`,
@@ -364,18 +359,19 @@ func getNovel(msgr *kitten.Messager) (novel, error) {
 			len(args))
 	}
 	var (
-		p      = getPlatform(args[0])
+		p, err = getPlatform(args[0])
 		bookID = args[1]
 	)
+	if err != nil {
+		return nil, err
+	}
 	if _, err := strconv.Atoi(bookID); err != nil {
 		// 获取小说时，参数字符串无法转换为书号，尝试作为搜索关键词
-		if bookID, err = keyword(args[1]).findBookID(p); err != nil {
-			return novel{}, fmt.Errorf(`关键词 %s 搜索时发生错误：%w`, args[1], err)
+		if bookID, err = p.FindBookID(search.Keyword(args[1])); err != nil {
+			return nil, fmt.Errorf(`关键词 %s 搜索时发生错误：%w`, args[1], err)
 		}
 	}
-	nv := *novelPool.Get().(*novel)
-	defer novelPool.Put(&nv)
-	return nv, nv.init(p, bookID)
+	return p.Init(bookID)
 }
 
 // 报更
@@ -392,10 +388,10 @@ func track() {
 		return
 	}
 	mu.RLock()
-	data, err := io.Load[books](configPath, io.Empty)
+	data, err := io.Load[book.Books](configPath, io.Empty)
 	mu.RUnlock()
 	if err != nil {
-		kitten.Error(errLoad, err)
+		kitten.Error(book.ErrLoad, err)
 		return
 	}
 	log.Printf(`======================[%s]======================
@@ -424,82 +420,11 @@ func track() {
 		case data = <-cu: // 接收到更新配置则使用
 		case <-t.C: // 接收到时钟信号则释放
 		}
-		data.report(bot, st) // 执行报更
+		data.Report(bot, cu, configPath, cycle, st) // 执行报更
 	}
 }
 
-// 执行报更
-func (c *books) report(msgr *kitten.Messager, st *time.Ticker) {
-	// 从小说池初始化小说
-	nv := *novelPool.Get().(*novel)
-	// 将小说重新收回小说池
-	defer novelPool.Put(&nv)
-	for i, b := range *c {
-		times.RandomDelayRange(http.TimeOutSeconds*time.Second,
-			2*http.TimeOutSeconds*time.Second)
-		switch b.Platform {
-		case FQ:
-			res, err := stdhttp.Get(fqAPIHOST)
-			if err != nil {
-				// API 无法访问，使用网页模式
-				// 接收到专用的慢速定时器信号才释放
-				<-st.C
-				break
-			}
-			if res != nil && res.StatusCode == 200 {
-				res.Body.Close()
-				// API 可以访问，切换为 API 模式
-				b.Platform = FQAPI
-			}
-		}
-		nv = novel{}
-		err := nv.init(b.Platform, b.BookID)
-		if err != nil {
-			kitten.Error(err)
-			continue
-		}
-		switch b.Platform {
-		case FQ, FQAPI:
-			if cmp.Or(
-				getChapterID(FQAPI, nv.newChapter.url),
-				getChapterID(FQ, nv.newChapter.url),
-			) == cmp.Or(
-				getChapterID(FQAPI, b.RecordURL),
-				getChapterID(FQ, b.RecordURL),
-			) {
-				// 如果番茄（API 和 网页不同途径之间的比较）没有更新，则跳过
-				continue
-			}
-		}
-		if nv.newChapter.url == b.RecordURL {
-			// 如果没有更新，则跳过
-			continue
-		}
-		// 发送更新消息
-		go tryCommentUpdate(
-			msgr,
-			msgr.Image(
-				io.NewPath(nv.coverURL),
-				io.NewPath(nv.headURL),
-			).Text(nv.update()).SendMulti(b.Users...),
-			b.Users,
-			nv,
-			getChapterID(nv.Platform, nv.newChapter.url))
-		// 写入小说更新数据
-		(*c)[i].BookName = nv.name
-		(*c)[i].Writer = nv.writer
-		(*c)[i].RecordURL = nv.newChapter.url
-		(*c)[i].UpdateTime = nv.newChapter.Time
-		// 按更新时间倒序排列
-		c.sortByUpdate()
-		// 异步保存配置
-		go func() {
-			err = c.saveConfig()
-		}()
-		if err != nil {
-			kitten.Error(errSave, err)
-			continue
-		}
-		kitten.Info(`更新《`, nv.name, `》成功喵！`)
-	}
+// 判断是否为同一本书
+func equal(nv *novel.Novel, b book.Book) bool {
+	return nv.Platform == b.Platform && nv.ID == b.BookID
 }

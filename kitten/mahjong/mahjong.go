@@ -1,3 +1,4 @@
+// Package mahjong 麻将
 package mahjong
 
 import (

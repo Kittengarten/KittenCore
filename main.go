@@ -21,7 +21,7 @@ import (
 	_ "github.com/Kittengarten/KittenCore/plugin/track"  // 小说报更
 	_ "github.com/Kittengarten/KittenCore/plugin/view"   // 查看 XX
 
-	//_ "github.com/Kittengarten/KittenCore/plugin/weather" // 查看天气
+	// _ "github.com/Kittengarten/KittenCore/plugin/weather" // 查看天气
 
 	_ "github.com/FloatTech/ZeroBot-Plugin/plugin/sleepmanage" // 统计睡眠时间
 

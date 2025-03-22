@@ -8,60 +8,12 @@ import (
 
 	"github.com/Kittengarten/KittenCore/kitten/core/equal"
 	"github.com/Kittengarten/KittenCore/kitten/core/io"
+	ms "github.com/Kittengarten/KittenCore/kitten/core/msg/seg"
 	"github.com/Kittengarten/KittenCore/kitten/core/times"
 
 	zero "github.com/wdvxdr1123/ZeroBot"
 	"github.com/wdvxdr1123/ZeroBot/message"
 )
-
-// 比较两个消息段是否相等
-func equalSegment(a, b message.Segment) bool {
-	if a.Type != b.Type {
-		// 如果两个消息段类型不同，则不相等
-		return false
-	}
-	switch a.Type {
-	// 按类型的特殊比较路径
-	case `image`:
-		if a.Data[`file`] == b.Data[`file`] {
-			// 如果图片文件相同，则相等，继续遍历比较
-			return true
-		}
-	case `record`, `video`, `anonymous`, `share`, `contact`,
-		`location`, `music`, `forward`, `node`, `xml`, `json`:
-		// 忽略的类型，将导致停止比较，视为不相等
-	default:
-		if equal.IsSameMap(a.Data, b.Data) {
-			// 相等，继续遍历比较
-			return true
-		}
-	}
-	return false
-}
-
-// 比较两个消息段切片是否相等
-func equalMessage(a, b message.Message) bool {
-	if len(a) != len(b) {
-		// 如果两个消息段切片的长度不同，则不相等
-		return false
-	}
-	for i, seg := range a {
-		if !equalSegment(seg, b[i]) {
-			return false
-		}
-	}
-	return true
-}
-
-// 比较多个消息段是否相等
-func IsSameSegment(s ...message.Segment) bool {
-	return equal.IsSameByFunc(equalSegment, s...)
-}
-
-// 比较多个消息段切片是否相等
-func IsSameMessage(m ...message.Message) bool {
-	return equal.IsSameByFunc(equalMessage, m...)
-}
 
 // 待发送的消息
 type Messager struct {
@@ -179,7 +131,7 @@ Image 从图片的相对 | 绝对路径（文件夹），
 
 或网络路径中附带图片
 */
-func (m *Messager) Image(name ...io.FilePath) *Messager {
+func (m *Messager) Image(name ...io.Path) *Messager {
 	for _, n := range name {
 		img, err := imagePath.Image(n)
 		if err != nil {
@@ -248,10 +200,10 @@ func (m *Messager) SendMulti(u ...QQ) (id []message.ID) {
 	}
 	for _, seg := range m.Message {
 		switch seg.Type {
-		case `text`, `face`, `image`, `at`:
+		case ms.Text, ms.Face, ms.Image, ms.At:
 			// 消息段兼容回复，不执行操作
 		default:
-			// 消息段不兼容回复，跳过回复程序
+			// 消息段不兼容回复，或未经验证，跳过回复程序
 			return []message.ID{m.Ctx.Send(m.Message)}
 		}
 	}
@@ -273,6 +225,55 @@ func (m *Messager) Reset() *Messager {
 	return m
 }
 
+// 比较两个消息段是否相等
+func equalSegment(a, b message.Segment) bool {
+	if a.Type != b.Type {
+		// 如果两个消息段类型不同，则不相等
+		return false
+	}
+	switch a.Type {
+	// 按类型的特殊比较路径
+	case ms.Image:
+		if a.Data[`file`] == b.Data[`file`] {
+			// 如果图片文件相同，则相等，继续遍历比较
+			return true
+		}
+	case ms.Record, ms.Video, ms.Anonymous, ms.Share, ms.Contact,
+		ms.Location, ms.Music, ms.Forward, ms.Node, ms.XML, ms.JSON:
+		// 忽略的类型，将导致停止比较，视为不相等
+	default:
+		if equal.IsSameMap(a.Data, b.Data) {
+			// 相等，继续遍历比较
+			return true
+		}
+	}
+	return false
+}
+
+// 比较两个消息段切片是否相等
+func equalMessage(a, b message.Message) bool {
+	if len(a) != len(b) {
+		// 如果两个消息段切片的长度不同，则不相等
+		return false
+	}
+	for i, seg := range a {
+		if !equalSegment(seg, b[i]) {
+			return false
+		}
+	}
+	return true
+}
+
+// 比较多个消息段是否相等
+func IsSameSegment(s ...message.Segment) bool {
+	return equal.IsSameByFunc(equalSegment, s...)
+}
+
+// 比较多个消息段切片是否相等
+func IsSameMessage(m ...message.Message) bool {
+	return equal.IsSameByFunc(equalMessage, m...)
+}
+
 // CallAction 调用 cqhttp API
 func (m *Messager) CallAction(action string, params map[string]any) zero.APIResponse {
 	return m.Ctx.CallAction(action, params)
@@ -287,21 +288,13 @@ func checkErr(v []any) {
 	}
 }
 
-/*
-Text 构建 message.Segment 文本
-
-格式同 fmt.Sprint
-*/
+// Text 构建 message.Segment 文本，格式同 fmt.Sprint
 func Text(text ...any) message.Segment {
 	checkErr(text)
 	return message.Text(text...)
 }
 
-/*
-TextOf 格式化构建 message.Segment 文本
-
-格式同 fmt.Sprintf
-*/
+// TextOf 格式化构建 message.Segment 文本，格式同 fmt.Sprintf
 func TextOf(format string, a ...any) message.Segment {
 	return Text(fmt.Sprintf(format, a...))
 }

@@ -1,3 +1,4 @@
+// Package str 字符串处理
 package str
 
 import (
@@ -171,12 +172,12 @@ func MidMin(pre, suf, str string) string {
 
 pre 为前缀（不包含），suf 为后缀（不包含），str 为整个字符串
 */
-func mid(pre, suf, str string, min bool) string {
+func mid(pre, suf, str string, isMin bool) string {
 	var (
 		low = func() int {
 			// 截掉前缀及之前部分
 			if i := func() int {
-				if min {
+				if isMin {
 					return strings.LastIndex(str, pre)
 				}
 				return strings.Index(str, pre)
@@ -188,7 +189,7 @@ func mid(pre, suf, str string, min bool) string {
 		up = func() int {
 			// 截掉后缀及之后部分
 			if i := func() int {
-				if min {
+				if isMin {
 					return strings.Index(str, suf)
 				}
 				return strings.LastIndex(str, suf)

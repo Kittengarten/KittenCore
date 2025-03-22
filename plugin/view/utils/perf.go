@@ -93,7 +93,7 @@ func cpuInfo() string {
 		}
 		var s strings.Builder
 		for _, v := range c {
-			fmt.Fprintf(&s, strings.TrimSpace(v.ModelName), `，`)
+			fmt.Fprint(&s, strings.TrimSpace(v.ModelName), `，`)
 		}
 		return s.String()
 	}() + getCPUs(false) + `C` + getCPUs(true) + `T，` + func() string {

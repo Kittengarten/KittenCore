@@ -1,3 +1,4 @@
+// Package rate 限速器
 package rate
 
 import (

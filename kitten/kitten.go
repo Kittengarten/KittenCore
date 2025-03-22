@@ -1,4 +1,4 @@
-// Package kitten 包含了 KittenCore 以及各插件的核心依赖结构体、方法和函数
+// Package kitten KittenCore 核心依赖
 package kitten
 
 import (
@@ -10,7 +10,7 @@ import (
 	"runtime/debug"
 
 	"github.com/Kittengarten/KittenCore/kitten/core/io"
-	"github.com/Kittengarten/KittenCore/kitten/core/io/zero"
+	"github.com/Kittengarten/KittenCore/kitten/core/msg/mio"
 )
 
 const (
@@ -24,8 +24,8 @@ var (
 	botConfig     config // 来自 Bot 的配置文件
 	//go:embed data_internal
 	data      embed.FS
-	imagePath zero.MsgPath // 图片路径
-	Weight    int          // 自身叠猫猫体重（0.1 kg 数）
+	imagePath mio.Path // 图片路径
+	Weight    int      // 自身叠猫猫体重（0.1 kg 数）
 )
 
 func init() {
@@ -57,7 +57,7 @@ func init() {
 		log.Println(err, `请正确配置`, configFile, `中的 path 喵！`)
 	}
 	// 图片路径
-	imagePath = zero.New(io.NewPath(botConfig.Path, imageFolder))
+	imagePath = mio.New(io.NewPath(botConfig.Path, imageFolder))
 	log.Println(`图片路径：`, imagePath)
 }
 
@@ -98,6 +98,6 @@ func MainConfig() config {
 }
 
 // ImagePath 获取图片路径
-func ImagePath() zero.MsgPath {
+func ImagePath() mio.Path {
 	return imagePath
 }

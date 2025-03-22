@@ -53,7 +53,7 @@ func (d *data) view(msgr *kitten.Messager, all bool) {
 // 初始化字体
 func initFont() error {
 	// 获取字体数据
-	buf, err := io.FilePath(text.GlowSansFontFile).ReadBytes()
+	buf, err := io.Path(text.GlowSansFontFile).ReadBytes()
 	if err != nil {
 		return err
 	}

@@ -1,3 +1,4 @@
+// Package qqemoji QQ 表情
 package qqemoji
 
 import (

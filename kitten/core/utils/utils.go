@@ -1,3 +1,4 @@
+// Package utils 工具
 package utils
 
 import (
@@ -79,8 +80,8 @@ func ConvertSlice[T any, U any](src []T, f func(T) U) []U {
 
 // Round 保留小数点后 n 位
 func Round(f float64, n int) float64 {
-	pow10_n := math.Pow10(n)
-	return math.RoundToEven(f*pow10_n) / pow10_n
+	pow10N := math.Pow10(n)
+	return math.RoundToEven(f*pow10N) / pow10N
 }
 
 // BoolToString 将布尔值转换为字符串

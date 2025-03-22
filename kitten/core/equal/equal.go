@@ -1,3 +1,4 @@
+// Package equal 判断值是否相同
 package equal
 
 import (

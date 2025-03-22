@@ -116,7 +116,7 @@ func (d *data) generateAnalysis(msgr *kitten.Messager) (c chance, flat, img bool
 当前体重：	%.1f kg
 %s%s%s%s%s`,
 		l,
-		itof(m.Weight), //nolint
+		itof(m.Weight),
 		chanceOutput(`压坏概率`, c.p),
 		chanceOutput(`摔下概率`, c.f),
 		chanceOutput(`成功概率`, c.s),

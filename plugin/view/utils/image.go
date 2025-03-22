@@ -7,6 +7,7 @@ import (
 
 	"github.com/Kittengarten/KittenCore/kitten"
 	"github.com/Kittengarten/KittenCore/kitten/core/io"
+	ms "github.com/Kittengarten/KittenCore/kitten/core/msg/seg"
 
 	"github.com/wdvxdr1123/ZeroBot/message"
 )
@@ -53,7 +54,7 @@ func Scan(msgr *kitten.Messager, su, hp bool, mpp func() bool) message.ID {
 func scanQRCode(msgr *kitten.Messager) message.ID {
 	r := make([]string, 0, len(msgr.Event.Message))
 	for _, seg := range msgr.Event.Message {
-		if seg.Type != `image` || seg.Data[`file`] == `` {
+		if seg.Type != ms.Image || seg.Data[`file`] == `` {
 			continue
 		}
 		s, err := msgr.ScanQRCodeInQQ(seg.Data[`file`])

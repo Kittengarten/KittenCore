@@ -1,3 +1,4 @@
+// Package core KittenCore 基础依赖
 package core
 
 import (

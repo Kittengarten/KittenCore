@@ -205,24 +205,46 @@ func (u *QQ) IsLoli(msgr *Messager) bool {
 	return u.IsFemale(msgr) && 0 < u.Age(msgr) && 18 > u.Age(msgr)
 }
 
-// TitleCardOrNickName 从 QQ 获取【头衔】群昵称 | 昵称
+// Title 从 QQ 获取头衔（必须是群）
+func (u *QQ) Title(msgr *Messager) string {
+	return u.memberInfo(msgr).Get(`title`).Str
+}
+
+// Card 从 QQ 获取群昵称（必须是群）
+func (u *QQ) Card(msgr *Messager) string {
+	return u.memberInfo(msgr).Get(`card`).Str
+}
+
+// NickName 从 QQ 获取昵称
+func (u *QQ) NickName(msgr *Messager) string {
+	return u.info(msgr).Get(`nickname`).Str
+}
+
+// TitleCardOrNickName 从 QQ 获取【头衔】群昵称 | 昵称（经过修剪）
 func (u *QQ) TitleCardOrNickName(msgr *Messager) string {
 	// 头衔
 	var title string
 	if NewQQGroup(msgr.Event.GroupID).IsGroup() {
 		// 是群聊，获取该 QQ 在群内的头衔
-		if title = u.memberInfo(msgr).Get(`title`).Str; title != `` {
+		if title = u.Title(msgr); title != `` {
 			// 如果头衔存在，则添加实心方头括号
 			title = `【` + title + `】	`
 		}
 	}
 	// 返回【头衔】群昵称 | 昵称
-	return title + ctxCardOrNickName(msgr.Ctx, u.Int())
+	return title + str.CleanAll(ctxCardOrNickName(msgr.Ctx, u.Int()), false)
 }
 
-// CallName 从 QQ 获取用于称呼的简单昵称
-func (u *QQ) CallName(msgr *Messager) string {
-	return str.First(ctxCardOrNickName(msgr.Ctx, u.Int()))
+// CallName 从 QQ 获取用于称呼的简单昵称（经过修剪）
+func (u *QQ) CallName(msgr *Messager) (n string) {
+	n = str.FirstText(str.CleanAll(u.Card(msgr), false))
+	if n == `` || len(n) > 16 {
+		n = str.FirstText(str.CleanAll(u.NickName(msgr), false))
+	}
+	if n == `` || len(n) > 16 {
+		n = str.FirstText(str.CleanAll(u.Title(msgr), false))
+	}
+	return
 }
 
 // MemberList 获取特定群的成员列表

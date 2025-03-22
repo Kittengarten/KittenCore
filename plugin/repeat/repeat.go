@@ -10,6 +10,7 @@ import (
 	"github.com/Kittengarten/KittenCore/kitten"
 	"github.com/Kittengarten/KittenCore/kitten/core"
 	"github.com/Kittengarten/KittenCore/kitten/core/io"
+	ms "github.com/Kittengarten/KittenCore/kitten/core/msg/seg"
 
 	"github.com/RomiChan/syncx"
 
@@ -184,7 +185,7 @@ func repeat(ctx *zero.Ctx) {
 // 处理图片
 func (s *stat) handleImage(msgr *kitten.Messager) {
 	for i, seg := range s.Message {
-		if seg.Type != `image` {
+		if seg.Type != ms.Image {
 			continue
 		}
 		// 如果是单张图片，进行一个图片的获取
