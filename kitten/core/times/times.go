@@ -17,7 +17,8 @@ type TimeDuration struct {
 }
 
 const (
-	Layout      = `2006.1.2	❤	15:04:05` // Layout 日期时间格式
+	Layout      = `2006.1.2 15:04:05`   // Layout 日期时间格式
+	LayoutHeart = `2006.1.2	❤	15:04:05` // LayoutHeart 带❤的日期时间格式
 	HoursPerDay = 24                    // HoursPerDay 每天小时数
 )
 

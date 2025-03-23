@@ -45,20 +45,14 @@ func init() {
 		if nv.Platform == API.String() {
 			// 番茄 API 链接还原为章节链接
 			// 不在这里还原平台，以免影响 nv.todayReport() 计算
-			newURL, err := url.Parse(nv.Chapter.URL)
-			if err != nil {
-				kitten.Error(err)
-				return ``
-			}
-			nv.Chapter.URL = ChapterURL + newURL.Query().Get(APIItemID)
+			nv.Chapter.URL = ChapterURL + API.ChapterID(nv.Chapter.URL)
 		}
 		return "\n" + nv.Chapter.URL
 	}
 	novel.RestorePlatform = func(nv *novel.Novel) {
-		if nv.Platform != API.String() {
-			return
+		if nv.Platform == API.String() {
+			nv.Platform = Platform.String()
 		}
-		nv.Platform = Platform.String()
 	}
 }
 
@@ -103,6 +97,7 @@ func (f fqAPI) FindBookID(key search.Keyword) (string, error) {
 func (f fqAPI) ChapterID(cpURL string) string {
 	u, err := url.Parse(cpURL)
 	if err != nil {
+		kitten.Error(err)
 		return ``
 	}
 	return u.Query().Get(APIItemID)
@@ -112,8 +107,9 @@ func (f fqAPI) ChapterID(cpURL string) string {
 func (f fqAPI) Init(bookID string) (nv *novel.Novel, err error) {
 	// 初始化小说
 	nv = novel.Pool.Get().(*novel.Novel)
-	// 初始化小说平台（API 仍然显示为番茄小说网）
-	nv.Platform = Platform.String()
+	// 初始化小说平台
+	// 此处仍使用 API，以免影响后续判定，待处理完毕后还原为 Platform
+	nv.Platform = API.String()
 	// 向小说传入书号
 	nv.ID = bookID
 	// 生成链接

@@ -90,11 +90,12 @@ func (c *Books) Report(
 				novel.Pool.Put(nv)
 				continue
 			}
-		}
-		if nv.Chapter.URL == b.RecordURL {
-			// 如果没有更新，则跳过
-			novel.Pool.Put(nv)
-			continue
+		default:
+			if nv.Chapter.URL == b.RecordURL {
+				// 如果没有更新，则跳过
+				novel.Pool.Put(nv)
+				continue
+			}
 		}
 		// 发送更新消息
 		go novel.TryCommentUpdate(
@@ -136,6 +137,6 @@ func (b Book) String() string {
 		if b.UpdateTime.IsZero() {
 			return Unknown
 		}
-		return b.UpdateTime.Format(times.Layout)
+		return b.UpdateTime.Format(times.LayoutHeart)
 	}()
 }
