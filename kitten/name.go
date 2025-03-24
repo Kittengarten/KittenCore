@@ -8,7 +8,7 @@ import (
 	"strconv"
 	"sync"
 
-	"github.com/Kittengarten/KittenCore/kitten/core/io"
+	"github.com/Kittengarten/KittenCore/kitten/core/fio"
 
 	"golang.org/x/exp/constraints"
 )
@@ -16,15 +16,15 @@ import (
 type name map[QQ]string // 昵称配置
 
 var (
-	nameFile = io.NewPath(`data`, `zbp`, `name.yaml`) // 当前昵称文件
-	nameMu   sync.RWMutex                             // 当前昵称文件锁
+	nameFile = fio.NewPath(`data`, `zbp`, `name.yaml`) // 当前昵称文件
+	nameMu   sync.RWMutex                              // 当前昵称文件锁
 )
 
 // Name 获取当前的 bot 昵称
 func (u *QQ) Name() (string, error) {
 	nameMu.RLock()
 	defer nameMu.RUnlock()
-	n, err := io.Load[name](nameFile, io.Blank)
+	n, err := fio.Load[name](nameFile, fio.Blank)
 	if err != nil {
 		return ``, err
 	}
@@ -51,12 +51,12 @@ func (u *QQ) SetName(nickname string) error {
 	}
 	nameMu.Lock()
 	defer nameMu.Unlock()
-	n, err := io.Load[name](nameFile, io.Blank)
+	n, err := fio.Load[name](nameFile, fio.Blank)
 	if err != nil {
 		return err
 	}
 	n[*u] = nickname
-	return io.Save(nameFile, n)
+	return fio.Save(nameFile, n)
 }
 
 // SetCardThisGroup 在本群设置自己的群昵称，h 为猫堆高度

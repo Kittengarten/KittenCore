@@ -1,6 +1,6 @@
 package kitten
 
-import "github.com/Kittengarten/KittenCore/kitten/core/io"
+import "github.com/Kittengarten/KittenCore/kitten/core/fio"
 
 type (
 	// 来自 Bot 的配置文件的数据集
@@ -9,7 +9,7 @@ type (
 		SelfID        QQ              // Bot 自身 ID
 		SuperUsers    []QQ            // 亲妈账号
 		CommandPrefix string          // 指令前缀
-		Path          io.Path         // 资源文件路径
+		Path          fio.Path        // 资源文件路径
 		WebSocket     WebSocketConfig // WebSocket 配置
 		Log           LogConfig       // 日志配置
 		WebUI         WebUIConfig     // WebUI 配置

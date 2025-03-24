@@ -2,8 +2,8 @@ package rcon
 
 import (
 	"github.com/Kittengarten/KittenCore/kitten"
-	"github.com/Kittengarten/KittenCore/kitten/core/io"
-	"github.com/Kittengarten/KittenCore/plugin/rcon/utils"
+	"github.com/Kittengarten/KittenCore/kitten/core/fio"
+	"github.com/Kittengarten/KittenCore/plugin/rcon/rcons"
 
 	ctrl "github.com/FloatTech/zbpctrl"
 	"github.com/FloatTech/zbputils/control"
@@ -31,25 +31,25 @@ var (
 		PrivateDataFolder: replyServiceName,
 	}).ApplySingle(ctxext.DefaultSingle)
 	// 配置文件路径
-	configPath = io.NewPath(engine.DataFolder(), configFile)
+	configPath = fio.NewPath(engine.DataFolder(), configFile)
 )
 
 func init() {
 	// RCON
 	engine.OnPrefixGroup([]string{`RCON`, `rcon`}, zero.SuperUserPermission).
 		SetBlock(true).Handle(func(ctx *zero.Ctx) {
-		utils.Command(kitten.New(ctx), configPath)
+		rcons.Command(kitten.New(ctx), configPath)
 	})
 
 	// 设置 RCON 主机
 	engine.OnRegex(`^设置\s*(?i)RCON\s*主机\s*(.*)$`, zero.OnlyPrivate, zero.SuperUserPermission).
 		SetBlock(true).Handle(func(ctx *zero.Ctx) {
-		utils.Set(kitten.New(ctx), utils.Host, configPath)
+		rcons.Set(kitten.New(ctx), rcons.Host, configPath)
 	})
 
 	// 设置 RCON 密码
 	engine.OnRegex(`^设置\s*(?i)RCON\s*密码\s*(.*)$`, zero.OnlyPrivate, zero.SuperUserPermission).
 		SetBlock(true).Handle(func(ctx *zero.Ctx) {
-		utils.Set(kitten.New(ctx), utils.Password, configPath)
+		rcons.Set(kitten.New(ctx), rcons.Password, configPath)
 	})
 }

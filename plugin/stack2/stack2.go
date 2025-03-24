@@ -13,7 +13,7 @@ import (
 	"time"
 
 	"github.com/Kittengarten/KittenCore/kitten"
-	"github.com/Kittengarten/KittenCore/kitten/core/io"
+	"github.com/Kittengarten/KittenCore/kitten/core/fio"
 	"github.com/Kittengarten/KittenCore/kitten/core/times"
 	"github.com/Kittengarten/KittenCore/kitten/rate"
 
@@ -132,7 +132,7 @@ func stackExe(msgr *kitten.Messager) {
 		return
 	}
 	GlobalMessager = msgr
-	d, err := io.Load[data](dataPath, io.Empty)
+	d, err := fio.Load[data](dataPath, fio.Empty)
 	if err != nil {
 		sendWithImageFail(msgr, `加载叠猫猫数据文件时发生错误喵！`, err)
 		return
@@ -390,7 +390,7 @@ func (d *data) in(msgr *kitten.Messager) error {
 	// 清理过期玩家
 	d.clear(msgr, false)
 	// 存储叠猫猫数据
-	if err = io.Save(dataPath, d); err != nil {
+	if err = fio.Save(dataPath, d); err != nil {
 		sendWithImageFail(msgr, `存储叠猫猫数据时发生错误喵！`, err)
 		return err
 	}
@@ -677,7 +677,7 @@ func (d *data) oc(msgr *kitten.Messager) {
 	// 清理过期玩家
 	d.clear(msgr, false)
 	// 存储叠猫猫数据
-	if err := io.Save(dataPath, d); err != nil {
+	if err := fio.Save(dataPath, d); err != nil {
 		sendWithImageFail(msgr, `存储叠猫猫数据时发生错误喵！`, err)
 	}
 	_ = sendTextOf(msgr, `锻炼成功喵！

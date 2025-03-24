@@ -9,7 +9,7 @@ import (
 	"os"
 	"runtime/debug"
 
-	"github.com/Kittengarten/KittenCore/kitten/core/io"
+	"github.com/Kittengarten/KittenCore/kitten/core/fio"
 	"github.com/Kittengarten/KittenCore/kitten/core/msg/mio"
 )
 
@@ -31,7 +31,7 @@ var (
 func init() {
 	var err error
 	// 配置文件初始化
-	if botConfig, err = io.Load[config](io.NewPath(configFile), defaultConfig); err != nil {
+	if botConfig, err = fio.Load[config](fio.NewPath(configFile), defaultConfig); err != nil {
 		log.Fatalln(err, `请按 YAML 格式配置`, configFile, `后重新启动喵！`)
 	}
 	// 启用 zap 日志格式
@@ -57,7 +57,7 @@ func init() {
 		log.Println(err, `请正确配置`, configFile, `中的 path 喵！`)
 	}
 	// 图片路径
-	imagePath = mio.New(io.NewPath(botConfig.Path, imageFolder))
+	imagePath = mio.New(fio.NewPath(botConfig.Path, imageFolder))
 	log.Println(`图片路径：`, imagePath)
 }
 

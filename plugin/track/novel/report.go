@@ -117,7 +117,7 @@ func (nv *Novel) todayReport() (string, error) {
 // 距上次更新时间的时间差转换为时间间隔的结构体
 func (nv *Novel) DurationConvert() (times.TimeDuration, error) {
 	// 如果时间早于 2006.1.2 15:04:05
-	if s, _ := time.Parse(time.DateTime, time.DateTime); nv.Duration > time.Since(s) {
+	if s, _ := time.Parse(times.Layout, times.Layout); nv.Duration > time.Since(s) {
 		return times.TimeDuration{}, status.ErrStatus(nv.URL, status.TimeException)
 	}
 	return times.ConvertTimeDuration(nv.Duration), nil

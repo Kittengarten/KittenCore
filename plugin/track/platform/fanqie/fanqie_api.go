@@ -9,7 +9,7 @@ import (
 	"time"
 
 	"github.com/Kittengarten/KittenCore/kitten"
-	"github.com/Kittengarten/KittenCore/kitten/core/http"
+	"github.com/Kittengarten/KittenCore/kitten/core/shttp"
 	"github.com/Kittengarten/KittenCore/kitten/core/times"
 	"github.com/Kittengarten/KittenCore/plugin/track/chapter"
 	"github.com/Kittengarten/KittenCore/plugin/track/novel"
@@ -68,17 +68,17 @@ func (f fqAPI) Layout() string {
 
 // FindBookID 用关键词搜索书号
 func (f fqAPI) FindBookID(key search.Keyword) (string, error) {
-	values := make(url.Values)
-	values.Add(APIQuery, string(key))
+	v := make(url.Values)
+	v.Add(APIQuery, string(key))
 	const page = 1 // 默认搜索第一页
-	values.Add(APIOffset, strconv.FormatInt(10*(page-1), 10))
-	values.Add(APITabType, `3`) // 默认搜索类型（3：小说）
+	v.Add(APIOffset, strconv.FormatInt(10*(page-1), 10))
+	v.Add(APITabType, `3`) // 默认搜索类型（3：小说）
 	searchURL, err := url.Parse(APISearchURL)
 	if err != nil {
 		return ``, err
 	}
-	searchURL.RawQuery = values.Encode()
-	data, err := http.GETData(searchURL.String())
+	searchURL.RawQuery = v.Encode()
+	data, err := shttp.GETDataURL(searchURL)
 	if err != nil {
 		return ``, err
 	}
@@ -114,15 +114,15 @@ func (f fqAPI) Init(bookID string) (nv *novel.Novel, err error) {
 	nv.ID = bookID
 	// 生成链接
 	nv.URL = URL + nv.ID
-	values := make(url.Values)
-	values.Add(APIBookID, bookID)
+	v := make(url.Values)
+	v.Add(APIBookID, bookID)
 	apiURL, err := url.Parse(DetailURL)
 	if err != nil {
 		return
 	}
-	apiURL.RawQuery = values.Encode()
+	apiURL.RawQuery = v.Encode()
 	// 获取小说网页，失败则返回
-	data, err := http.GETData(apiURL.String())
+	data, err := shttp.GETDataURL(apiURL)
 	if err != nil {
 		return
 	}
@@ -175,13 +175,13 @@ func (f fqAPI) Init(bookID string) (nv *novel.Novel, err error) {
 	nv.Item = nil
 	nv.Preview = ``
 	// 加载新章节
-	clear(values)
-	values.Add(APIItemID, ncp)
+	clear(v)
+	v.Add(APIItemID, ncp)
 	ncpURL, err := url.Parse(APIContentURL)
 	if err != nil {
 		return
 	}
-	ncpURL.RawQuery = values.Encode()
+	ncpURL.RawQuery = v.Encode()
 	nv.Chapter, err = f.NewChapter(ncpURL.String())
 	return
 }
@@ -193,7 +193,7 @@ func (f fqAPI) NewChapter(cpURL string) (cp *chapter.Chapter, err error) {
 	// 向章节传入链接
 	cp.URL = cpURL
 	// 获取章节网页，失败则返回
-	data, err := http.GETData(cp.URL)
+	data, err := shttp.GETData(cp.URL)
 	if err != nil {
 		return
 	}
@@ -228,13 +228,13 @@ func (f fqAPI) NewChapter(cpURL string) (cp *chapter.Chapter, err error) {
 
 // 获取章节链接
 func getChapterURL(id string) (string, error) {
-	values := make(url.Values)
-	values.Set(APIItemID, id)
+	v := make(url.Values)
+	v.Set(APIItemID, id)
 	preURL, err := url.Parse(APIContentURL)
 	if err != nil {
 		return ``, err
 	}
-	preURL.RawQuery = values.Encode()
+	preURL.RawQuery = v.Encode()
 	return preURL.String(), nil
 }
 

@@ -6,7 +6,7 @@ import (
 	"time"
 
 	"github.com/Kittengarten/KittenCore/kitten"
-	"github.com/Kittengarten/KittenCore/kitten/core/io"
+	"github.com/Kittengarten/KittenCore/kitten/core/fio"
 	"github.com/Kittengarten/KittenCore/kitten/core/times"
 
 	"github.com/vicanso/go-charts/v2"
@@ -53,7 +53,7 @@ func (d *data) view(msgr *kitten.Messager, all bool) {
 // 初始化字体
 func initFont() error {
 	// 获取字体数据
-	buf, err := io.Path(text.GlowSansFontFile).ReadBytes()
+	buf, err := fio.Path(text.GlowSansFontFile).ReadBytes()
 	if err != nil {
 		return err
 	}

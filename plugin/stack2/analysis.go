@@ -10,7 +10,7 @@ import (
 	"time"
 
 	"github.com/Kittengarten/KittenCore/kitten"
-	"github.com/Kittengarten/KittenCore/kitten/core/io"
+	"github.com/Kittengarten/KittenCore/kitten/core/fio"
 	"github.com/Kittengarten/KittenCore/kitten/core/times"
 
 	"github.com/vicanso/go-charts/v2"
@@ -208,7 +208,7 @@ func chanceClear(msgr *kitten.Messager, s data, m meow) float64 {
 
 // 平地摔小贴士
 func tipFlat() string {
-	if tipSlice, err = io.Load[tips](tipsPath, string(tipYAML)); err != nil {
+	if tipSlice, err = fio.Load[tips](tipsPath, string(tipYAML)); err != nil {
 		return err.Error()
 	}
 	if l := len(tipSlice.Flat); l != 0 {
@@ -219,7 +219,7 @@ func tipFlat() string {
 
 // 叠猫猫小贴士，除平地摔以外
 func tip(w int, c chance) string {
-	if tipSlice, err = io.Load[tips](tipsPath, string(tipYAML)); err != nil {
+	if tipSlice, err = fio.Load[tips](tipsPath, string(tipYAML)); err != nil {
 		return err.Error()
 	}
 	t := make([]string, 0, 128)
@@ -258,13 +258,15 @@ func tip(w int, c chance) string {
 
 // 叠猫猫分析图片
 func (d *data) analysisImage(msgr *kitten.Messager, c chance, flat bool) message.ID {
-	values := func() []float64 {
-		if flat {
-			return []float64{c.f, c.s}
-		}
-		return []float64{c.p, c.f, c.s}
-	}()
-	p, err := setAnalysisChart(values, flat)
+	p, err := setAnalysisChart(
+		func() []float64 {
+			if flat {
+				return []float64{c.f, c.s}
+			}
+			return []float64{c.p, c.f, c.s}
+		}(),
+		flat,
+	)
 	if err != nil {
 		return sendWithImageFail(msgr, err)
 	}

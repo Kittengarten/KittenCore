@@ -7,7 +7,7 @@ import (
 	"time"
 
 	"github.com/Kittengarten/KittenCore/kitten"
-	"github.com/Kittengarten/KittenCore/kitten/core/io"
+	"github.com/Kittengarten/KittenCore/kitten/core/fio"
 	"github.com/Kittengarten/KittenCore/kitten/core/times"
 
 	"github.com/wdvxdr1123/ZeroBot/message"
@@ -15,7 +15,7 @@ import (
 
 // 缓存刷新
 func (b *buffer) refresh(msgr *kitten.Messager, d *data) {
-	stackBuffer, err = io.Load[buffer](bufferPath, `medianweight: 0
+	stackBuffer, err = fio.Load[buffer](bufferPath, `medianweight: 0
 maxresttime: 0`)
 	if err != nil {
 		sendWithImageFail(msgr, `读取叠猫猫缓存时发生错误喵！`, err)
@@ -26,7 +26,7 @@ maxresttime: 0`)
 	// 计算最大休息时间
 	stackBuffer.MaxRestTime = times.HoursPerDay * time.Hour *
 		time.Duration(stackConfig.MinRestHours*stackBuffer.MedianWeight)
-	if io.Save(bufferPath, stackBuffer) != nil {
+	if fio.Save(bufferPath, stackBuffer) != nil {
 		sendWithImageFail(msgr, `叠猫猫缓存时发生错误喵！`, err)
 	}
 }
@@ -140,5 +140,5 @@ func sendWithImageFail(msgr *kitten.Messager, text ...any) message.ID {
 
 // 发送带有杂鱼图片的本地化文字消息
 func sendWithZako(msgr *kitten.Messager, text ...any) message.ID {
-	return msgr.Reply().AtLf().Image(io.NewPath(zako)).Text(rangeAssertion(text)...).Send()
+	return msgr.Reply().AtLf().Image(fio.NewPath(zako)).Text(rangeAssertion(text)...).Send()
 }

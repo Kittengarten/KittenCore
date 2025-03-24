@@ -7,7 +7,8 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/Kittengarten/KittenCore/kitten/core/http"
+	"github.com/Kittengarten/KittenCore/kitten/core/htmls"
+	"github.com/Kittengarten/KittenCore/kitten/core/shttp"
 	"github.com/Kittengarten/KittenCore/kitten/core/str"
 	"github.com/Kittengarten/KittenCore/kitten/core/utils"
 	"github.com/Kittengarten/KittenCore/plugin/track/chapter"
@@ -72,25 +73,25 @@ func (f fq) Init(bookID string) (nv *novel.Novel, err error) {
 	// 生成链接
 	nv.URL = URL + nv.ID
 	// 获取小说网页，失败则返回
-	http.SetUserAgent(http.RandomUserAgent())
-	defer http.SetUserAgent(http.UserAgent)
+	shttp.SetUserAgent(shttp.RandomUserAgent())
+	defer shttp.SetUserAgent(shttp.UserAgent)
 	doc, err := htmlquery.LoadURL(nv.URL)
 	if err != nil {
 		return
 	}
-	if !strings.Contains(http.InnerText(doc, `//title`), `在线免费阅读`) {
+	if !strings.Contains(htmls.InnerText(doc, `//title`), `在线免费阅读`) {
 		err = status.ErrStatus(nv.URL, status.BookUnreachable)
 		return
 	}
 	// 获取封面
-	nv.CoverURL = gjson.Get(http.InnerText(doc,
+	nv.CoverURL = gjson.Get(htmls.InnerText(doc,
 		`//script[@type="application/ld+json"]`), `image.0`).String()
 	// 获取书名
-	nv.Name = http.InnerText(doc, `//div[@class="info-name"]`)
+	nv.Name = htmls.InnerText(doc, `//div[@class="info-name"]`)
 	// 获取小说信息
 	bookInfo := htmlquery.FindOne(doc, `//div[@class="info-label"]`)
 	// 获取小说状态
-	nv.Status = http.InnerText(bookInfo, `//span[@class="info-label-yellow"]`)
+	nv.Status = htmls.InnerText(bookInfo, `//span[@class="info-label-yellow"]`)
 	// 获取标签
 	nv.TagList = utils.ConvertSlice(
 		htmlquery.Find(bookInfo, `//span[@class="info-label-grey"]`),
@@ -98,20 +99,20 @@ func (f fq) Init(bookID string) (nv *novel.Novel, err error) {
 	)
 	// 获取小说字数
 	nv.TotalWordNum = func(wordNum *html.Node) (s string) {
-		s = http.InnerText(wordNum, `/span[@class="detail"]`)
-		if http.InnerText(wordNum, `/span[@class="text"]`) == `万字` {
+		s = htmls.InnerText(wordNum, `/span[@class="detail"]`)
+		if htmls.InnerText(wordNum, `/span[@class="text"]`) == `万字` {
 			s += `万`
 		}
 		return
 	}(htmlquery.FindOne(doc, `//div[@class="info-count-word"]`))
 	// 获取头像链接
-	nv.HeadURL = http.InnerText(doc, `//img[@class="author-img"]/@src`)
+	nv.HeadURL = htmls.InnerText(doc, `//img[@class="author-img"]/@src`)
 	// 获取作者
-	nv.Writer = http.InnerText(doc, `//span[@class="author-name-text"]`)
+	nv.Writer = htmls.InnerText(doc, `//span[@class="author-name-text"]`)
 	// 获取简述
-	nv.Introduce = http.InnerText(doc, `//div[@class="page-abstract-content"]/p`)
+	nv.Introduce = htmls.InnerText(doc, `//div[@class="page-abstract-content"]/p`)
 	// 获取新章节链接
-	ncp := http.InnerText(doc, `//div[@class="info-last"]/a[@class="chapter-item-title"]/@href`)
+	ncp := htmls.InnerText(doc, `//div[@class="info-last"]/a[@class="chapter-item-title"]/@href`)
 	// 获取上架状态（番茄均为免费）
 	nv.Right = []string{`免费`}
 	// 不支持的字段
@@ -138,20 +139,20 @@ func (f fq) NewChapter(cpURL string) (cp *chapter.Chapter, err error) {
 	// 向章节传入链接
 	cp.URL = cpURL
 	// 获取章节网页，失败则返回
-	http.SetUserAgent(http.RandomUserAgent())
-	defer http.SetUserAgent(http.UserAgent)
+	shttp.SetUserAgent(shttp.RandomUserAgent())
+	defer shttp.SetUserAgent(shttp.UserAgent)
 	doc, err := htmlquery.LoadURL(cp.URL)
 	if err != nil {
 		return
 	}
-	if !strings.Contains(http.InnerText(doc, `//title`), `在线免费阅读`) {
+	if !strings.Contains(htmls.InnerText(doc, `//title`), `在线免费阅读`) {
 		err = status.ErrStatus(cp.URL, status.ChapterUnreachable)
 		return
 	}
 	// 获取章节标题
-	cp.Title = http.InnerText(doc, `//h1[@class="muye-reader-title"]`)
+	cp.Title = htmls.InnerText(doc, `//h1[@class="muye-reader-title"]`)
 	// 获取章节字数
-	wordNum := http.InnerText(doc, `//span[@class="desc-item"]`)
+	wordNum := htmls.InnerText(doc, `//span[@class="desc-item"]`)
 	cp.WordNum, err = strconv.Atoi(str.Mid(`本章字数：`, `字`, wordNum))
 	if err != nil {
 		err = fmt.Errorf(`章节 %s 的字数获取错误喵！%w`, cp.URL, err)
@@ -169,7 +170,7 @@ func (f fq) NewChapter(cpURL string) (cp *chapter.Chapter, err error) {
 		return ``
 	}()
 	// 获取更新时间
-	cp.Time, err = platform.ParseTime(f, gjson.Get(http.InnerText(doc,
+	cp.Time, err = platform.ParseTime(f, gjson.Get(htmls.InnerText(doc,
 		`//script[@type="application/ld+json"]`), `dateModified`).String())
 	if err != nil {
 		return

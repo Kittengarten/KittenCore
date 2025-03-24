@@ -8,7 +8,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/Kittengarten/KittenCore/kitten/core/http"
+	"github.com/Kittengarten/KittenCore/kitten/core/htmls"
 	"github.com/Kittengarten/KittenCore/kitten/core/str"
 	"github.com/Kittengarten/KittenCore/kitten/core/utils"
 	"github.com/Kittengarten/KittenCore/plugin/track/chapter"
@@ -85,16 +85,16 @@ func (c cwm) Init(bookID string) (nv *novel.Novel, err error) {
 	if err != nil {
 		return
 	}
-	if http.InnerText(doc, `//title`) == `刺猬猫` {
+	if htmls.InnerText(doc, `//title`) == `刺猬猫` {
 		err = status.ErrStatus(nv.URL, status.BookUnreachable)
 		return
 	}
 	// 获取小说信息
 	bookInfo := htmlquery.FindOne(doc, `//div[@class="book-info"]`)
 	// 获取书名
-	nv.Name = http.InnerText(bookInfo, `/h1[@class="title"]/text()`)
+	nv.Name = htmls.InnerText(bookInfo, `/h1[@class="title"]/text()`)
 	// 获取作者
-	nv.Writer = http.InnerText(bookInfo, `/h1[@class="title"]/span/a`)
+	nv.Writer = htmls.InnerText(bookInfo, `/h1[@class="title"]/span/a`)
 	// 获取标签
 	nv.TagList = utils.ConvertSlice(
 		htmlquery.Find(bookInfo, `/p/span[starts-with(@class,"label")]/a`),
@@ -103,7 +103,7 @@ func (c cwm) Init(bookID string) (nv *novel.Novel, err error) {
 		},
 	)
 	// 获取小说状态
-	nv.Status = http.InnerText(bookInfo, `/p[@class="update-state"]`)
+	nv.Status = htmls.InnerText(bookInfo, `/p[@class="update-state"]`)
 	// 获取小说成绩
 	bookGrade := htmlquery.Find(bookInfo, `/p[@class="book-grade"]/b`)
 	if len(bookGrade) < 3 {
@@ -137,9 +137,9 @@ func (c cwm) Init(bookID string) (nv *novel.Novel, err error) {
 	// 获取小说类别
 	nv.Theme = htmlquery.InnerText(property[4])
 	// 获取头像链接
-	nv.HeadURL = http.InnerText(doc, `//div[@class="author-info"]//img/@data-original`)
+	nv.HeadURL = htmls.InnerText(doc, `//div[@class="author-info"]//img/@data-original`)
 	// 获取封面
-	nv.CoverURL = http.InnerText(doc, `//a[@class="cover"]//img/@data-original`)
+	nv.CoverURL = htmls.InnerText(doc, `//a[@class="cover"]//img/@data-original`)
 	// 不支持的字段
 	nv.Preview = ``
 	// 获取新章节链接
@@ -170,21 +170,21 @@ func (c cwm) NewChapter(cpURL string) (cp *chapter.Chapter, err error) {
 	if err != nil {
 		return
 	}
-	if http.InnerText(doc, `//title`) == `刺猬猫` {
+	if htmls.InnerText(doc, `//title`) == `刺猬猫` {
 		err = status.ErrStatus(cp.URL, status.ChapterUnreachable)
 		return
 	}
 	// 获取章节标题
-	cp.Title = http.InnerText(doc, `//div[@class="read-hd"]/h1[@class="chapter"]`)
+	cp.Title = htmls.InnerText(doc, `//div[@class="read-hd"]/h1[@class="chapter"]`)
 	// 获取更新时间
 	cp.Time, err = platform.ParseTime(c, strings.TrimPrefix(
-		http.InnerText(doc, `//div[@class="read-hd"]/p/span[3]`), `更新时间：`))
+		htmls.InnerText(doc, `//div[@class="read-hd"]/p/span[3]`), `更新时间：`))
 	if err != nil {
 		return
 	}
 	// 获取章节字数
 	cp.WordNum, err = strconv.Atoi(strings.TrimPrefix(
-		http.InnerText(doc, `//div[@class="read-hd"]/p/span[5]`), `字数：`))
+		htmls.InnerText(doc, `//div[@class="read-hd"]/p/span[5]`), `字数：`))
 	if err != nil {
 		err = fmt.Errorf(`章节 %s 的字数获取错误喵！%w`, cp.URL, err)
 		return
@@ -200,7 +200,7 @@ func (c cwm) NewChapter(cpURL string) (cp *chapter.Chapter, err error) {
 		cp.NextURL = htmlquery.InnerText(next)
 	}
 	// 获取付费状态
-	switch http.InnerText(doc, `//div[@class="read-bd"]/@id`) {
+	switch htmls.InnerText(doc, `//div[@class="read-bd"]/@id`) {
 	case `J_BookRead`:
 		cp.IsVIP = false
 	case `J_ImgRead`:

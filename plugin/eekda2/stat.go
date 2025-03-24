@@ -6,7 +6,7 @@ import (
 	"slices"
 
 	"github.com/Kittengarten/KittenCore/kitten"
-	"github.com/Kittengarten/KittenCore/kitten/core/io"
+	"github.com/Kittengarten/KittenCore/kitten/core/fio"
 
 	zero "github.com/wdvxdr1123/ZeroBot"
 )
@@ -21,7 +21,7 @@ func getStat(ctx *zero.Ctx) {
 	mu.RLock()
 	defer mu.RUnlock()
 	var (
-		s, err = io.Load[stat](statPath, io.Empty)
+		s, err = fio.Load[stat](statPath, fio.Empty)
 		msgr   = kitten.New(ctx)
 	)
 	if err != nil {
@@ -34,7 +34,7 @@ func getStat(ctx *zero.Ctx) {
 		msgr.DoNotKnow()
 		return
 	}
-	c, err := io.Load[config](todayPath, io.Empty)
+	c, err := fio.Load[config](todayPath, fio.Empty)
 	if err != nil {
 		msgr.SendWithImageFail(err)
 	}
@@ -57,7 +57,7 @@ func getStat(ctx *zero.Ctx) {
 
 // 统计被吃次数
 func doStat(msgr *kitten.Messager, td today) {
-	s, err := io.Load[stat](statPath, io.Empty)
+	s, err := fio.Load[stat](statPath, fio.Empty)
 	if err != nil {
 		msgr.SendWithImageFail(err)
 	}
@@ -91,7 +91,7 @@ func doStat(msgr *kitten.Messager, td today) {
 	// 排序
 	s.sort()
 	// 写入文件
-	if err := io.Save(statPath, s); err != nil {
+	if err := fio.Save(statPath, s); err != nil {
 		msgr.SendWithImageFail(err)
 	}
 }

@@ -7,7 +7,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/Kittengarten/KittenCore/kitten/core/http"
+	"github.com/Kittengarten/KittenCore/kitten/core/htmls"
 	"github.com/Kittengarten/KittenCore/kitten/core/str"
 	"github.com/Kittengarten/KittenCore/kitten/core/utils"
 	"github.com/Kittengarten/KittenCore/plugin/track/chapter"
@@ -57,7 +57,7 @@ func (s sf) FindBookID(key search.Keyword) (string, error) {
 	if err != nil {
 		return ``, err
 	}
-	url, err := http.InnerText(doc, `//a[@id="SearchResultList1___ResultList_LinkInfo_0"]/@href`), nil
+	url, err := htmls.InnerText(doc, `//a[@id="SearchResultList1___ResultList_LinkInfo_0"]/@href`), nil
 	if url == `` {
 		err = key.NotFound()
 	}
@@ -92,13 +92,13 @@ func (s sf) Init(bookID string) (nv *novel.Novel, err error) {
 		return
 	}
 	// 获取书名
-	nv.Name = strings.TrimSpace(http.InnerText(doc, `//h1[@class="title"]/span/text()`))
+	nv.Name = strings.TrimSpace(htmls.InnerText(doc, `//h1[@class="title"]/span/text()`))
 	// 获取小说版权状态与项目
 	getNovelRightItem(nv, doc)
 	// 获取作者
-	nv.Writer = http.InnerText(doc, `//div[@class="author-name"]/span`)
+	nv.Writer = htmls.InnerText(doc, `//div[@class="author-name"]/span`)
 	// 获取头像链接
-	nv.HeadURL = http.InnerText(doc, `//div[@class="author-mask"]//img/@src`)
+	nv.HeadURL = htmls.InnerText(doc, `//div[@class="author-mask"]//img/@src`)
 	// 小说详细信息
 	textRow := htmlquery.Find(doc, `//div[@class="text-row"]/span`)
 	// 获取类型
@@ -110,7 +110,7 @@ func (s sf) Init(bookID string) (nv *novel.Novel, err error) {
 	// 获取点击
 	nv.HitNum = strings.TrimPrefix(htmlquery.InnerText(textRow[2]), `点击：`)
 	// 获取简述
-	nv.Introduce = http.InnerText(doc, `//p[@class="introduce"]`)
+	nv.Introduce = htmls.InnerText(doc, `//p[@class="introduce"]`)
 	// 获取移动版简述
 	if introduceMobile, err := getIntroduce(nv); err == nil &&
 		len(introduceMobile) >= len(nv.Introduce) {
@@ -118,7 +118,7 @@ func (s sf) Init(bookID string) (nv *novel.Novel, err error) {
 	}
 	// 获取收藏
 	nv.Collection = strings.TrimPrefix(
-		http.InnerText(doc, `//div[@id="BasicOperation"]/a[3]`), `收藏 `)
+		htmls.InnerText(doc, `//div[@id="BasicOperation"]/a[3]`), `收藏 `)
 	// 获取标签
 	nv.TagList = utils.ConvertSlice(
 		htmlquery.Find(doc, `//li[starts-with(@class,"tag")]/a/span[@class="text"]`),
@@ -127,9 +127,9 @@ func (s sf) Init(bookID string) (nv *novel.Novel, err error) {
 		},
 	)
 	// 获取封面链接
-	nv.CoverURL = http.InnerText(doc, `//div[@class="figure"]//img/@src`)
+	nv.CoverURL = htmls.InnerText(doc, `//div[@class="figure"]//img/@src`)
 	// 获取预览
-	nv.Preview = strings.TrimPrefix(str.CleanAll(strings.ReplaceAll(http.InnerText(
+	nv.Preview = strings.TrimPrefix(str.CleanAll(strings.ReplaceAll(htmls.InnerText(
 		doc, `//div[@class="chapter-info"]/p`), `　　`, "\n"), true), "\n")
 	// 获取新章节链接
 	ncp := htmlquery.FindOne(doc, `//div[@class="chapter-info"]/h3/a/@href`)
@@ -203,24 +203,24 @@ func (s sf) NewChapter(cpURL string) (cp *chapter.Chapter, err error) {
 		return
 	}
 	// 获取章节标题
-	cp.Title = http.InnerText(doc, `//h1[@class="article-title"]`)
+	cp.Title = htmls.InnerText(doc, `//h1[@class="article-title"]`)
 	// 获取更新时间
 	cp.Time, err = platform.ParseTime(s, strings.TrimPrefix(
-		http.InnerText(doc, `//div[@class="article-desc"]/span[2]`), `更新时间：`))
+		htmls.InnerText(doc, `//div[@class="article-desc"]/span[2]`), `更新时间：`))
 	if err != nil {
 		return
 	}
 	// 获取章节字数
-	wordNum := http.InnerText(doc, `//div[@class="article-desc"]/span[3]`)
+	wordNum := htmls.InnerText(doc, `//div[@class="article-desc"]/span[3]`)
 	cp.WordNum, err = strconv.Atoi(strings.TrimPrefix(wordNum, `字数：`))
 	if err != nil {
 		err = fmt.Errorf(`章节 %s 的字数获取错误喵！%w`, cp.URL, err)
 		return
 	}
 	// 获取上一章链接
-	cp.PreURL = Host + http.InnerText(doc, `//div[@id="article"]/div[@class="fn-btn"]/a[1]/@href`)
+	cp.PreURL = Host + htmls.InnerText(doc, `//div[@id="article"]/div[@class="fn-btn"]/a[1]/@href`)
 	// 获取下一章链接
-	cp.NextURL = Host + http.InnerText(doc, `//div[@id="article"]/div[@class="fn-btn"]/a[2]/@href`)
+	cp.NextURL = Host + htmls.InnerText(doc, `//div[@id="article"]/div[@class="fn-btn"]/a[2]/@href`)
 	// 获取付费状态
 	cp.IsVIP = strings.Contains(cp.URL, `vip`)
 	return
@@ -232,14 +232,14 @@ func getIntroduce(nv *novel.Novel) (string, error) {
 	if err != nil {
 		return ``, err
 	}
-	return str.Compose(nil, http.InnerText(doc,
+	return str.Compose(nil, htmls.InnerText(doc,
 		`//ul[@class="book_profile"]/li[@class="book_bk_qs1"]`),
 	), mayExist(doc, nv.URL, BookStrings)
 }
 
 // 判断小说或章节是否可能存在
 func mayExist(doc *html.Node, url string, count stringCount) error {
-	if len(http.InnerText(doc, `//title`)) >= count {
+	if len(htmls.InnerText(doc, `//title`)) >= count {
 		return nil
 	}
 	return status.ErrStatus(url, status.BookUnreachable)
@@ -249,9 +249,9 @@ func mayExist(doc *html.Node, url string, count stringCount) error {
 func getNovelRightItem(nv *novel.Novel, doc *html.Node) {
 	for _, tt := range htmlquery.Find(doc,
 		`//h1[@class="title"]//span[starts-with(@class,"tag")]`) {
-		switch b, y, g := http.InnerText(tt, `.[contains(@class,"blue")]`),
-			http.InnerText(tt, `.[contains(@class,"yellow")]`),
-			http.InnerText(tt, `.[contains(@class,"green")]`); {
+		switch b, y, g := htmls.InnerText(tt, `.[contains(@class,"blue")]`),
+			htmls.InnerText(tt, `.[contains(@class,"yellow")]`),
+			htmls.InnerText(tt, `.[contains(@class,"green")]`); {
 		case b != ``:
 			// 获取版权状态
 			nv.Right = append(nv.Right, b)

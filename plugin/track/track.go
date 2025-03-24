@@ -12,8 +12,8 @@ import (
 	"time"
 
 	"github.com/Kittengarten/KittenCore/kitten"
-	"github.com/Kittengarten/KittenCore/kitten/core/http"
-	"github.com/Kittengarten/KittenCore/kitten/core/io"
+	"github.com/Kittengarten/KittenCore/kitten/core/fio"
+	"github.com/Kittengarten/KittenCore/kitten/core/shttp"
 	"github.com/Kittengarten/KittenCore/kitten/rate"
 	"github.com/Kittengarten/KittenCore/plugin/track/book"
 	"github.com/Kittengarten/KittenCore/plugin/track/novel"
@@ -43,7 +43,7 @@ const (
 	cAddUpdate       = `添加报更`
 	cCancelUpdate    = `取消报更`
 	cQueryUpdate     = `查询报更`
-	cycle            = http.TimeOutSeconds * time.Second // 最小循环间隔（最大可翻倍）
+	cycle            = shttp.TimeOutSeconds * time.Second // 最小循环间隔（最大可翻倍）
 )
 
 var (
@@ -67,7 +67,7 @@ var (
 		PrivateDataFolder: replyServiceName,
 	}).ApplySingle(ctxext.DefaultSingle)
 	// 配置文件路径
-	configPath = io.NewPath(engine.DataFolder(), configFile)
+	configPath = fio.NewPath(engine.DataFolder(), configFile)
 	// 报更更新的信号
 	cu = make(chan book.Books)
 	// 读写锁
@@ -142,8 +142,8 @@ func updateTest(msgr *kitten.Messager) {
 		msgr,
 		msgr.Reply().AtLf().
 			Image(
-				io.NewPath(nv.CoverURL),
-				io.NewPath(nv.HeadURL),
+				fio.NewPath(nv.CoverURL),
+				fio.NewPath(nv.HeadURL),
 			).
 			Text(nv.Update()).
 			SendMulti(),
@@ -177,7 +177,7 @@ func novelInfo(msgr *kitten.Messager, comment bool) {
 		return
 	}
 	msgr = msgr.Reply().AtLf().
-		Image(io.NewPath(nv.CoverURL)).
+		Image(fio.NewPath(nv.CoverURL)).
 		Text(nv)
 	if comment {
 		msgr.Text(novel.Comment(nv))
@@ -194,7 +194,7 @@ func add(msgr *kitten.Messager) {
 	}
 	mu.Lock()
 	defer mu.Unlock()
-	c, err := io.Load[book.Books](configPath, io.Empty) // 报更配置
+	c, err := fio.Load[book.Books](configPath, fio.Empty) // 报更配置
 	if err != nil {
 		msgr.SendWithImageFail(book.ErrLoad, err)
 		return
@@ -248,7 +248,7 @@ func cancel(msgr *kitten.Messager) {
 	}
 	mu.Lock()
 	defer mu.Unlock()
-	c, err := io.Load[book.Books](configPath, io.Empty) // 报更配置
+	c, err := fio.Load[book.Books](configPath, fio.Empty) // 报更配置
 	if err != nil {
 		msgr.SendWithImageFail(book.ErrLoad, err)
 		return
@@ -296,7 +296,7 @@ func query(msgr *kitten.Messager) {
 		return
 	}
 	mu.RLock()
-	c, err := io.Load[book.Books](configPath, io.Empty) // 报更配置
+	c, err := fio.Load[book.Books](configPath, fio.Empty) // 报更配置
 	mu.RUnlock()
 	if err != nil {
 		msgr.SendWithImageFail(book.ErrLoad, err)
@@ -383,12 +383,12 @@ func track() {
 		}
 	}()
 	// 初始化报更配置文件
-	if err := configPath.InitFile(io.Empty); err != nil {
+	if err := configPath.InitFile(fio.Empty); err != nil {
 		kitten.Error(`初始化报更配置文件时发生错误喵！`, err)
 		return
 	}
 	mu.RLock()
-	data, err := io.Load[book.Books](configPath, io.Empty)
+	data, err := fio.Load[book.Books](configPath, fio.Empty)
 	mu.RUnlock()
 	if err != nil {
 		kitten.Error(book.ErrLoad, err)
@@ -406,8 +406,8 @@ func track() {
 		defer process.GlobalInitMutex.Unlock()
 	}()
 	var (
-		t   = time.NewTicker(http.TimeOutSeconds * time.Second) // 定期检测，间隔为超时时间
-		st  = time.NewTicker(http.TimeOutSeconds * time.Minute) // 专用慢速时钟
+		t   = time.NewTicker(shttp.TimeOutSeconds * time.Second) // 定期检测，间隔为超时时间
+		st  = time.NewTicker(shttp.TimeOutSeconds * time.Minute) // 专用慢速时钟
 		sid = kitten.Self()
 		bot = kitten.New(zero.GetBot(sid.Int()))
 	)

@@ -1,5 +1,5 @@
-// utils 来自 github.com/bearbin/mcgorcon
-package utils
+// rcons 来自 github.com/bearbin/mcgorcon
+package rcons
 
 import (
 	"bytes"
@@ -9,7 +9,7 @@ import (
 	"net"
 	"time"
 
-	"github.com/Kittengarten/KittenCore/kitten/core/http"
+	"github.com/Kittengarten/KittenCore/kitten/core/shttp"
 )
 
 const (
@@ -38,7 +38,7 @@ type Header struct {
 }
 
 func (c *MCConn) Open(addr, password string) error {
-	conn, err := net.DialTimeout(`tcp`, addr, http.TimeOutSeconds*time.Second)
+	conn, err := net.DialTimeout(`tcp`, addr, shttp.TimeOutSeconds*time.Second)
 	if err != nil {
 		return err
 	}

@@ -6,9 +6,12 @@ import (
 	"strings"
 
 	"github.com/Kittengarten/KittenCore/kitten"
-	"github.com/Kittengarten/KittenCore/kitten/core/io"
+	"github.com/Kittengarten/KittenCore/kitten/core/fio"
 	"github.com/Kittengarten/KittenCore/kitten/rate"
-	"github.com/Kittengarten/KittenCore/plugin/view/utils"
+	"github.com/Kittengarten/KittenCore/plugin/view/img"
+	"github.com/Kittengarten/KittenCore/plugin/view/perf"
+	"github.com/Kittengarten/KittenCore/plugin/view/views"
+	"github.com/Kittengarten/KittenCore/plugin/view/voice"
 
 	ctrl "github.com/FloatTech/zbpctrl"
 	"github.com/FloatTech/zbputils/control"
@@ -43,9 +46,9 @@ var (
 	// bot 自身 ID
 	sid = kitten.Self()
 	// 日志文件
-	logPath = io.NewPath(engine.DataFolder(), `logPath.txt`)
+	logPath = fio.NewPath(engine.DataFolder(), `logPath.txt`)
 	// 日志文件路径
-	logFilePath io.Path
+	logFilePath fio.Path
 )
 
 func init() {
@@ -59,7 +62,7 @@ func init() {
 		Limit(rate.Get(rate.User)).
 		Limit(rate.Get(rate.GroupNormal)).
 		Handle(func(ctx *zero.Ctx) {
-			utils.View(kitten.New(ctx), replyServiceName, logFilePath)
+			views.View(kitten.New(ctx), replyServiceName, logFilePath)
 		})
 
 	// 支付宝到账语音
@@ -67,28 +70,28 @@ func init() {
 		Limit(rate.Get(rate.User)).
 		Limit(rate.Get(rate.GroupNormal)).
 		Handle(func(ctx *zero.Ctx) {
-			utils.SendAlipayVoice(kitten.New(ctx))
+			voice.SendAlipayVoice(kitten.New(ctx))
 		})
 
 	// Ping 功能
 	engine.OnCommandGroup([]string{`Ping`, `ping`}, zero.SuperUserPermission).
 		SetBlock(true).Limit(rate.Get(rate.GroupFast)).Handle(func(ctx *zero.Ctx) {
-		utils.Ping(kitten.New(ctx))
+		perf.Ping(kitten.New(ctx))
 	})
 
 	// 戳一戳
 	engine.On(poke, sid.IsTarget()).SetBlock(true).Handle(func(ctx *zero.Ctx) {
-		utils.Poke(kitten.New(ctx))
+		views.Poke(kitten.New(ctx))
 	})
 
 	// 通过链接让 Bot 发送图片，为防止滥用，仅管理员可用
 	zero.OnCommand(`图片`, zero.AdminPermission).SetBlock(true).Handle(func(ctx *zero.Ctx) {
-		utils.SendImage(kitten.New(ctx), zero.SuperUserPermission(ctx))
+		img.SendImage(kitten.New(ctx), zero.SuperUserPermission(ctx))
 	})
 
 	// 通过链接、图片等让 Bot 扫描二维码，为防止滥用，仅管理员可用
 	zero.OnCommandGroup([]string{`扫码`, `扫描`}, zero.AdminPermission).SetBlock(true).Handle(func(ctx *zero.Ctx) {
-		utils.Scan(kitten.New(ctx),
+		img.Scan(kitten.New(ctx),
 			zero.SuperUserPermission(ctx),
 			zero.HasPicture(ctx),
 			func() bool { return zero.MustProvidePicture(ctx) },

@@ -6,7 +6,7 @@ import (
 	"time"
 
 	"github.com/Kittengarten/KittenCore/kitten"
-	"github.com/Kittengarten/KittenCore/kitten/core/io"
+	"github.com/Kittengarten/KittenCore/kitten/core/fio"
 	"github.com/Kittengarten/KittenCore/kitten/core/times"
 	"github.com/Kittengarten/KittenCore/plugin/track/novel"
 	"github.com/Kittengarten/KittenCore/plugin/track/platform"
@@ -44,9 +44,9 @@ func (c *Books) sortByUpdate() {
 }
 
 // SaveConfig 保存报更
-func (c *Books) SaveConfig(cu chan Books, path io.Path) error {
+func (c *Books) SaveConfig(cu chan Books, path fio.Path) error {
 	c.sortByUpdate()
-	if err := io.Save(path, *c); err != nil {
+	if err := fio.Save(path, *c); err != nil {
 		return err
 	}
 	cu <- *c
@@ -57,7 +57,7 @@ func (c *Books) SaveConfig(cu chan Books, path io.Path) error {
 func (c *Books) Report(
 	msgr *kitten.Messager,
 	cu chan Books,
-	path io.Path,
+	path fio.Path,
 	cycle time.Duration,
 	st *time.Ticker,
 ) {
@@ -101,8 +101,8 @@ func (c *Books) Report(
 		go novel.TryCommentUpdate(
 			msgr,
 			msgr.Image(
-				io.NewPath(nv.CoverURL),
-				io.NewPath(nv.HeadURL),
+				fio.NewPath(nv.CoverURL),
+				fio.NewPath(nv.HeadURL),
 			).Text(nv.Update()).SendMulti(b.Users...),
 			b.Users,
 			nv,

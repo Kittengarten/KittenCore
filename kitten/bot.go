@@ -9,8 +9,8 @@ import (
 	"slices"
 	"strings"
 
-	"github.com/Kittengarten/KittenCore/kitten/core/io"
-	ms "github.com/Kittengarten/KittenCore/kitten/core/msg/seg"
+	"github.com/Kittengarten/KittenCore/kitten/core/fio"
+	"github.com/Kittengarten/KittenCore/kitten/core/msg/seg"
 	"github.com/Kittengarten/KittenCore/kitten/qqemoji"
 
 	"github.com/makiuchi-d/gozxing"
@@ -43,16 +43,16 @@ func (u *QQ) Send(msgr *Messager) message.ID {
 	if !msgr.Check(Caller) {
 		// 没有 APICaller ，无法发送
 		Warn(msgr)
-		return message.NewMessageIDFromInteger(0)
+		return message.ID{}
 	}
 	// 是否需要回复
 	if func() bool {
 		if msgr.ID.ID() == 0 {
 			return false
 		}
-		for _, seg := range msgr.Message {
-			switch seg.Type {
-			case ms.Text, ms.Face, ms.Image, ms.At:
+		for _, e := range msgr.Message {
+			switch e.Type {
+			case seg.Text, seg.Face, seg.Image, seg.At:
 				// 消息段兼容回复，不执行操作
 			default:
 				// 消息段不兼容回复，或未经验证，跳过回复程序
@@ -288,16 +288,16 @@ func scanQRCode(imgfile *os.File) (fmt.Stringer, error) {
 func ScanQRCode(name string) (fmt.Stringer, error) {
 	var (
 		msg = Image(name)
-		n   = io.NewPath(`data`, `zbp`, `code.png`)
+		n   = fio.NewPath(`data`, `zbp`, `code.png`)
 	)
 	bytes, err := n.DownloadImage(msg.Data[`file`])
 	if err != nil {
-		return io.NewPath(msg.Data[`file`]), err
+		return fio.NewPath(msg.Data[`file`]), err
 	}
 	Info(`正在扫描二维码喵！字节数：`, bytes)
 	imgfile, err := os.Open(n.String())
 	if err != nil {
-		return io.NewPath(msg.Data[`file`]), err
+		return fio.NewPath(msg.Data[`file`]), err
 	}
 	return scanQRCode(imgfile)
 }
@@ -306,7 +306,7 @@ func ScanQRCode(name string) (fmt.Stringer, error) {
 func (m *Messager) ScanQRCodeInQQ(file string) (fmt.Stringer, error) {
 	imgfile, err := os.Open(m.GetImage(file).Get(`file`).String())
 	if err != nil {
-		return io.NewPath(file), err
+		return fio.NewPath(file), err
 	}
 	return scanQRCode(imgfile)
 }

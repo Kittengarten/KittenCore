@@ -7,8 +7,8 @@ import (
 	"time"
 
 	"github.com/Kittengarten/KittenCore/kitten/core/equal"
-	"github.com/Kittengarten/KittenCore/kitten/core/io"
-	ms "github.com/Kittengarten/KittenCore/kitten/core/msg/seg"
+	"github.com/Kittengarten/KittenCore/kitten/core/fio"
+	"github.com/Kittengarten/KittenCore/kitten/core/msg/seg"
 	"github.com/Kittengarten/KittenCore/kitten/core/times"
 
 	zero "github.com/wdvxdr1123/ZeroBot"
@@ -131,12 +131,12 @@ Image 从图片的相对 | 绝对路径（文件夹），
 
 或网络路径中附带图片
 */
-func (m *Messager) Image(name ...io.Path) *Messager {
+func (m *Messager) Image(name ...fio.Path) *Messager {
 	for _, n := range name {
 		img, err := imagePath.Image(n)
 		if err != nil {
 			m.err = errors.Join(m.err, fmt.Errorf(`附带图片错误：%w`, err))
-			img, err = imagePath.Image(io.NewPath(`error.jpg`))
+			img, err = imagePath.Image(fio.NewPath(`error.jpg`))
 			if err != nil {
 				m.err = errors.Join(m.err, fmt.Errorf(`附带图片错误：%w`, err))
 			}
@@ -198,9 +198,9 @@ func (m *Messager) SendMulti(u ...QQ) (id []message.ID) {
 		// 不是消息引发的发送或没有回复，不予回复
 		return []message.ID{m.Ctx.Send(m.Message)}
 	}
-	for _, seg := range m.Message {
-		switch seg.Type {
-		case ms.Text, ms.Face, ms.Image, ms.At:
+	for _, e := range m.Message {
+		switch e.Type {
+		case seg.Text, seg.Face, seg.Image, seg.At:
 			// 消息段兼容回复，不执行操作
 		default:
 			// 消息段不兼容回复，或未经验证，跳过回复程序
@@ -219,7 +219,7 @@ func (m *Messager) Send(u ...QQ) (id message.ID) {
 // Reset 重置 Messager
 func (m *Messager) Reset() *Messager {
 	m.Message = nil
-	m.ID = message.NewMessageIDFromInteger(0)
+	m.ID = message.ID{}
 	m.err = nil
 	m.record = false
 	return m
@@ -233,13 +233,13 @@ func equalSegment(a, b message.Segment) bool {
 	}
 	switch a.Type {
 	// 按类型的特殊比较路径
-	case ms.Image:
+	case seg.Image:
 		if a.Data[`file`] == b.Data[`file`] {
 			// 如果图片文件相同，则相等，继续遍历比较
 			return true
 		}
-	case ms.Record, ms.Video, ms.Anonymous, ms.Share, ms.Contact,
-		ms.Location, ms.Music, ms.Forward, ms.Node, ms.XML, ms.JSON:
+	case seg.Record, seg.Video, seg.Anonymous, seg.Share, seg.Contact,
+		seg.Location, seg.Music, seg.Forward, seg.Node, seg.XML, seg.JSON:
 		// 忽略的类型，将导致停止比较，视为不相等
 	default:
 		if equal.IsSameMap(a.Data, b.Data) {

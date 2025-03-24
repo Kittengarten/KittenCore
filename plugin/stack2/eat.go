@@ -8,7 +8,7 @@ import (
 	"time"
 
 	"github.com/Kittengarten/KittenCore/kitten"
-	"github.com/Kittengarten/KittenCore/kitten/core/io"
+	"github.com/Kittengarten/KittenCore/kitten/core/fio"
 	"github.com/Kittengarten/KittenCore/kitten/core/times"
 
 	"github.com/wdvxdr1123/ZeroBot/message"
@@ -25,7 +25,7 @@ func eatExe(msgr *kitten.Messager) {
 		return
 	}
 	GlobalMessager = msgr
-	d, err := io.Load[data](dataPath, io.Empty)
+	d, err := fio.Load[data](dataPath, fio.Empty)
 	if err != nil {
 		sendWithImageFail(msgr, `加载叠猫猫数据文件时发生错误喵！`, err)
 		return
@@ -81,7 +81,7 @@ func (d *data) eat(msgr *kitten.Messager) message.ID {
 	// 清理过期玩家
 	d.clear(msgr, false)
 	// 存储叠猫猫数据
-	if err := io.Save(dataPath, d); err != nil {
+	if err := fio.Save(dataPath, d); err != nil {
 		return sendWithImageFail(msgr, `存储叠猫猫数据时发生错误喵！`, err)
 	}
 	return message.ID{}

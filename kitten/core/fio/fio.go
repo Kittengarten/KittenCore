@@ -1,5 +1,5 @@
-// Package io 处理文件 IO
-package io
+// Package fio 处理文件 IO
+package fio
 
 import (
 	"bytes"
@@ -12,7 +12,7 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/Kittengarten/KittenCore/kitten/core/http"
+	"github.com/Kittengarten/KittenCore/kitten/core/shttp"
 	"github.com/Kittengarten/KittenCore/kitten/core/utils"
 
 	"gopkg.in/yaml.v3"
@@ -232,7 +232,7 @@ func (p Path) LoadPath() (Path, error) {
 // DownloadImage 从 url 下载图片到 path
 func (p Path) DownloadImage(url string) (int64, error) {
 	// 获取 HTTP 响应体，失败则返回
-	b, err := http.GET(url)
+	b, err := shttp.GET(url)
 	if err != nil {
 		return 0, err
 	}

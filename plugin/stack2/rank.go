@@ -120,7 +120,7 @@ func (d *data) rank(msgr *kitten.Messager) {
 
 // 叠猫猫排行图片
 func (d *data) rankImage(msgr *kitten.Messager, q quantity) message.ID {
-	values := []float64{
+	p, err := setRankChart([]float64{
 		float64(q.绒布球),
 		float64(q.奶猫),
 		float64(q.抱枕),
@@ -129,8 +129,7 @@ func (d *data) rankImage(msgr *kitten.Messager, q quantity) message.ID {
 		float64(q.猫娘),
 		float64(q.老虎),
 		float64(len(*d) - q.绒布球 - q.奶猫 - q.抱枕 - q.小可爱 - q.大可爱 - q.猫娘 - q.老虎),
-	}
-	p, err := setRankChart(values)
+	})
 	if err != nil {
 		return sendWithImageFail(msgr, err)
 	}

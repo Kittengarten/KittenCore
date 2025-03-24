@@ -4,7 +4,7 @@ import (
 	"errors"
 	"strings"
 
-	"github.com/Kittengarten/KittenCore/kitten/core/io"
+	"github.com/Kittengarten/KittenCore/kitten/core/fio"
 
 	"github.com/glebarez/sqlite"
 	"gorm.io/gorm"
@@ -16,7 +16,7 @@ type (
 )
 
 // Open initialize a new db connection, need to import driver first
-func Open[T string | io.Path](dialect string, path T) (db *DB, err error) {
+func Open[T string | fio.Path](dialect string, path T) (db *DB, err error) {
 	if !strings.Contains(dialect, `sqlite`) {
 		return nil, errors.New(`不支持的数据库类型喵！`)
 	}

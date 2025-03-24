@@ -9,8 +9,8 @@ import (
 
 	"github.com/Kittengarten/KittenCore/kitten"
 	"github.com/Kittengarten/KittenCore/kitten/core"
-	"github.com/Kittengarten/KittenCore/kitten/core/io"
-	ms "github.com/Kittengarten/KittenCore/kitten/core/msg/seg"
+	"github.com/Kittengarten/KittenCore/kitten/core/fio"
+	"github.com/Kittengarten/KittenCore/kitten/core/msg/seg"
 
 	"github.com/RomiChan/syncx"
 
@@ -53,7 +53,7 @@ var (
 		PrivateDataFolder: replyServiceName,
 	})
 	// 配置文件路径
-	configPath = io.NewPath(engine.DataFolder(), configFile)
+	configPath = fio.NewPath(engine.DataFolder(), configFile)
 	// 触发复读的次数
 	times uint = 2
 	// 触发复读的概率
@@ -75,7 +75,7 @@ func init() {
 }
 
 func repeatInit() {
-	repeatConfig, err := io.Load[config](configPath, "times: 2\nchance: 0.5") // 复读姬配置文件
+	repeatConfig, err := fio.Load[config](configPath, "times: 2\nchance: 0.5") // 复读姬配置文件
 	if err != nil {
 		kitten.Error(`复读姬配置文件错误喵！`, err)
 		return
@@ -133,7 +133,7 @@ func repeatSet(ctx *zero.Ctx) {
 	}
 	mu.Lock()
 	defer mu.Unlock()
-	err = io.Save(configPath, config{
+	err = fio.Save(configPath, config{
 		Times:  times,
 		Chance: chance,
 	})
@@ -184,18 +184,18 @@ func repeat(ctx *zero.Ctx) {
 
 // 处理图片
 func (s *stat) handleImage(msgr *kitten.Messager) {
-	for i, seg := range s.Message {
-		if seg.Type != ms.Image {
+	for i, e := range s.Message {
+		if e.Type != seg.Image {
 			continue
 		}
 		// 如果是单张图片，进行一个图片的获取
-		switch file := seg.Data[`file`]; file {
+		switch file := e.Data[`file`]; file {
 		case ``:
 			// 获取不到，跳过
 			continue
 		case `marketface`:
 			// 市场表情
-			s.Message[i] = kitten.Image(html.UnescapeString(seg.Data[`url`]))
+			s.Message[i] = kitten.Image(html.UnescapeString(e.Data[`url`]))
 		default:
 			// 默认
 			s.Message[i] = kitten.Image(msgr.GetImage(file).Get(`file`).String())

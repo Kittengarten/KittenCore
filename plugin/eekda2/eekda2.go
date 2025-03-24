@@ -8,7 +8,7 @@ import (
 
 	"github.com/Kittengarten/KittenCore/kitten"
 	"github.com/Kittengarten/KittenCore/kitten/core/equal"
-	"github.com/Kittengarten/KittenCore/kitten/core/io"
+	"github.com/Kittengarten/KittenCore/kitten/core/fio"
 	"github.com/Kittengarten/KittenCore/kitten/core/str"
 	"github.com/Kittengarten/KittenCore/kitten/core/utils"
 	"github.com/Kittengarten/KittenCore/kitten/rate"
@@ -48,9 +48,9 @@ var (
 		PrivateDataFolder: replyServiceName,
 	}).ApplySingle(ctxext.DefaultSingle)
 	// 今日文件路径
-	todayPath = io.NewPath(engine.DataFolder(), todayFile)
+	todayPath = fio.NewPath(engine.DataFolder(), todayFile)
 	// 统计文件路径
-	statPath = io.NewPath(engine.DataFolder(), statFile)
+	statPath = fio.NewPath(engine.DataFolder(), statFile)
 	// 读写锁
 	mu sync.RWMutex
 )
@@ -70,7 +70,7 @@ func todayMeal(ctx *zero.Ctx) {
 	mu.Lock()
 	defer mu.Unlock()
 	var (
-		c, err = io.Load[config](todayPath, io.Empty)
+		c, err = fio.Load[config](todayPath, fio.Empty)
 		msgr   = kitten.New(ctx)
 	)
 	if err != nil {
@@ -113,7 +113,7 @@ func todayMeal(ctx *zero.Ctx) {
 			Group: []kitten.QQ{*g},
 		})
 		// 写入文件
-		if err := io.Save(todayPath, c); err != nil {
+		if err := fio.Save(todayPath, c); err != nil {
 			msgr.SendWithImageFail(err)
 			return
 		}
@@ -137,7 +137,7 @@ func todayMeal(ctx *zero.Ctx) {
 		// 注册
 		c[ci].Group = append(c[ci].Group, *g)
 		// 写入文件
-		if err := io.Save(todayPath, c); err != nil {
+		if err := fio.Save(todayPath, c); err != nil {
 			msgr.SendWithImageFail(err)
 			return
 		}
@@ -167,7 +167,7 @@ func todayMeal(ctx *zero.Ctx) {
 			})
 		}
 		// 写入文件
-		if err := io.Save(todayPath, c); err != nil {
+		if err := fio.Save(todayPath, c); err != nil {
 			msgr.SendWithImageFail(err)
 			return
 		}
@@ -209,7 +209,7 @@ func todayMeal(ctx *zero.Ctx) {
 		// 写入时间
 		c[ci].Time = time.Unix(msgr.Event.Time, 0)
 		// 写入文件
-		if err := io.Save(todayPath, c); err != nil {
+		if err := fio.Save(todayPath, c); err != nil {
 			msgr.SendWithImageFail(err)
 			return
 		}

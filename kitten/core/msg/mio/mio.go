@@ -6,18 +6,18 @@ import (
 	"runtime"
 	"strings"
 
-	"github.com/Kittengarten/KittenCore/kitten/core/io"
+	"github.com/Kittengarten/KittenCore/kitten/core/fio"
 
 	"github.com/wdvxdr1123/ZeroBot/message"
 )
 
 // Path 是一个表示文件路径的结构体
 type Path struct {
-	io.Path
+	fio.Path
 }
 
 // New MsgPath 的构造函数
-func New(p io.Path) Path {
+func New(p fio.Path) Path {
 	return Path{p}
 }
 
@@ -28,7 +28,7 @@ Image 从图片的相对 | 绝对路径（文件夹），
 
 或网络路径中加载图片
 */
-func (p Path) Image(name io.Path) (message.Segment, error) {
+func (p Path) Image(name fio.Path) (message.Segment, error) {
 	var (
 		pre = func() string {
 			switch runtime.GOOS {
@@ -55,7 +55,7 @@ func (p Path) Image(name io.Path) (message.Segment, error) {
 	path := string(p.Path)
 	if strings.Contains(path, `://`) {
 		// 请求的是网络路径
-		return message.Image(io.NewPath(p.String(), name.String()).String(), fn), nil
+		return message.Image(fio.NewPath(p.String(), name.String()).String(), fn), nil
 	}
 	if filepath.IsAbs(path) {
 		// 请求的是绝对路径
@@ -65,11 +65,11 @@ func (p Path) Image(name io.Path) (message.Segment, error) {
 		}
 		if isDir {
 			// 请求的是文件夹
-			return message.Image(pre+io.NewPath(path, name.String()).String(), fn), nil
+			return message.Image(pre+fio.NewPath(path, name.String()).String(), fn), nil
 		}
 		// 请求的是文件
 		np, err := p.LoadPath()
-		return message.Image(pre+io.NewPath(np, name).String(), fn), err
+		return message.Image(pre+fio.NewPath(np, name).String(), fn), err
 	}
 	// 请求的是相对路径
 	if isDir, err := p.IsDir(); isDir {
@@ -77,10 +77,10 @@ func (p Path) Image(name io.Path) (message.Segment, error) {
 			return message.Segment{}, err
 		}
 		// 请求的是文件夹，需要转换为绝对路径
-		abs, err := io.ProcessPath()
-		return message.Image(io.NewPath(pre, abs.String(), p.String(), name.String()).String(), fn), err
+		abs, err := fio.ProcessPath()
+		return message.Image(fio.NewPath(pre, abs.String(), p.String(), name.String()).String(), fn), err
 	}
 	// 请求的是文件
 	np, err := p.LoadPath()
-	return message.Image(io.NewPath(np, name).String(), fn), err
+	return message.Image(fio.NewPath(np, name).String(), fn), err
 }

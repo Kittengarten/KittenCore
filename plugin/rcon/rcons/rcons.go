@@ -1,4 +1,4 @@
-package utils
+package rcons
 
 import (
 	"errors"
@@ -7,7 +7,7 @@ import (
 	"sync"
 
 	"github.com/Kittengarten/KittenCore/kitten"
-	"github.com/Kittengarten/KittenCore/kitten/core/io"
+	"github.com/Kittengarten/KittenCore/kitten/core/fio"
 
 	"github.com/wdvxdr1123/ZeroBot/message"
 )
@@ -37,10 +37,10 @@ var (
 )
 
 // RCON
-func Command(msgr *kitten.Messager, cp io.Path) message.ID {
+func Command(msgr *kitten.Messager, cp fio.Path) message.ID {
 	mu.RLock()
 	defer mu.RUnlock()
-	config, err := io.Load[rcon](cp, io.Empty)
+	config, err := fio.Load[rcon](cp, fio.Empty)
 	if err != nil {
 		return msgr.SendWithImageFail(`RCON 配置文件错误喵！`, err)
 	}
@@ -65,7 +65,7 @@ func Command(msgr *kitten.Messager, cp io.Path) message.ID {
 }
 
 // 设置 RCON
-func Set(msgr *kitten.Messager, i item, cp io.Path) message.ID {
+func Set(msgr *kitten.Messager, i item, cp fio.Path) message.ID {
 	s, err := func() (string, error) {
 		rm := kitten.State[[]string](msgr, `regex_matched`)
 		if len(rm) == 0 {
@@ -78,7 +78,7 @@ func Set(msgr *kitten.Messager, i item, cp io.Path) message.ID {
 	}
 	mu.Lock()
 	defer mu.Unlock()
-	config, err := io.Load[rcon](cp, io.Empty)
+	config, err := fio.Load[rcon](cp, fio.Empty)
 	if err != nil {
 		return msgr.SendWithImageFail(`RCON 配置文件错误喵！`, err)
 	}
@@ -88,7 +88,7 @@ func Set(msgr *kitten.Messager, i item, cp io.Path) message.ID {
 	case Password:
 		config.Password = s
 	}
-	if err = io.Save(cp, config); err != nil {
+	if err = fio.Save(cp, config); err != nil {
 		return msgr.SendWithImageFail(`保存 RCON 配置文件错误喵！`, err)
 	}
 	return msgr.Reply().At().Text(`RCON `, &i, `设置成功喵！`).Send()
