@@ -8,6 +8,7 @@ import (
 	"slices"
 	"strings"
 	"unicode"
+	"unicode/utf8"
 )
 
 type str interface {
@@ -40,15 +41,10 @@ func CleanAll[T str](s T, lf bool) T {
 	)
 }
 
-// 获取 rune 对应的 UTF-8 字节数
-func runeBytes(r rune) int {
-	return len([]byte(string([]rune{r})))
-}
-
 // ClearRuneBytes 移除特定长度的 UTF-8 码点
 func ClearRuneBytes[T str](s T, n ...int) T {
 	return T(strings.Map(func(r rune) rune {
-		if slices.Contains(n, runeBytes(r)) {
+		if slices.Contains(n, utf8.RuneLen(r)) {
 			return -1
 		}
 		return r
@@ -209,17 +205,23 @@ func mid(pre, suf, str string, isMin bool) string {
 // SimilarityChinese 返回两个汉字字符串的相似程度
 func SimilarityChinese(x, y string) float64 {
 	const avg = `盒` // 汉字平均码点值
-	switch xc, yc := len([]rune(x)), len([]rune(y)); cmp.Compare(xc, yc) {
+	var (
+		xr = []rune(x)
+		yr = []rune(y)
+	)
+	switch xc, yc := len(xr), len(yr); cmp.Compare(xc, yc) {
 	case -1:
 		x += strings.Repeat(avg, yc-xc)
+		xr = []rune(x)
 	case 1:
 		y += strings.Repeat(avg, xc-yc)
+		yr = []rune(y)
 	}
 	var sum, s1, s2 float64
-	for i, r := range []rune(x) {
-		sum += float64(r) * float64([]rune(y)[i])
+	for i, r := range xr {
+		sum += float64(r) * float64(yr[i])
 		s1 += math.Pow(float64(r), 2)
-		s2 += math.Pow(float64([]rune(y)[i]), 2)
+		s2 += math.Pow(float64(yr[i]), 2)
 	}
 	if s1 == 0 || s2 == 0 {
 		return 0
@@ -230,8 +232,10 @@ func SimilarityChinese(x, y string) float64 {
 // Levenshtein 计算两个字符串之间的编辑距离
 func Levenshtein(a, b string) int {
 	var (
-		lenA = len([]rune(a))
-		lenB = len([]rune(b))
+		ar   = []rune(a)
+		br   = []rune(b)
+		lenA = len(ar)
+		lenB = len(br)
 		dp   = make([][]int, lenA+1) // 创建二维切片
 	)
 	for i := range lenA + 1 {
@@ -247,7 +251,7 @@ func Levenshtein(a, b string) int {
 	// 动态规划计算编辑距离
 	for i := range lenA {
 		for j := range lenB {
-			if []rune(a)[i] == []rune(b)[j] {
+			if ar[i] == br[j] {
 				dp[i+1][j+1] = dp[i][j]
 				continue
 			}
