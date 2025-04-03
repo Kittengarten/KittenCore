@@ -18,8 +18,9 @@ type (
 		GetWeight() int // 该项目的权重
 	}
 
-	// Choices 由随机项目的抽象接口组成的切片
-	Choices []Choicer
+	// Choicers 由随机项目的抽象接口组成的切片
+	//nolint:misspell
+	Choicers []Choicer
 
 	// ChoicersW 由带权重的随机项目的抽象接口组成的切片
 	ChoicersW []ChoicerW
