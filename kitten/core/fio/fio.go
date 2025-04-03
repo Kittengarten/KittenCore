@@ -3,6 +3,7 @@ package fio
 
 import (
 	"bytes"
+	"crypto/sha512"
 	"errors"
 	"fmt"
 	"io"
@@ -26,20 +27,33 @@ const (
 	Blank = `{}` // Blank YAML 空集合（map）
 )
 
+var (
+	// ErrInvalid 无效的参数喵！
+	ErrInvalid = errors.New(`无效的参数喵！`)
+	// ErrPermission 没有权限喵！
+	ErrPermission = errors.New(`没有权限喵！`)
+	// ErrExist 文件已存在喵！
+	ErrExist = errors.New(`文件已存在喵！`)
+	// ErrNotExist 文件不存在喵！
+	ErrNotExist = errors.New(`文件不存在喵！`)
+	// ErrClosed 文件已关闭喵！
+	ErrClosed = errors.New(`文件已关闭喵！`)
+)
+
 func init() {
-	fs.ErrInvalid = errors.New(`无效的参数喵！`)
-	fs.ErrPermission = errors.New(`没有权限喵！`)
-	fs.ErrExist = errors.New(`文件已存在喵！`)
-	fs.ErrNotExist = errors.New(`文件不存在喵！`)
-	fs.ErrClosed = errors.New(`文件已关闭喵！`)
-	os.ErrInvalid = fs.ErrInvalid
-	os.ErrPermission = fs.ErrPermission
-	os.ErrExist = fs.ErrExist
-	os.ErrNotExist = fs.ErrNotExist
-	os.ErrClosed = fs.ErrClosed
+	fs.ErrInvalid = ErrInvalid
+	fs.ErrPermission = ErrPermission
+	fs.ErrExist = ErrExist
+	fs.ErrNotExist = ErrNotExist
+	fs.ErrClosed = ErrClosed
+	os.ErrInvalid = ErrInvalid
+	os.ErrPermission = ErrPermission
+	os.ErrExist = ErrExist
+	os.ErrNotExist = ErrNotExist
+	os.ErrClosed = ErrClosed
 }
 
-// 加载 YAML 配置文件，def 为默认值（加载不到的时候会尝试初始化）
+// Load 加载 YAML 配置文件，def 为默认值（加载不到的时候会尝试初始化）
 func Load[T any](p Path, def string) (c T, err error) {
 	if err = p.InitFile(def); err != nil {
 		err = fmt.Errorf(`初始化 %s 时失败喵！%w`, p, err)
@@ -55,7 +69,7 @@ func Load[T any](p Path, def string) (c T, err error) {
 	return
 }
 
-// 保存 YAML 配置文件
+// Save 保存 YAML 配置文件
 func Save[T any](p Path, c T) error {
 	f, err := p.Load(true)
 	if err != nil {
@@ -104,7 +118,7 @@ func (p Path) Delete() error {
 func (p Path) Load(write bool) (f *os.File, err error) {
 	// 检查其父文件夹是否存在，不存在则创建
 	if err := p.TryMakeDir(); err != nil {
-		err = fmt.Errorf(`创建 %s 的父文件夹失败喵！%w`, filepath.Dir(string(p)), err)
+		err = fmt.Errorf(`创建 %s 失败喵！%w`, filepath.Dir(string(p)), err)
 		return nil, err
 	}
 	if !write {
@@ -188,7 +202,7 @@ func (p Path) Size() (int64, error) {
 
 // TryMakeDir 检查其父文件夹是否存在，不存在则创建
 func (p Path) TryMakeDir() error {
-	return os.MkdirAll(filepath.Dir(string(p)), 0o755)
+	return os.MkdirAll(filepath.Dir(string(p)), 0o750)
 }
 
 // Exists 判断文件或文件夹是否存在
@@ -273,6 +287,38 @@ func (p Path) GetString(def string) string {
 	return s
 }
 
+// Copy 复制文件
+func (p Path) Copy(src Path) (size int64, err error) {
+	// 打开源文件
+	source, err := src.Load(false)
+	if err != nil {
+		return
+	}
+	// 打开目标文件
+	destination, err := p.Load(true)
+	if err != nil {
+		return
+	}
+	// 保存图片
+	size, err = io.Copy(destination, source)
+	if err != nil {
+		return
+	}
+	return size, errors.Join(source.Close(), destination.Close())
+}
+
+// SHA512 获取文件 SHA512 哈希值
+func (p Path) SHA512() ([sha512.Size]byte, error) {
+	if !p.Exists() {
+		return [sha512.Size]byte{}, os.ErrNotExist
+	}
+	b, err := p.ReadBytes()
+	if err != nil {
+		return [sha512.Size]byte{}, err
+	}
+	return sha512.Sum512(b.Bytes()), nil
+}
+
 // ProcessPath 获取程序运行的绝对路径
 func ProcessPath() (Path, error) {
 	ex, err := os.Executable()
@@ -280,18 +326,4 @@ func ProcessPath() (Path, error) {
 		return ``, err
 	}
 	return NewPath(filepath.Dir(ex)), nil
-}
-
-// HandleFileName 处理文件名中不支持的字符
-func HandleFileName(filename string) string {
-	return strings.NewReplacer(
-		`\`, `_`,
-		`/`, `_`,
-		`:`, `_`,
-		`*`, `_`,
-		`?`, `_`,
-		`<`, `_`,
-		`>`, `_`,
-		`|`, `_`,
-	).Replace(filename)
 }

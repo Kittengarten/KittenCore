@@ -20,7 +20,7 @@ func Open[T string | fio.Path](dialect string, path T) (db *DB, err error) {
 	if !strings.Contains(dialect, `sqlite`) {
 		return nil, errors.New(`不支持的数据库类型喵！`)
 	}
-	db = &DB{DB: &gorm.DB{}}
+	db = &DB{DB: new(gorm.DB)}
 	db.DB, err = gorm.Open(&sqlite.Dialector{
 		DriverName: dialect,
 		DSN:        string(path),

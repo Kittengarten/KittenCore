@@ -73,7 +73,11 @@ func (d *data) evaluate(msgr *kitten.Messager) float64 {
 
 // 自动加入
 func selfIn(msgr *kitten.Messager, d data) bool {
+	if msgr.Event.UserID == 0 {
+		return false
+	}
 	msgr.Event.UserID = sid.Int()
+	//nolint:gosec
 	if rand.Float64() >= d.evaluate(msgr) {
 		// 以评估的概率，触发喵喵使用 /叠猫猫 加入
 		return false
@@ -87,7 +91,11 @@ func selfIn(msgr *kitten.Messager, d data) bool {
 
 // 自动分析
 func selfAnalysis(msgr *kitten.Messager, d data) {
+	if msgr.Event.UserID == 0 {
+		return
+	}
 	msgr.Event.UserID = sid.Int()
+	//nolint:gosec
 	if rand.Float64() >= d.evaluate(msgr) {
 		// 以评估的概率，触发喵喵使用 /叠猫猫 分析
 		return
@@ -100,7 +108,11 @@ func selfAnalysis(msgr *kitten.Messager, d data) {
 
 // 自动排行
 func selfRank(msgr *kitten.Messager, d data) {
+	if msgr.Event.UserID == 0 {
+		return
+	}
 	msgr.Event.UserID = sid.Int()
+	//nolint:gosec
 	if rand.Float64() >= 0.1 {
 		// 以 0.1 的概率，触发喵喵使用 /叠猫猫 排行
 		return
@@ -135,7 +147,11 @@ func (d *data) evaluateEat(msgr *kitten.Messager) float64 {
 
 // 自动吃猫猫
 func selfEat(msgr *kitten.Messager, d data) bool {
+	if msgr.Event.UserID == 0 {
+		return false
+	}
 	msgr.Event.UserID = sid.Int()
+	//nolint:gosec
 	if rand.Float64() >= d.evaluateEat(msgr) {
 		// 以评估的概率，触发喵喵使用 /吃猫猫
 		return false
@@ -158,7 +174,6 @@ func (d *data) evaluateOC(msgr *kitten.Messager) float64 {
 		// 如果当前不在休息，不需要加速，什么也不做
 		return 0
 	}
-	nre = err.(*needRestError) // 需要休息
 	if (*d)[nre.i].getTypeID(msgr) < 大老虎 {
 		// 如果不是大老虎，不能加速，什么也不做
 		return 0
@@ -181,7 +196,11 @@ func (d *data) evaluateOC(msgr *kitten.Messager) float64 {
 
 // 自动加速
 func selfOC(msgr *kitten.Messager, d data) bool {
+	if msgr.Event.UserID == 0 {
+		return false
+	}
 	msgr.Event.UserID = sid.Int()
+	//nolint:gosec
 	if rand.Float64() >= d.evaluateOC(msgr) {
 		// 以评估的概率，触发喵喵使用 /叠猫猫 锻炼
 		return false

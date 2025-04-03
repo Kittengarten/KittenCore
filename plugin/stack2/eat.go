@@ -165,5 +165,6 @@ func (m meow) checkEat(msgr *kitten.Messager, n meow) bool {
 		// 老虎不能被吃
 		return false
 	}
+	//nolint:gosec
 	return rand.Float64() < m.chanceFall(n)
 }

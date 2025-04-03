@@ -1,3 +1,4 @@
+// Package sfacg SF 轻小说
 package sfacg
 
 import (
@@ -28,9 +29,13 @@ type (
 )
 
 const (
-	Host                       = `https://book.sfacg.com`
-	URL                        = Host + `/Novel/`
-	BookStrings    stringCount = 43
+	// Host 网站
+	Host = `https://book.sfacg.com`
+	// URL 链接
+	URL = Host + `/Novel/`
+	// BookStrings 书名长度
+	BookStrings stringCount = 43
+	// ChapterStrings 章名长度
 	ChapterStrings stringCount = 38
 )
 
@@ -57,7 +62,10 @@ func (s sf) FindBookID(key search.Keyword) (string, error) {
 	if err != nil {
 		return ``, err
 	}
-	url, err := htmls.InnerText(doc, `//a[@id="SearchResultList1___ResultList_LinkInfo_0"]/@href`), nil
+	url, err := htmls.InnerText(
+		doc,
+		`//a[@id="SearchResultList1___ResultList_LinkInfo_0"]/@href`,
+	), nil
 	if url == `` {
 		err = key.NotFound()
 	}
@@ -86,10 +94,10 @@ func (s sf) Init(bookID string) (nv *novel.Novel, err error) {
 	// 获取小说网页，失败则返回
 	doc, err := htmlquery.LoadURL(nv.URL)
 	if err != nil {
-		return
+		return nv, err
 	}
 	if err = mayExist(doc, nv.URL, BookStrings); err != nil {
-		return
+		return nv, err
 	}
 	// 获取书名
 	nv.Name = strings.TrimSpace(htmls.InnerText(doc, `//h1[@class="title"]/span/text()`))
@@ -136,26 +144,26 @@ func (s sf) Init(bookID string) (nv *novel.Novel, err error) {
 	if ncp == nil {
 		// 如果新章节链接不存在，防止更新章节炸了跳转到网站首页引起程序报错
 		err = fmt.Errorf(`新章节链接错误：%w`, status.ErrStatus(nv.URL, status.NoChapterURL))
-		return
+		return nv, err
 	}
 	ncpURL := Host + htmlquery.InnerText(ncp)
 	// 防止章节炸了导致获取章节跳转引发 panic
 	if ncpURL+`/` == nv.URL {
 		err = status.ErrStatus(ncpURL, status.ChapterURLException)
-		return
+		return nv, err
 	}
 	// 加载新章节
 	nv.Chapter, err = s.NewChapter(ncpURL)
 	if err != nil {
-		return
+		return nv, err
 	}
 	// 如果不是 VIP 书籍，直接返回
 	if !slices.Contains(nv.Right, `VIP`) {
-		return
+		return nv, err
 	}
 	// 是 VIP 书籍，检查是否存在最新章节
 	err = s.checkUpdate(nv, doc)
-	return
+	return nv, err
 }
 
 // 检查是否存在最新章节
@@ -182,7 +190,7 @@ func (s sf) checkUpdate(nv *novel.Novel, doc *html.Node) error {
 		return err
 	}
 	// 如果最新公众章节比最新章节新，则以最新公众章节为准
-	if ncpFree.After(nv.Chapter.Time) {
+	if ncpFree.After(nv.Time) {
 		nv.Chapter = ncpFree
 	}
 	return nil
@@ -197,10 +205,10 @@ func (s sf) NewChapter(cpURL string) (cp *chapter.Chapter, err error) {
 	// 获取章节网页，失败则返回
 	doc, err := htmlquery.LoadURL(cp.URL)
 	if err != nil {
-		return
+		return cp, err
 	}
 	if err = mayExist(doc, cp.URL, ChapterStrings); err != nil {
-		return
+		return cp, err
 	}
 	// 获取章节标题
 	cp.Title = htmls.InnerText(doc, `//h1[@class="article-title"]`)
@@ -208,14 +216,14 @@ func (s sf) NewChapter(cpURL string) (cp *chapter.Chapter, err error) {
 	cp.Time, err = platform.ParseTime(s, strings.TrimPrefix(
 		htmls.InnerText(doc, `//div[@class="article-desc"]/span[2]`), `更新时间：`))
 	if err != nil {
-		return
+		return cp, err
 	}
 	// 获取章节字数
 	wordNum := htmls.InnerText(doc, `//div[@class="article-desc"]/span[3]`)
 	cp.WordNum, err = strconv.Atoi(strings.TrimPrefix(wordNum, `字数：`))
 	if err != nil {
 		err = fmt.Errorf(`章节 %s 的字数获取错误喵！%w`, cp.URL, err)
-		return
+		return cp, err
 	}
 	// 获取上一章链接
 	cp.PreURL = Host + htmls.InnerText(doc, `//div[@id="article"]/div[@class="fn-btn"]/a[1]/@href`)
@@ -223,7 +231,7 @@ func (s sf) NewChapter(cpURL string) (cp *chapter.Chapter, err error) {
 	cp.NextURL = Host + htmls.InnerText(doc, `//div[@id="article"]/div[@class="fn-btn"]/a[2]/@href`)
 	// 获取付费状态
 	cp.IsVIP = strings.Contains(cp.URL, `vip`)
-	return
+	return cp, err
 }
 
 // 获取移动版简述

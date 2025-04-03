@@ -10,6 +10,7 @@ import (
 	"strings"
 
 	"github.com/Kittengarten/KittenCore/kitten/core/fio"
+	"github.com/Kittengarten/KittenCore/kitten/core/msg/mio"
 	"github.com/Kittengarten/KittenCore/kitten/core/msg/seg"
 	"github.com/Kittengarten/KittenCore/kitten/qqemoji"
 
@@ -27,11 +28,18 @@ const (
 	Event              // *Event
 )
 
-const noEvent = `上下文无 *Event，不可使用`
-
 const (
 	Private = `private`
 	Group   = `group`
+)
+
+var (
+	// ErrNoEvent 上下文无 *Event，不可使用喵！
+	ErrNoEvent = errors.New(`上下文无 *Event，不可使用喵！`)
+	// ErrUnsupported 不支持喵！
+	ErrUnsupported = errors.New(`不支持喵！`)
+	// ErrGroupInvalid 无效的群聊喵！
+	ErrGroupInvalid = errors.New(`无效的群聊喵！`)
 )
 
 /*
@@ -80,9 +88,9 @@ func (m *Messager) SendWithImageFail(text ...any) message.ID {
 	return m.Reply().AtLf().Image(`no.png`).Text(text...).Send()
 }
 
-// SendWithImageFailOf 发送带有失败图片的文字消息
-func (m *Messager) SendWithImageFailOf(format string, a ...any) message.ID {
-	return m.Reply().AtLf().Image(`no.png`).TextOf(format, a...).Send()
+// SendWithImageFailf 发送带有失败图片的文字消息
+func (m *Messager) SendWithImageFailf(format string, a ...any) message.ID {
+	return m.Reply().AtLf().Image(`no.png`).Textf(format, a...).Send()
 }
 
 // DoNotKnow 喵喵不知道哦
@@ -134,8 +142,7 @@ func atAll(msgr *Messager, g ...QQ) message.Segment {
 // SendEmojiLike 发送表情回复，emoji 为空则发送随机表情
 func (m *Messager) SendEmojiLike(emoji ...string) error {
 	if u := NewQQGroup(m.Event.GroupID); !u.IsGroup() {
-		Info(`无效的群聊：`, u)
-		return errors.New(`无效的群聊`)
+		return fmt.Errorf(`%w%s`, ErrGroupInvalid, u)
 	}
 	return m.SetMessageEmojiLike(m.Event.MessageID, func() rune {
 		if len(emoji) == 0 {
@@ -169,7 +176,7 @@ func (m *Messager) Poke() {
 func (m *Messager) Object() (*QQ, error) {
 	if !m.Check(Event) {
 		// 没有事件，无法获取
-		return nil, errors.New(noEvent)
+		return nil, ErrNoEvent
 	}
 	switch m.Event.DetailType {
 	case Private:
@@ -185,8 +192,21 @@ func (m *Messager) Object() (*QQ, error) {
 		if u := NewQQ(m.Event.UserID); u.IsQQ() {
 			return u, nil
 		}
-		return nil, errors.New(`不支持的对象喵！`)
+		return nil, fmt.Errorf(`发送对象 %s %w`, m.Event.DetailType, ErrUnsupported)
 	}
+}
+
+// QQ 获取发送者
+func (m *Messager) QQ() (*QQ, error) {
+	if !m.Check(Event) {
+		// 没有事件，无法获取
+		return nil, ErrNoEvent
+	}
+	u := NewQQ(m.Event.UserID)
+	if u.IsQQ() {
+		return u, nil
+	}
+	return nil, fmt.Errorf(`发送者 %s %w`, u, ErrUnsupported)
 }
 
 // Check 检查上下文的某个项目是否有效且不为空
@@ -202,7 +222,8 @@ func (m *Messager) Check(i Item) bool {
 	case Event:
 		if m.Event == nil {
 			// 非消息的上下文，直接返回
-			Info(noEvent)
+			// 不需要 Error 等级，以免污染日志
+			Info(ErrNoEvent)
 			return false
 		}
 	default:
@@ -290,21 +311,23 @@ func ScanQRCode(name string) (fmt.Stringer, error) {
 		msg = Image(name)
 		n   = fio.NewPath(`data`, `zbp`, `code.png`)
 	)
-	bytes, err := n.DownloadImage(msg.Data[`file`])
+	bytes, err := n.DownloadImage(mio.GetImagePath(msg).String())
 	if err != nil {
-		return fio.NewPath(msg.Data[`file`]), err
+		return mio.GetImagePath(msg), err
 	}
 	Info(`正在扫描二维码喵！字节数：`, bytes)
 	imgfile, err := os.Open(n.String())
 	if err != nil {
-		return fio.NewPath(msg.Data[`file`]), err
+		return mio.GetImagePath(msg), err
 	}
 	return scanQRCode(imgfile)
 }
 
 // ScanQRCodeInQQ 扫描 QQ 消息中的二维码图片
 func (m *Messager) ScanQRCodeInQQ(file string) (fmt.Stringer, error) {
-	imgfile, err := os.Open(m.GetImage(file).Get(`file`).String())
+	f := m.GetImage(file).Get(`file`).String()
+	//nolint:gosec
+	imgfile, err := os.Open(f)
 	if err != nil {
 		return fio.NewPath(file), err
 	}

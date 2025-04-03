@@ -6,7 +6,6 @@ import (
 
 	trshttp "github.com/fumiama/terasu/http"
 	trshttp2 "github.com/fumiama/terasu/http2"
-
 	zero "github.com/wdvxdr1123/ZeroBot"
 )
 

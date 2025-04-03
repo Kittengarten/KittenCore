@@ -1,13 +1,14 @@
 package rcons
 
 import (
-	"errors"
+	"fmt"
 	"regexp"
 	"strings"
 	"sync"
 
 	"github.com/Kittengarten/KittenCore/kitten"
 	"github.com/Kittengarten/KittenCore/kitten/core/fio"
+	"github.com/Kittengarten/KittenCore/kitten/core/utils"
 
 	"github.com/wdvxdr1123/ZeroBot/message"
 )
@@ -44,7 +45,7 @@ func Command(msgr *kitten.Messager, cp fio.Path) message.ID {
 	if err != nil {
 		return msgr.SendWithImageFail(`RCON 配置文件错误喵！`, err)
 	}
-	conn := &MCConn{}
+	conn := new(MCConn)
 	if err = conn.Open(config.HOST, config.Password); err != nil {
 		return msgr.SendWithImageFail(`连接 RCON 服务器错误喵！`, err)
 	}
@@ -69,7 +70,7 @@ func Set(msgr *kitten.Messager, i item, cp fio.Path) message.ID {
 	s, err := func() (string, error) {
 		rm := kitten.State[[]string](msgr, `regex_matched`)
 		if len(rm) == 0 {
-			return ``, errors.New(`正则匹配失败喵！`)
+			return ``, fmt.Errorf(`设置 RCON 失败：%w`, utils.ErrNoMatch)
 		}
 		return rm[1], nil
 	}()

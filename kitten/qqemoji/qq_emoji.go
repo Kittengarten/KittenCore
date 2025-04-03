@@ -37,5 +37,6 @@ func New(emoji string) rune {
 
 // Random 随机获取 QQ 表情
 func Random() rune {
+	//nolint:gosec
 	return slices.Collect(maps.Values(qqEmoji))[rand.N(len(qqEmoji))]
 }

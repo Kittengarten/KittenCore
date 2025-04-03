@@ -24,12 +24,18 @@ const (
 
 // RandomDelay 随机阻塞等待
 func RandomDelay(t time.Duration) {
-	<-time.NewTimer(rand.N(t)).C
+	RandomDelayRange(0, t)
 }
 
 // RandomDelayRange 带上下限的阻塞等待
 func RandomDelayRange(minDelay, maxDelay time.Duration) {
-	<-time.NewTimer(minDelay + rand.N(maxDelay-minDelay)).C
+	if minDelay > maxDelay {
+		minDelay, maxDelay = maxDelay, minDelay
+	}
+	//nolint:gosec
+	if t := minDelay + rand.N(maxDelay-minDelay); t > 0 {
+		<-time.NewTimer(t).C
+	}
 }
 
 // ConvertTimeDuration 转换时间间隔

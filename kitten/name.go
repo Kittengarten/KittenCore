@@ -20,6 +20,9 @@ var (
 	nameMu   sync.RWMutex                              // 当前昵称文件锁
 )
 
+// ErrNotDefaultName 不是预设的昵称喵！
+var ErrNotDefaultName = errors.New(`不是预设的昵称喵！`)
+
 // Name 获取当前的 bot 昵称
 func (u *QQ) Name() (string, error) {
 	nameMu.RLock()
@@ -47,7 +50,7 @@ func (m *Messager) ReplaceCard(n string) error {
 // SetName 设置当前的 bot 昵称
 func (u *QQ) SetName(nickname string) error {
 	if !slices.Contains(botConfig.NickName, nickname) {
-		return errors.New(`不是预设的昵称喵！`)
+		return fmt.Errorf(`“%s”%w`, nickname, ErrNotDefaultName)
 	}
 	nameMu.Lock()
 	defer nameMu.Unlock()

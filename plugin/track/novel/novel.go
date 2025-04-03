@@ -7,8 +7,8 @@ import (
 )
 
 var (
-	// Comment 评论
-	Comment = func(nv fmt.Stringer) string {
+	// Comment (nv fmt.Stringer) string 评论
+	Comment = func(_ fmt.Stringer) string {
 		// 默认为空实现
 		return ``
 	}
@@ -38,6 +38,14 @@ func (nv *Novel) id() string {
 // 获取小说作者
 func (nv *Novel) writer() string {
 	return `作者：` + nv.Writer
+}
+
+// 获取小说主角
+func (nv *Novel) protagonists() string {
+	if len(nv.Protagonists) == 0 {
+		return ``
+	}
+	return `主角：` + strings.Join(nv.Protagonists, `、`)
 }
 
 // 获取小说主题
@@ -117,6 +125,7 @@ func (nv *Novel) String() string {
 		nv.name(),
 		nv.id(),
 		nv.writer(),
+		nv.protagonists(),
 		nv.URL,
 		nv.themes(),
 		nv.tags().String(),

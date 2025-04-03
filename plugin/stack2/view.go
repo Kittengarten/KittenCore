@@ -19,7 +19,7 @@ import (
 func (d *data) view(msgr *kitten.Messager, all bool) {
 	s := d.getStack() // 获取叠猫猫队列
 	go setCard(msgr, len(s))
-	_ = sendTextOf(msgr, `【叠猫猫队列】
+	_ = sendTextf(msgr, `【叠猫猫队列】
 现在有 %d 只猫猫
 总重量为 %.1f kg
 ————%s`,
@@ -89,7 +89,7 @@ func (d *data) viewImage(msgr *kitten.Messager) message.ID {
 		str[h] = strings.ReplaceAll(func() string {
 			if globalLocation == cockroach {
 				return fmt.Sprintf(`【%s】翼展 %.1f cm`,
-					m.getType(GlobalMessager).String(),
+					l10nReplacer().Replace(m.getType(GlobalMessager).String()),
 					itof(m.Weight),
 				)
 			}

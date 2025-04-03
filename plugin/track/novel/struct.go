@@ -26,6 +26,7 @@ type (
 
 	// Data 小说数据
 	Data struct {
+		Protagonists []string // Protagonists 主角
 		Right        []string // Right 版权状态
 		Collection   string   // Collection 小说收藏
 		HitNum       string   // HitNum 小说点击

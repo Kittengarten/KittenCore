@@ -2,6 +2,7 @@
 package utils
 
 import (
+	"errors"
 	"fmt"
 	"maps"
 	"math"
@@ -9,22 +10,36 @@ import (
 	"slices"
 )
 
+var (
+	// ErrInvalidData 无效的数据喵！
+	ErrInvalidData = errors.New(`无效的数据喵！`)
+	// ErrInvalidArgument 无效的参数喵！
+	ErrInvalidArgument = errors.New(`无效的参数喵！`)
+	// ErrNoMatch 正则表达式没有匹配到喵！
+	ErrNoMatch = errors.New(`正则表达式没有匹配到喵！`)
+)
+
 // GenerateRandomNumber 生成 count 个 [start, end) 范围的不重复的随机数
 func GenerateRandomNumber(start, end, count int) ([]int, error) {
 	// 范围检查
 	if start >= end {
-		return nil, fmt.Errorf(`上限 %d 必须大于下限 %d 喵！`, end, start)
+		return nil, fmt.Errorf(`上限 %d 必须大于下限 %d：%w`,
+			end, start, ErrInvalidArgument)
 	}
 	if (end - start) < count {
-		return nil, fmt.Errorf(`下限 %d 和上限 %d 之间的数字只有 %d 个，不满足 %d 个的要求喵！`, start, end, end-start, count)
+		return nil, fmt.Errorf(`下限 %d 和上限 %d 之间的数字只有 %d 个，`+
+			`不满足 %d 个的要求：%w`,
+			start, end, end-start, count, ErrInvalidArgument)
 	}
 	if count <= 0 {
-		return nil, fmt.Errorf(`个数 %d 不是正整数喵！`, count)
+		return nil, fmt.Errorf(`个数 %d 不是正整数：%w`,
+			count, ErrInvalidArgument)
 	}
 	// 存放不重复结果的集合
 	set := make(map[int]struct{}, count)
 	for len(set) < count {
 		// 生成随机数
+		//nolint:gosec
 		set[rand.N(end-start)+start] = struct{}{}
 	}
 	// 集合转换为切片
@@ -38,6 +53,18 @@ func ConvertSlice[T any, U any](src []T, f func(T) U) []U {
 		dst[i] = f(v)
 	}
 	return dst
+}
+
+// RemoveDuplicates 去除切片中的重复元素
+func RemoveDuplicates[T comparable](slice []T) (result []T) {
+	seen := make(map[T]struct{})
+	for _, v := range slice {
+		if _, ok := seen[v]; !ok {
+			seen[v] = struct{}{}
+			result = append(result, v)
+		}
+	}
+	return result
 }
 
 // Round 保留小数点后 n 位

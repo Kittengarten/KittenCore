@@ -8,6 +8,7 @@ import (
 
 	"github.com/Kittengarten/KittenCore/kitten/core/equal"
 	"github.com/Kittengarten/KittenCore/kitten/core/fio"
+	"github.com/Kittengarten/KittenCore/kitten/core/msg/mio"
 	"github.com/Kittengarten/KittenCore/kitten/core/msg/seg"
 	"github.com/Kittengarten/KittenCore/kitten/core/times"
 
@@ -118,9 +119,9 @@ func (m *Messager) AtAllLf(qq ...QQ) *Messager {
 	return m
 }
 
-// TextOf 附带格式化文本
-func (m *Messager) TextOf(format string, a ...any) *Messager {
-	m.Seg(TextOf(format, a...))
+// Textf 附带格式化文本
+func (m *Messager) Textf(format string, a ...any) *Messager {
+	m.Seg(Textf(format, a...))
 	return m
 }
 
@@ -234,7 +235,7 @@ func equalSegment(a, b message.Segment) bool {
 	switch a.Type {
 	// 按类型的特殊比较路径
 	case seg.Image:
-		if a.Data[`file`] == b.Data[`file`] {
+		if mio.GetImagePath(a) == mio.GetImagePath(b) {
 			// 如果图片文件相同，则相等，继续遍历比较
 			return true
 		}
@@ -294,8 +295,8 @@ func Text(text ...any) message.Segment {
 	return message.Text(text...)
 }
 
-// TextOf 格式化构建 message.Segment 文本，格式同 fmt.Sprintf
-func TextOf(format string, a ...any) message.Segment {
+// Textf 格式化构建 message.Segment 文本，格式同 fmt.Sprintf
+func Textf(format string, a ...any) message.Segment {
 	return Text(fmt.Sprintf(format, a...))
 }
 

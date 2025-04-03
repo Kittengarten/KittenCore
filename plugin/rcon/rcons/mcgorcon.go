@@ -3,6 +3,7 @@ package rcons
 
 import (
 	"bytes"
+	"cmp"
 	"encoding/binary"
 	"errors"
 	"io"
@@ -10,18 +11,6 @@ import (
 	"time"
 
 	"github.com/Kittengarten/KittenCore/kitten/core/shttp"
-)
-
-const (
-	BadAuth        = -1
-	PayloadMaxSize = 1460
-)
-
-const (
-	PacketResponse = iota
-	_
-	PacketCommand
-	PacketLogin
 )
 
 type MCConn struct {
@@ -36,6 +25,27 @@ type Header struct {
 	RequestID int32
 	Type      packetType
 }
+
+const (
+	BadAuth        = -1
+	PayloadMaxSize = 1460
+)
+
+const (
+	PacketResponse = iota
+	_
+	PacketCommand
+	PacketLogin
+)
+
+var (
+	// ErrBadAuth 验证失败喵！
+	ErrBadAuth = errors.New(`验证失败喵！`)
+	// ErrTooLarge 数据包太大喵！
+	ErrTooLarge = errors.New(`数据包太大喵！`)
+	// ErrType 数据包类型错误喵！
+	ErrType = errors.New(`数据包类型错误喵！`)
+)
 
 func (c *MCConn) Open(addr, password string) error {
 	conn, err := net.DialTimeout(`tcp`, addr, shttp.TimeOutSeconds*time.Second)
@@ -57,7 +67,7 @@ func (c *MCConn) Close() error {
 func (c *MCConn) SendCommand(command string) (string, error) {
 	// 发送包
 	if len(command) > PayloadMaxSize {
-		return ``, errors.New(`命令过长喵！`)
+		return ``, ErrTooLarge
 	}
 	head, payload, err := c.sendPacket(PacketCommand, []byte(command))
 	if err != nil {
@@ -65,7 +75,7 @@ func (c *MCConn) SendCommand(command string) (string, error) {
 	}
 	// 验证失败，返回错误
 	if head.RequestID == BadAuth {
-		return ``, errors.New(`验证失败，不能发送命令喵！`)
+		return ``, ErrBadAuth
 	}
 	return string(payload), nil
 }
@@ -79,7 +89,7 @@ func (c *MCConn) Authenticate() error {
 	}
 	// 验证失败，返回错误
 	if head.RequestID == BadAuth {
-		return errors.New(`验证失败喵！`)
+		return ErrBadAuth
 	}
 	return nil
 }
@@ -102,23 +112,24 @@ func (c *MCConn) sendPacket(t packetType, p []byte) (Header, []byte, error) {
 
 // packetise 编码数据包并转换为二进制表达
 func packetise(t packetType, p []byte) ([]byte, error) {
-	if len(p) > PayloadMaxSize {
-		return nil, errors.New(`数据包太大了喵！`)
+	l := len(p)
+	if l > PayloadMaxSize {
+		return nil, ErrTooLarge
 	}
+	l32 := int32(l)
 	var buf bytes.Buffer
-	err := errors.Join(
-		binary.Write(&buf, binary.LittleEndian, int32(len(p)+10)),
+	if err := cmp.Or(
+		binary.Write(&buf, binary.LittleEndian, l32+10),
 		binary.Write(&buf, binary.LittleEndian, int32(0)),
 		binary.Write(&buf, binary.LittleEndian, t),
 		binary.Write(&buf, binary.LittleEndian, p),
 		binary.Write(&buf, binary.LittleEndian, [2]byte{}),
-	)
-	if err != nil {
+	); err != nil {
 		return nil, err
 	}
 	// 数据包太大，无法处理
 	if buf.Len() >= PayloadMaxSize {
-		return nil, errors.New(`数据包太大了喵！`)
+		return nil, ErrTooLarge
 	}
 	// 返回数据包的字节切片
 	return buf.Bytes(), nil
@@ -139,6 +150,6 @@ func depacketise(r io.Reader) (Header, []byte, error) {
 	case PacketResponse, PacketCommand:
 		return head, payload[:len(payload)-2], nil
 	default:
-		return Header{}, nil, errors.New(`数据包类型错误喵！`)
+		return Header{}, nil, ErrType
 	}
 }

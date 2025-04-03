@@ -2,6 +2,7 @@
 package mio
 
 import (
+	"html"
 	"path/filepath"
 	"runtime"
 	"strings"
@@ -55,7 +56,7 @@ func (p Path) Image(name fio.Path) (message.Segment, error) {
 	path := string(p.Path)
 	if strings.Contains(path, `://`) {
 		// 请求的是网络路径
-		return message.Image(fio.NewPath(p.String(), name.String()).String(), fn), nil
+		return message.Image(fio.NewPath(p.Path, name).String(), fn), nil
 	}
 	if filepath.IsAbs(path) {
 		// 请求的是绝对路径
@@ -78,9 +79,19 @@ func (p Path) Image(name fio.Path) (message.Segment, error) {
 		}
 		// 请求的是文件夹，需要转换为绝对路径
 		abs, err := fio.ProcessPath()
-		return message.Image(fio.NewPath(pre, abs.String(), p.String(), name.String()).String(), fn), err
+		return message.Image(pre+fio.NewPath(abs, p.Path, name).String(), fn), err
 	}
 	// 请求的是文件
 	np, err := p.LoadPath()
 	return message.Image(fio.NewPath(np, name).String(), fn), err
+}
+
+// GetImagePath 获取图片路径
+func GetImagePath(e message.Segment) fio.Path {
+	return fio.Path(e.Data[`file`])
+}
+
+// GetImageURL 获取图片 URL
+func GetImageURL(e message.Segment) string {
+	return html.UnescapeString(e.Data[`url`])
 }

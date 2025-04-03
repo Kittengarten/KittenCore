@@ -118,6 +118,6 @@ func Weight() string {
 }
 
 // SendFlower 返回花语
-var SendFlower = func(msgr *kitten.Messager) message.ID {
+var SendFlower = func(_ *kitten.Messager) message.ID {
 	return message.ID{}
 }

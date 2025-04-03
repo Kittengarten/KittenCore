@@ -33,8 +33,8 @@ var perfBelowBound = [...]float64{
 	5: 0.3,
 }
 
-// Check 检查
-var Check = func(name, info string) string {
+// Check (name, info string) string 检查
+var Check = func(_, _ string) string {
 	// 默认为空实现
 	return ``
 }

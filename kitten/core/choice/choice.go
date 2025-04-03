@@ -18,8 +18,8 @@ type (
 		GetWeight() int // 该项目的权重
 	}
 
-	// Choicers 由随机项目的抽象接口组成的切片
-	Choicers []Choicer
+	// Choices 由随机项目的抽象接口组成的切片
+	Choices []Choicer
 
 	// ChoicersW 由带权重的随机项目的抽象接口组成的切片
 	ChoicersW []ChoicerW
@@ -39,4 +39,16 @@ func (c ChoicersW) Choose() (int, error) {
 		return -1, err
 	}
 	return chooser.Pick(), nil
+}
+
+// MaxWeightProportion 获取最高权重占全部权重的比例
+func (c ChoicersW) MaxWeightProportion() float64 {
+	var maxWeight, sumWeight int
+	for _, ch := range c {
+		sumWeight += ch.GetWeight()
+		if ch.GetWeight() > maxWeight {
+			maxWeight = ch.GetWeight()
+		}
+	}
+	return float64(maxWeight) / float64(sumWeight)
 }

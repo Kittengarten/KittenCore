@@ -65,33 +65,33 @@ func (e *stackError) Error() string {
 	}
 	w := e.m.Weight // 叠猫猫前的体重
 	e.Grow(128)
-	e.WriteString(`叠猫猫失败，杂鱼～杂鱼❤`)
+	_, _ = e.WriteString(`叠猫猫失败，杂鱼～杂鱼❤`)
 	switch e.r {
 	case flat:
 		// 如果平地摔
 		exit(e.Messager, e.m, e.r, e.n) // 让失败的猫猫退出
-		fmt.Fprintf(e, `你平地摔了喵！需要休息 %s。
+		_, _ = fmt.Fprintf(e, `你平地摔了喵！需要休息 %s。
 你的体重由 %.1f kg 变为 %.1f kg。`,
 			times.ConvertTimeDuration(e.m.Time.Sub(time.Unix(e.Event.Time, 0))),
 			itof(w), itof(e.m.Weight))
 	case press:
 		// 压坏了别的猫猫
 		exit(e.Messager, e.m, e.r, e.n) // 让失败的猫猫退出
-		fmt.Fprintf(e, `有 %d 只猫猫被压坏了喵！需要休息一段时间。`, e.n)
+		_, _ = fmt.Fprintf(e, `有 %d 只猫猫被压坏了喵！需要休息一段时间。`, e.n)
 		doClear(e.Messager, e.l, e.n, w, e.m, &e.Builder)
 		for range e.n {
-			e.WriteRune('🙀')
+			_, _ = e.WriteRune('🙀')
 		}
 	case fall:
 		// 摔坏了别的猫猫
 		exit(e.Messager, e.m, e.r, e.l) // 让失败的猫猫退出
-		fmt.Fprintf(e, `上面 %d 只猫猫摔下去了喵！需要休息一段时间。`, e.n)
+		_, _ = fmt.Fprintf(e, `上面 %d 只猫猫摔下去了喵！需要休息一段时间。`, e.n)
 		doClear(e.Messager, e.l, e.n, w, e.m, &e.Builder)
 		for range e.n {
-			e.WriteRune('😿')
+			_, _ = e.WriteRune('😿')
 		}
 	default:
-		e.WriteString(`未知错误喵！`)
+		_, _ = e.WriteString(`未知错误喵！`)
 	}
 	return e.String()
 }

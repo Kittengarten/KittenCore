@@ -1,3 +1,4 @@
+// Package status 小说状态
 package status
 
 type (
@@ -12,15 +13,24 @@ type (
 )
 
 const (
-	BookUnreachable        Status = iota // 无法访问小说
-	NoChapterURL                         // 没有章节链接
-	OnlyAChapter                         // 只有一个章节
-	BookStatusException                  // 小说状态异常
-	TimeException                        // 更新时间异常
-	ChapterUnreachable                   // 无法访问章节
-	ChapterURLException                  // 章节链接异常
-	ChapterStatusException               // 章节状态异常
-	VIPChapterException                  // 付费状态异常
+	// BookUnreachable 无法访问小说
+	BookUnreachable Status = iota
+	// NoChapterURL	没有章节链接
+	NoChapterURL
+	// OnlyAChapter 只有一个章节
+	OnlyAChapter
+	// BookStatusException 小说状态异常
+	BookStatusException
+	// TimeException 更新时间异常
+	TimeException
+	// ChapterUnreachable 无法访问章节
+	ChapterUnreachable
+	// ChapterURLException 章节链接异常
+	ChapterURLException
+	// ChapterStatusException 章节状态异常
+	ChapterStatusException
+	// VIPChapterException 付费状态异常
+	VIPChapterException
 )
 
 // Error 实现 error

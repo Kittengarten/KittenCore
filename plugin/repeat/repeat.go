@@ -2,7 +2,6 @@
 package repeat
 
 import (
-	"html"
 	"math/rand/v2"
 	"strconv"
 	"sync"
@@ -10,6 +9,7 @@ import (
 	"github.com/Kittengarten/KittenCore/kitten"
 	"github.com/Kittengarten/KittenCore/kitten/core"
 	"github.com/Kittengarten/KittenCore/kitten/core/fio"
+	"github.com/Kittengarten/KittenCore/kitten/core/msg/mio"
 	"github.com/Kittengarten/KittenCore/kitten/core/msg/seg"
 
 	"github.com/RomiChan/syncx"
@@ -25,7 +25,7 @@ const (
 	configFile       = `config.yaml` // 配置文件名
 	cRepeat          = `复读`
 	brief            = `喵类的本质是复读姬`
-	MaxTimes         = 10 // 设置触发复读的最多次数限制
+	maxCount         = 10 // MaxCount 最大复读次数
 )
 
 type (
@@ -37,7 +37,7 @@ type (
 
 	// 复读姬配置
 	config struct {
-		Times  uint    // 触发复读的次数
+		Count  uint    // 触发复读的次数
 		Chance float64 // 触发复读的概率
 	}
 )
@@ -55,7 +55,7 @@ var (
 	// 配置文件路径
 	configPath = fio.NewPath(engine.DataFolder(), configFile)
 	// 触发复读的次数
-	times uint = 2
+	count uint = 2
 	// 触发复读的概率
 	chance = 0.5
 	// 消息缓存
@@ -71,16 +71,16 @@ func init() {
 	engine.OnCommand(cRepeat, zero.SuperUserPermission).SetBlock(true).Handle(repeatSet)
 
 	// 复读
-	engine.OnMessage(zero.OnlyGroup).SetBlock(false).Handle(repeat)
+	engine.OnMessage(zero.OnlyGroup).Handle(repeat)
 }
 
 func repeatInit() {
-	repeatConfig, err := fio.Load[config](configPath, "times: 2\nchance: 0.5") // 复读姬配置文件
+	repeatConfig, err := fio.Load[config](configPath, "count: 2\nchance: 0.5") // 复读姬配置文件
 	if err != nil {
 		kitten.Error(`复读姬配置文件错误喵！`, err)
 		return
 	}
-	times, chance = repeatConfig.Times, repeatConfig.Chance
+	count, chance = repeatConfig.Count, repeatConfig.Chance
 }
 
 // 复读设置
@@ -90,7 +90,7 @@ func repeatSet(ctx *zero.Ctx) {
 		args = msgr.ArgsSlice()
 	)
 	if len(args) != 2 {
-		msgr.SendWithImageFailOf(`本命令参数数量：%d
+		msgr.SendWithImageFailf(`本命令参数数量：%d
 传入的参数数量：%d`,
 			2,
 			len(args),
@@ -99,7 +99,7 @@ func repeatSet(ctx *zero.Ctx) {
 	}
 	t, err := strconv.ParseUint(args[0], 10, core.PlatformBits)
 	if err != nil {
-		msgr.SendWithImageFailOf(`[次数] 错误：
+		msgr.SendWithImageFailf(`[次数] 错误：
 %v
 %s`,
 			err,
@@ -107,13 +107,13 @@ func repeatSet(ctx *zero.Ctx) {
 		)
 		return
 	}
-	if t > 2 || MaxTimes < t {
-		msgr.SendWithImageFailOf(`[次数] 错误：最少为 2，最多为 %d 喵！`, MaxTimes)
+	if t > 2 || maxCount < t {
+		msgr.SendWithImageFailf(`[次数] 错误：最少为 2，最多为 %d 喵！`, maxCount)
 		return
 	}
-	times = uint(t)
+	count = uint(t)
 	if chance, err = strconv.ParseFloat(args[1], 64); err != nil {
-		msgr.SendWithImageFailOf(`[概率] 错误：
+		msgr.SendWithImageFailf(`[概率] 错误：
 %v
 %s`,
 			err,
@@ -134,7 +134,7 @@ func repeatSet(ctx *zero.Ctx) {
 	mu.Lock()
 	defer mu.Unlock()
 	err = fio.Save(configPath, config{
-		Times:  times,
+		Count:  count,
 		Chance: chance,
 	})
 	if err != nil {
@@ -152,8 +152,8 @@ func repeatSet(ctx *zero.Ctx) {
 		return
 	}
 	msgr.Reply().AtLf().
-		TextOf(`%s将会开始以 %.2f%% 概率复读重复 %d 次的消息喵！`,
-			n, 100*chance, times,
+		Textf(`%s将会开始以 %.2f%% 概率复读重复 %d 次的消息喵！`,
+			n, 100*chance, count,
 		).Send()
 }
 
@@ -172,7 +172,8 @@ func repeat(ctx *zero.Ctx) {
 	}
 	// 更新缓存
 	m.Store(*g, c)
-	if c.t < times || rand.Float64() >= chance {
+	//nolint:gosec
+	if c.t < count || rand.Float64() >= chance {
 		// 如果没有达到复读阈值，或者没有按概率触发复读，则返回
 		return
 	}
@@ -189,16 +190,20 @@ func (s *stat) handleImage(msgr *kitten.Messager) {
 			continue
 		}
 		// 如果是单张图片，进行一个图片的获取
-		switch file := e.Data[`file`]; file {
+		switch file := mio.GetImagePath(e); file {
 		case ``:
 			// 获取不到，跳过
 			continue
 		case `marketface`:
 			// 市场表情
-			s.Message[i] = kitten.Image(html.UnescapeString(e.Data[`url`]))
+			s.Message[i] = kitten.Image(mio.GetImageURL(e))
 		default:
 			// 默认
-			s.Message[i] = kitten.Image(msgr.GetImage(file).Get(`file`).String())
+			if len(e.Data[`summary`]) > 2 {
+				// 是表情包，跳过
+				continue
+			}
+			s.Message[i] = kitten.Image(msgr.GetImage(file.String()).Get(`file`).String())
 		}
 	}
 }

@@ -4,6 +4,7 @@ import (
 	"os"
 	"time"
 
+	"github.com/Kittengarten/KittenCore/kitten/core/fio"
 	"github.com/Kittengarten/KittenCore/kitten/core/times"
 
 	"go.uber.org/zap"
@@ -37,6 +38,9 @@ var encoderConfig = zapcore.EncoderConfig{
 
 // zap 日志配置初始化
 func zapInit() {
+	if err := fio.NewPath(botConfig.Log.Path).InitFile(``); err != nil {
+		zap.Error(err)
+	}
 	// 日志记录器配置
 	log := zap.New(
 		zapcore.NewCore(

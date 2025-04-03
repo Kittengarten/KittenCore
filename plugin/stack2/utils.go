@@ -41,8 +41,15 @@ func (m meow) String() string {
 	if globalLocation == cockroach {
 		return fmt.Sprintf(`【%s】	翼展 %.1f cm`, m.getType(GlobalMessager).String(), itof(m.Weight))
 	}
-	return fmt.Sprintf(l10nReplacer().Replace(`%s	❤	%d	❤	%.1f kg	%s`),
-		m.TitleCardOrNickName(GlobalMessager), m.Int(), itof(m.Weight), m.getType(GlobalMessager).String())
+	return fmt.Sprintf(
+		l10nReplacer().Replace(`%s	❤	%d	❤	%.1f kg	%s`),
+		m.TitleCardOrNickName(
+			GlobalMessager,
+		),
+		m.Int(),
+		itof(m.Weight),
+		m.getType(GlobalMessager).String(),
+	)
 }
 
 // 获取 m 摔坏 n 的概率
@@ -59,6 +66,7 @@ m 为上方的猫猫，n 为下方的猫猫
 如果没有摔下去则返回 true
 */
 func (m meow) checkFall(n meow) bool {
+	//nolint:gosec
 	return rand.Float64() >= m.chanceFall(n)
 }
 
@@ -102,6 +110,7 @@ func ftoi(w float64) int {
 
 // 返回服从正态分布 N(0, σ²) 的随机数的绝对值，相当于此分布的右半边
 func normal(σ float64) float64 {
+	//nolint:gosec
 	return σ * math.Abs(rand.NormFloat64())
 }
 
@@ -126,8 +135,8 @@ func sendText(msgr *kitten.Messager, text ...any) message.ID {
 }
 
 // 发送本地化格式化文本
-func sendTextOf(msgr *kitten.Messager, format string, a ...any) message.ID {
-	return msgr.Reply().AtLf().TextOf(
+func sendTextf(msgr *kitten.Messager, format string, a ...any) message.ID {
+	return msgr.Reply().AtLf().Textf(
 		l10nReplacer().Replace(format),
 		rangeAssertion(a)...,
 	).Send()

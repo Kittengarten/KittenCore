@@ -2,7 +2,7 @@ package fanqie
 
 import (
 	"cmp"
-	"errors"
+	"fmt"
 	"net/url"
 	"strconv"
 	"strings"
@@ -11,6 +11,7 @@ import (
 	"github.com/Kittengarten/KittenCore/kitten"
 	"github.com/Kittengarten/KittenCore/kitten/core/shttp"
 	"github.com/Kittengarten/KittenCore/kitten/core/times"
+	"github.com/Kittengarten/KittenCore/kitten/core/utils"
 	"github.com/Kittengarten/KittenCore/plugin/track/chapter"
 	"github.com/Kittengarten/KittenCore/plugin/track/novel"
 	"github.com/Kittengarten/KittenCore/plugin/track/platform"
@@ -24,20 +25,23 @@ import (
 type fqAPI struct{}
 
 const (
-	APIHOST       = `https://api.v2.sukimon.me:45554`
-	DetailURL     = APIHOST + `/detail`
-	APICatalogURL = APIHOST + `/catalog`
-	APIContentURL = APIHOST + `/content`
-	APISearchURL  = APIHOST + `/search`
-	APIBookID     = `book_id`  // 书号
-	APIItemID     = `item_id`  // 章节号
-	APIQuery      = `query`    // 关键词
-	APIOffset     = `offset`   // 10 * (page - 1)
-	APITabType    = `tab_type` // 1：综合，2：听书，3：书籍，4：社区，5：全文，8：漫画，11：短句
+	Detail  = `detail`   // 详情
+	Catalog = `catalog`  // 目录
+	Content = `content`  // 内容
+	Search  = `search`   // 搜索
+	BookID  = `book_id`  // 书号
+	ItemID  = `item_id`  // 章节号
+	Query   = `query`    // 关键词
+	Offset  = `offset`   // 10 * (page - 1)
+	TabType = `tab_type` // 1：综合，2：听书，3：书籍，4：社区，5：全文，8：漫画，11：短句
 )
 
-// API 番茄 API
-var API = fqAPI{}
+var (
+	// API 番茄 API
+	API = fqAPI{}
+	// APIHOST
+	APIHOST string
+)
 
 func init() {
 	platform.Platforms = append(platform.Platforms, API)
@@ -58,32 +62,42 @@ func init() {
 
 // String 实现 fmt.Stringer，返回小说平台名称
 func (f fqAPI) String() string {
+	if APIHOST == `` {
+		return Platform.String()
+	}
 	return `番茄 API`
 }
 
 // Layout 返回时间格式
 func (f fqAPI) Layout() string {
+	if APIHOST == `` {
+		return Platform.Layout()
+	}
 	return times.Layout
 }
 
 // FindBookID 用关键词搜索书号
 func (f fqAPI) FindBookID(key search.Keyword) (string, error) {
-	v := make(url.Values)
-	v.Add(APIQuery, string(key))
-	const page = 1 // 默认搜索第一页
-	v.Add(APIOffset, strconv.FormatInt(10*(page-1), 10))
-	v.Add(APITabType, `3`) // 默认搜索类型（3：小说）
-	searchURL, err := url.Parse(APISearchURL)
+	if APIHOST == `` {
+		return Platform.FindBookID(key)
+	}
+	u, err := url.Parse(APIHOST)
 	if err != nil {
 		return ``, err
 	}
-	searchURL.RawQuery = v.Encode()
-	data, err := shttp.GETDataURL(searchURL)
+	u = u.JoinPath(Search)
+	v := u.Query()
+	v.Add(Query, string(key))
+	const page = 1 // 默认搜索第一页
+	v.Add(Offset, strconv.FormatInt(10*(page-1), 10))
+	v.Add(TabType, `3`) // 默认搜索类型（3：小说）
+	u.RawQuery = v.Encode()
+	data, err := shttp.GETDataURL(u)
 	if err != nil {
 		return ``, err
 	}
 	if !gjson.ValidBytes(data) {
-		return ``, errors.New(`无效的 JSON：` + string(data))
+		return ``, fmt.Errorf(`%wJSON：%s`, utils.ErrInvalidData, string(data))
 	}
 	bookIDs := gjson.GetBytes(data, `search_tabs.#(tab_type=3).data.#.book_id`).Array()
 	if len(bookIDs) == 0 {
@@ -95,16 +109,22 @@ func (f fqAPI) FindBookID(key search.Keyword) (string, error) {
 
 // ChapterID 获取章号
 func (f fqAPI) ChapterID(cpURL string) string {
+	if APIHOST == `` {
+		return Platform.ChapterID(cpURL)
+	}
 	u, err := url.Parse(cpURL)
 	if err != nil {
 		kitten.Error(err)
 		return ``
 	}
-	return u.Query().Get(APIItemID)
+	return u.Query().Get(ItemID)
 }
 
 // Init 小说网页信息获取
 func (f fqAPI) Init(bookID string) (nv *novel.Novel, err error) {
+	if APIHOST == `` {
+		return Platform.Init(bookID)
+	}
 	// 初始化小说
 	nv = novel.Pool.Get().(*novel.Novel)
 	// 初始化小说平台
@@ -114,26 +134,27 @@ func (f fqAPI) Init(bookID string) (nv *novel.Novel, err error) {
 	nv.ID = bookID
 	// 生成链接
 	nv.URL = URL + nv.ID
-	v := make(url.Values)
-	v.Add(APIBookID, bookID)
-	apiURL, err := url.Parse(DetailURL)
+	u, err := url.Parse(APIHOST)
 	if err != nil {
-		return
+		return nv, err
 	}
-	apiURL.RawQuery = v.Encode()
+	u = u.JoinPath(Detail)
+	v := u.Query()
+	v.Add(BookID, bookID)
+	u.RawQuery = v.Encode()
 	// 获取小说网页，失败则返回
-	data, err := shttp.GETDataURL(apiURL)
+	data, err := shttp.GETDataURL(u)
 	if err != nil {
-		return
+		return nv, err
 	}
 	if !gjson.ValidBytes(data) {
 		kitten.Debugln(`无效的 JSON：`, string(data))
 		err = status.ErrStatus(nv.URL, status.BookStatusException)
-		return
+		return nv, err
 	}
 	if gjson.GetBytes(data, `message`).String() != `SUCCESS` {
 		err = status.ErrStatus(nv.URL, status.BookUnreachable)
-		return
+		return nv, err
 	}
 	result := gjson.GetManyBytes(data,
 		`data.book_name`,               // 书名
@@ -148,6 +169,7 @@ func (f fqAPI) Init(bookID string) (nv *novel.Novel, err error) {
 		`data.tags`,                    // 标签（单个字符串，由半角逗号分隔）
 		`data.book_abstract_v2`,        // 简述
 		`data.last_chapter_item_id`,    // 最新章节
+		`data.roles`,                   // 主角
 	)
 	nv.Right = []string{`免费`}            // 获取上架状态（番茄均为免费）
 	nv.Name = result[0].String()         // 获取书名
@@ -170,24 +192,31 @@ func (f fqAPI) Init(bookID string) (nv *novel.Novel, err error) {
 	nv.TagList = strings.Split(result[9].String(), `,`) // 获取标签
 	nv.Introduce = result[10].String()                  // 获取简述
 	ncp := result[11].String()                          // 获取新章节链接
+	nv.Protagonists = func() (p []string) {
+		for _, n := range gjson.Parse(result[12].String()).Array() {
+			p = append(p, n.String())
+		}
+		return
+	}() // 获取主角
 	// 不支持的字段
 	nv.Theme = ``
 	nv.Item = nil
 	nv.Preview = ``
 	// 加载新章节
+	u.Path = ``
+	u = u.JoinPath(Content)
 	clear(v)
-	v.Add(APIItemID, ncp)
-	ncpURL, err := url.Parse(APIContentURL)
-	if err != nil {
-		return
-	}
-	ncpURL.RawQuery = v.Encode()
-	nv.Chapter, err = f.NewChapter(ncpURL.String())
-	return
+	v.Add(ItemID, ncp)
+	u.RawQuery = v.Encode()
+	nv.Chapter, err = f.NewChapter(u.String())
+	return nv, err
 }
 
 // NewChapter 章节信息获取
 func (f fqAPI) NewChapter(cpURL string) (cp *chapter.Chapter, err error) {
+	if APIHOST == `` {
+		return Platform.NewChapter(cpURL)
+	}
 	// 初始化章节
 	cp = chapter.Pool.Get().(*chapter.Chapter)
 	// 向章节传入链接
@@ -195,12 +224,12 @@ func (f fqAPI) NewChapter(cpURL string) (cp *chapter.Chapter, err error) {
 	// 获取章节网页，失败则返回
 	data, err := shttp.GETData(cp.URL)
 	if err != nil {
-		return
+		return cp, err
 	}
 	if !gjson.ValidBytes(data) {
 		kitten.Debugln(`无效的 JSON：`, string(data))
 		err = status.ErrStatus(cp.URL, status.ChapterStatusException)
-		return
+		return cp, err
 	}
 	result := gjson.GetManyBytes(data,
 		`data.novel_data.first_pass_time`,     // 更新时间
@@ -216,26 +245,27 @@ func (f fqAPI) NewChapter(cpURL string) (cp *chapter.Chapter, err error) {
 	cp.WordNum = int(result[3].Int()) // 获取章节字数
 	if cp.WordNum <= 0 {
 		err = status.ErrStatus(cp.URL, status.ChapterStatusException)
-		return
+		return cp, err
 	}
 	cp.PreURL, err = getChapterURL(result[4].String()) // 获取上一章链接
 	if err != nil {
-		return
+		return cp, err
 	}
 	cp.NextURL, err = getChapterURL(result[5].String()) // 获取下一章链接
-	return
+	return cp, err
 }
 
 // 获取章节链接
 func getChapterURL(id string) (string, error) {
 	v := make(url.Values)
-	v.Set(APIItemID, id)
-	preURL, err := url.Parse(APIContentURL)
+	v.Set(ItemID, id)
+	u, err := url.Parse(APIHOST)
 	if err != nil {
 		return ``, err
 	}
-	preURL.RawQuery = v.Encode()
-	return preURL.String(), nil
+	u = u.JoinPath(Content)
+	u.RawQuery = v.Encode()
+	return u.String(), nil
 }
 
 // IsUpdate 书籍更新检测

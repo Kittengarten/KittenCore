@@ -74,7 +74,7 @@ func (d *data) generateAnalysis(msgr *kitten.Messager) (c chance, flat, img bool
 	if err != nil {
 		// 如果不能加入，什么也不做
 		// 初始化时已经发送了相关信息
-		return
+		return c, flat, img, err
 	}
 	// 如果能加入
 	// 猫娘少女和成年猫娘以上享有分析图片特权
@@ -86,7 +86,7 @@ func (d *data) generateAnalysis(msgr *kitten.Messager) (c chance, flat, img bool
 		flat = true
 		c.f = chanceFlat(m) // 平地摔概率
 		c.s = 1 - c.f       // 成功概率
-		_ = sendTextOf(msgr, `【叠猫猫分析】
+		_ = sendTextf(msgr, `【叠猫猫分析】
 当前体重：　	%.1f kg
 平地摔概率：	%.2f%%
 成功概率：　	%.2f%%
@@ -96,7 +96,7 @@ func (d *data) generateAnalysis(msgr *kitten.Messager) (c chance, flat, img bool
 			100*c.s,
 			tipFlat(),
 		)
-		return
+		return c, flat, img, err
 	}
 	// 如果是非空队列
 	sn := slices.Clone(s)
@@ -111,7 +111,7 @@ func (d *data) generateAnalysis(msgr *kitten.Messager) (c chance, flat, img bool
 	}() // 不压坏的情况下，摔下去的概率
 	c.f = (1 - c.p) * gp // 摔下概率
 	c.s = 1 - c.p - c.f  // 成功概率
-	_ = sendTextOf(msgr, `【叠猫猫分析】
+	_ = sendTextf(msgr, `【叠猫猫分析】
 猫堆高度：	%d
 当前体重：	%.1f kg
 %s%s%s%s%s`,
@@ -123,7 +123,7 @@ func (d *data) generateAnalysis(msgr *kitten.Messager) (c chance, flat, img bool
 		chanceOutput(`清空概率`, chanceClear(msgr, s, m)),
 		tip(m.Weight, c),
 	)
-	return
+	return c, flat, img, err
 }
 
 // 输出概率文本
@@ -212,6 +212,7 @@ func tipFlat() string {
 		return err.Error()
 	}
 	if l := len(tipSlice.Flat); l != 0 {
+		//nolint:gosec
 		return tipSlice.Flat[rand.N(l)]
 	}
 	return ``
@@ -243,6 +244,7 @@ func tip(w int, c chance) string {
 	}
 	if 0.5 <= c.s && c.s < 0.8 {
 		t = append(t, tipSlice.Normal...)
+		//nolint:gosec
 		if math.Pow(math.E, math.E)*rand.Float64() < 1 {
 			t = append(t, tipSlice.Rare...)
 		}
@@ -250,6 +252,7 @@ func tip(w int, c chance) string {
 	if len(t) == 0 {
 		t = tipSlice.Kittengarten
 	}
+	//nolint:gosec
 	return strings.NewReplacer(
 		`{player}`,
 		kitten.NewQQ(GlobalMessager.Event.UserID).CallName(GlobalMessager),

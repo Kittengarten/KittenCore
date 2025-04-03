@@ -90,11 +90,13 @@ func init() {
 	})
 
 	// 通过链接、图片等让 Bot 扫描二维码，为防止滥用，仅管理员可用
-	zero.OnCommandGroup([]string{`扫码`, `扫描`}, zero.AdminPermission).SetBlock(true).Handle(func(ctx *zero.Ctx) {
-		img.Scan(kitten.New(ctx),
-			zero.SuperUserPermission(ctx),
-			zero.HasPicture(ctx),
-			func() bool { return zero.MustProvidePicture(ctx) },
-		)
-	})
+	zero.OnCommandGroup([]string{`扫码`, `扫描`}, zero.AdminPermission).
+		SetBlock(true).
+		Handle(func(ctx *zero.Ctx) {
+			img.Scan(kitten.New(ctx),
+				zero.SuperUserPermission(ctx),
+				zero.HasPicture(ctx),
+				func() bool { return zero.MustProvidePicture(ctx) },
+			)
+		})
 }

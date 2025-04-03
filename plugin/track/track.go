@@ -2,6 +2,7 @@
 package track
 
 import (
+	"errors"
 	"fmt"
 	"log"
 	"runtime/debug"
@@ -43,6 +44,7 @@ const (
 	cAddUpdate       = `添加报更`
 	cCancelUpdate    = `取消报更`
 	cQueryUpdate     = `查询报更`
+	cSetProtagonists = `设置主角`
 	cycle            = shttp.TimeOutSeconds * time.Second // 最小循环间隔（最大可翻倍）
 )
 
@@ -58,7 +60,8 @@ var (
 管理员或私聊可用：
 ` + p + cAddUpdate + ` ` + pf + ` ` + ag + ` // 可添加小说自动报更
 ` + p + cCancelUpdate + ` ` + pf + ` ` + ag + ` // 可取消小说自动报更
-` + p + cUpdateTest + ` ` + pf + ` ` + ag + ` // 可测试报更功能`
+` + p + cUpdateTest + ` ` + pf + ` ` + ag + ` // 可测试报更功能
+` + p + cSetProtagonists + ` ` + pf + ` ` + ag + ` [主角1] [主角2] ... // 可设置小说主角`
 	// 注册插件
 	engine = control.AutoRegister(&ctrl.Options[*zero.Ctx]{
 		DisableOnDefault:  false,
@@ -66,21 +69,35 @@ var (
 		Help:              help,
 		PrivateDataFolder: replyServiceName,
 	}).ApplySingle(ctxext.DefaultSingle)
+)
+
+var (
 	// 配置文件路径
 	configPath = fio.NewPath(engine.DataFolder(), configFile)
 	// 报更更新的信号
-	cu = make(chan book.Books)
+	cu = make(chan book.Books, 1)
 	// 读写锁
 	mu sync.RWMutex
 )
+
+// ErrArgumentCount 参数数量错误喵！
+var ErrArgumentCount = errors.New(`参数数量错误喵`)
 
 func init() {
 	go track()
 
 	// 更新测试
-	engine.OnCommand(cUpdateTest, zero.AdminPermission).SetBlock(true).
+	engine.OnCommandGroup([]string{
+		cUpdateTest,
+		cSetProtagonists,
+	}, zero.AdminPermission).SetBlock(true).
 		Handle(func(ctx *zero.Ctx) {
-			updateTest(kitten.New(ctx))
+			switch msgr := kitten.New(ctx); msgr.Command() {
+			case cUpdateTest:
+				updateTest(kitten.New(ctx))
+			case cSetProtagonists:
+				setProtagonists(kitten.New(ctx))
+			}
 		})
 
 	engine.OnCommandGroup([]string{
@@ -129,7 +146,7 @@ func init() {
 
 // 更新测试
 func updateTest(msgr *kitten.Messager) {
-	nv, err := getNovel(msgr)
+	nv, err := getNovel(msgr) // 小说实例
 	if err != nil {
 		msgr.SendWithImageFail(err)
 		return
@@ -153,16 +170,60 @@ func updateTest(msgr *kitten.Messager) {
 	)
 }
 
-// 更新预览
-func updatePreview(msgr *kitten.Messager) {
-	n, err := getNovel(msgr)
+// 设置主角
+func setProtagonists(msgr *kitten.Messager) {
+	args := msgr.ArgsSlice()
+	if len(args) < 3 {
+		msgr.SendWithImageFail(`请输入主角名喵！`)
+		return
+	}
+	p, err := getPlatform(args[0])
 	if err != nil {
 		msgr.SendWithImageFail(err)
 		return
 	}
-	if r := n.Preview; r != `` {
-		msgr.Reply().AtLf().Text(`《`, n.Name, `》
-`, &n.Chapter, `
+	bookID := args[1]
+	if _, err := strconv.Atoi(bookID); err != nil {
+		// 参数字符串无法转换为书号，尝试作为搜索关键词
+		if bookID, err = p.FindBookID(search.Keyword(bookID)); err != nil {
+			msgr.SendWithImageFail(`关键词“`, bookID, `”搜索时发生错误：`, err)
+			return
+		}
+	}
+	msgr.Reply().AtLf().Text(`平台：`, p, "\n书号：", bookID).Send()
+	mu.Lock()
+	defer mu.Unlock()
+	c, err := fio.Load[book.Books](configPath, fio.Empty) // 报更配置
+	if err != nil {
+		msgr.SendWithImageFail(book.ErrLoad, err)
+		return
+	}
+	// 本书下标
+	i := slices.IndexFunc(c, func(b book.Book) bool {
+		return p.String() == b.Platform && bookID == b.BookID
+	})
+	if i == -1 {
+		msgr.SendWithImageFail(`本书未配置报更喵！`)
+		return
+	}
+	c[i].Protagonists = args[2:]
+	if err := c.SaveConfig(cu, configPath); err != nil {
+		msgr.SendWithImageFail(`设置`, strings.Join(args[2:], `、`), `为主角时`, book.ErrSave, err)
+		return
+	}
+	msgr.Reply().AtLf().Text(`设置`, strings.Join(args[2:], `、`), `为主角成功喵！`).Send()
+}
+
+// 更新预览
+func updatePreview(msgr *kitten.Messager) {
+	nv, err := getNovel(msgr) // 小说实例
+	if err != nil {
+		msgr.SendWithImageFail(err)
+		return
+	}
+	if r := nv.Preview; r != `` {
+		msgr.Reply().AtLf().Text(`《`, nv.Name, `》
+`, &nv.Chapter, `
 `, r).Send()
 		return
 	}
@@ -171,10 +232,14 @@ func updatePreview(msgr *kitten.Messager) {
 
 // 小说信息
 func novelInfo(msgr *kitten.Messager, comment bool) {
-	nv, err := getNovel(msgr)
+	nv, err := getNovel(msgr) // 小说实例
 	if err != nil {
 		msgr.SendWithImageFail(err)
 		return
+	}
+	if platform.Get(nv.Platform) == fanqie.API {
+		// 还原番茄平台名称
+		nv.Platform = fanqie.Platform.String()
 	}
 	msgr = msgr.Reply().AtLf().
 		Image(fio.NewPath(nv.CoverURL)).
@@ -354,21 +419,21 @@ func getNovel(msgr *kitten.Messager) (*novel.Novel, error) {
 		return nil, fmt.Errorf(`本命令参数数量：2
 %s %s
 传入的参数数量：%d
-参数数量错误喵！`,
+%w`,
 			pf, ag,
-			len(args))
+			len(args),
+			ErrArgumentCount,
+		)
 	}
-	var (
-		p, err = getPlatform(args[0])
-		bookID = args[1]
-	)
+	p, err := getPlatform(args[0])
 	if err != nil {
 		return nil, err
 	}
+	bookID := args[1]
 	if _, err := strconv.Atoi(bookID); err != nil {
 		// 获取小说时，参数字符串无法转换为书号，尝试作为搜索关键词
-		if bookID, err = p.FindBookID(search.Keyword(args[1])); err != nil {
-			return nil, fmt.Errorf(`关键词 %s 搜索时发生错误：%w`, args[1], err)
+		if bookID, err = p.FindBookID(search.Keyword(bookID)); err != nil {
+			return nil, fmt.Errorf(`关键词“%s”搜索时发生错误：%w`, bookID, err)
 		}
 	}
 	return p.Init(bookID)
@@ -420,7 +485,7 @@ func track() {
 		case data = <-cu: // 接收到更新配置则使用
 		case <-t.C: // 接收到时钟信号则释放
 		}
-		data.Report(bot, cu, configPath, cycle, st) // 执行报更
+		data.Report(bot, cu, &mu, configPath, cycle, st) // 执行报更
 	}
 }
 

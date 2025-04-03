@@ -13,7 +13,7 @@ import (
 	"github.com/wdvxdr1123/ZeroBot/message"
 )
 
-// Ping
+// Ping ...
 func Ping(msgr *kitten.Messager) message.ID {
 	pingURL := msgr.Args()
 	pg, err := probing.NewPinger(pingURL)

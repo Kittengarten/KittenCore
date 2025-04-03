@@ -16,8 +16,8 @@ import (
 var (
 	// NewChapter 获取章节
 	NewChapter func(nv *Novel, cpURL string) (*chapter.Chapter, error)
-	// CommentUpdate 评论更新
-	CommentUpdate = func(nv *Novel, cpID string) string {
+	// CommentUpdate (nv *Novel, cpID string) string 评论更新
+	CommentUpdate = func(_ *Novel, _ string) string {
 		// 默认为空实现
 		return ``
 	}
@@ -76,7 +76,7 @@ var (
 	RestorePlatform func(nv *Novel)
 )
 
-// 更新信息
+// Update 更新信息
 func (nv *Novel) Update() string {
 	defer RestorePlatform(nv)
 	return fmt.Sprintf(`《%s》更新了喵～
@@ -85,7 +85,7 @@ func (nv *Novel) Update() string {
 		nv.Name,
 		nv.Title,
 		RestoreURL(nv),
-		nv.Chapter.WordNum, func(v bool) string {
+		nv.WordNum, func(v bool) string {
 			if v {
 				return `付费`
 			}
@@ -114,7 +114,7 @@ func (nv *Novel) todayReport() (string, error) {
 	return s.String() + "\n" + nv.todayUpdate(), nil
 }
 
-// 距上次更新时间的时间差转换为时间间隔的结构体
+// DurationConvert 距上次更新时间的时间差转换为时间间隔的结构体
 func (nv *Novel) DurationConvert() (times.TimeDuration, error) {
 	// 如果时间早于 2006.1.2 15:04:05
 	if s, _ := time.Parse(times.Layout, times.Layout); nv.Duration > time.Since(s) {

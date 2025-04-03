@@ -2,10 +2,12 @@ package kitten
 
 import (
 	"errors"
+	"fmt"
 	"slices"
 	"strconv"
 	"strings"
 	"time"
+	"unicode/utf8"
 
 	"github.com/Kittengarten/KittenCore/kitten/core/str"
 
@@ -40,6 +42,9 @@ var (
 	strangerInfo    syncx.Map[QQ, qqInfo]    // 各陌生人信息缓存
 	groupMemberList syncx.Map[QQ, groupList] // 各群的成员列表缓存
 )
+
+// ErrBirthMissing 生日信息缺失喵！
+var ErrBirthMissing = errors.New(`生日信息缺失喵！`)
 
 // Self 获取 bot 的 ID
 func Self() QQ {
@@ -174,6 +179,9 @@ func (u *QQ) Age(msgr *Messager) int64 {
 
 // Birthday 获取生日
 func (u *QQ) Birthday(msgr *Messager) (time.Time, error) {
+	if !u.IsQQ() {
+		return time.Time{}, fmt.Errorf(`%s 不是QQ，%w`, u, ErrBirthMissing)
+	}
 	// 群成员信息中没有生日，直接退化至陌生人
 	var (
 		info = u.info(msgr)
@@ -182,7 +190,7 @@ func (u *QQ) Birthday(msgr *Messager) (time.Time, error) {
 		d    = info.Get(`birthday_day`).String()
 	)
 	if m == `` || m == `0` || d == `` || d == `0` {
-		return time.Time{}, errors.New(u.String() + `没有生日信息喵！`)
+		return time.Time{}, fmt.Errorf(`%s %w`, u, ErrBirthMissing)
 	}
 	if y == `` || y == `0` {
 		y = `0001`
@@ -237,28 +245,31 @@ func (u *QQ) TitleCardOrNickName(msgr *Messager) string {
 
 // CallName 从 QQ 获取用于称呼的简单昵称（经过修剪）
 func (u *QQ) CallName(msgr *Messager) (n string) {
+	overLen := func(name string) bool {
+		return len(name) > 1<<4 && utf8.RuneCountInString(name) > 1<<3
+	}
 	n = str.FirstText(str.CleanAll(u.Card(msgr), false))
-	if n == `` || len(n) > 16 {
+	if n == `` || overLen(n) {
 		n = str.FirstText(str.CleanAll(u.NickName(msgr), false))
 	}
-	if n == `` || len(n) > 16 {
+	if n == `` || overLen(n) {
 		n = str.FirstText(str.CleanAll(u.Title(msgr), false))
 	}
 	return
 }
 
 // MemberList 获取特定群的成员列表
-func (u QQ) MemberList(msgr *Messager) groupList {
+func (u *QQ) MemberList(msgr *Messager) groupList {
 	if !msgr.Check(Caller) || !u.IsGroup() {
 		// 没有 APICaller 或不是 QQ 群，无法获取
 		return groupList{}
 	}
 	// 从缓存获取该群成员列表
-	gmi, ok := groupMemberList.Load(u)
+	gmi, ok := groupMemberList.Load(*u)
 	if !ok {
 		// 如果获取不到，同步更新
 		u.updateMemberList(msgr)
-		gmi, _ = groupMemberList.Load(u)
+		gmi, _ = groupMemberList.Load(*u)
 	}
 	// 如果缓存已经过期，异步更新缓存的该群成员列表
 	if time.Since(gmi.Time) > expire {
@@ -268,8 +279,8 @@ func (u QQ) MemberList(msgr *Messager) groupList {
 }
 
 // （私有）更新特定群的成员列表
-func (u QQ) updateMemberList(msgr *Messager) {
-	groupMemberList.Store(u,
+func (u *QQ) updateMemberList(msgr *Messager) {
+	groupMemberList.Store(*u,
 		groupList{
 			List: msgr.GetGroupMemberListNoCache(u.Int()).Array(),
 			Time: time.Now(),

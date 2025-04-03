@@ -3,7 +3,7 @@ module github.com/Kittengarten/KittenCore
 go 1.24
 
 require (
-	github.com/FloatTech/ZeroBot-Plugin v1.9.6-0.20250308103309-e6e6dd45657a
+	github.com/FloatTech/ZeroBot-Plugin v1.9.6-0.20250325034142-6a747d2f9dad
 	github.com/FloatTech/ZeroBot-Plugin-Playground v0.0.0-20240530090706-3f2af06caa95
 	github.com/FloatTech/floatbox v0.0.0-20241106130736-5aea0a935024
 	github.com/FloatTech/zbpctrl v1.7.0
@@ -13,6 +13,7 @@ require (
 	github.com/antchfx/htmlquery v1.3.4
 	github.com/brahma-adshonor/gohook v1.1.10-0.20231106100708-5342d81802c3
 	github.com/dustin/go-humanize v1.0.1
+	github.com/fumiama/jieba v0.0.0-20221203025406-36c17a10b565
 	github.com/fumiama/terasu v0.0.0-20241027183601-987ab91031ce
 	github.com/google/uuid v1.6.0
 	github.com/jinzhu/gorm v1.9.16
@@ -20,6 +21,7 @@ require (
 	github.com/prometheus-community/pro-bing v0.6.1
 	github.com/sahilm/fuzzy v0.1.1
 	github.com/sashabaranov/go-openai v1.38.1
+	github.com/sergi/go-diff v1.3.1
 	github.com/shirou/gopsutil/v4 v4.25.2
 	github.com/tidwall/gjson v1.18.0
 	github.com/tidwall/sjson v1.2.5
@@ -27,7 +29,7 @@ require (
 	github.com/wdvxdr1123/ZeroBot v1.8.0
 	go.uber.org/zap v1.27.0
 	golang.org/x/exp v0.0.0-20250305212735-054e65f0b394
-	golang.org/x/net v0.37.0
+	golang.org/x/net v0.38.0
 	gopkg.in/natefinch/lumberjack.v2 v2.2.1
 	gopkg.in/yaml.v3 v3.0.1
 )
@@ -59,7 +61,6 @@ require (
 	github.com/fumiama/gofastTEA v0.1.3 // indirect
 	github.com/fumiama/gotracemoe v0.0.3 // indirect
 	github.com/fumiama/imgsz v0.0.4 // indirect
-	github.com/fumiama/jieba v0.0.0-20221203025406-36c17a10b565 // indirect
 	github.com/fumiama/slowdo v0.0.0-20241001074058-27c4fe5259a4 // indirect
 	github.com/fumiama/unibase2n v0.0.0-20240530074540-ec743fd5a6d6 // indirect
 	github.com/gabriel-vasile/mimetype v1.4.8 // indirect
@@ -72,7 +73,7 @@ require (
 	github.com/go-openapi/swag v0.23.1 // indirect
 	github.com/go-playground/locales v0.14.1 // indirect
 	github.com/go-playground/universal-translator v0.18.1 // indirect
-	github.com/go-playground/validator/v10 v10.25.0 // indirect
+	github.com/go-playground/validator/v10 v10.26.0 // indirect
 	github.com/goccy/go-json v0.10.5 // indirect
 	github.com/golang/freetype v0.0.0-20170609003504-e2365dfdc4a0 // indirect
 	github.com/golang/groupcache v0.0.0-20241129210726-2c02b8208cf8 // indirect
@@ -128,11 +129,11 @@ require (
 	golang.org/x/text v0.23.0 // indirect
 	golang.org/x/tools v0.31.0 // indirect
 	golang.org/x/xerrors v0.0.0-20240903120638-7835f813f4da // indirect
-	google.golang.org/protobuf v1.36.5 // indirect
-	modernc.org/libc v1.61.13 // indirect
+	google.golang.org/protobuf v1.36.6 // indirect
+	modernc.org/libc v1.62.0 // indirect
 	modernc.org/mathutil v1.7.1 // indirect
-	modernc.org/memory v1.9.0 // indirect
-	modernc.org/sqlite v1.36.1 // indirect
+	modernc.org/memory v1.9.1 // indirect
+	modernc.org/sqlite v1.36.3 // indirect
 )
 
 replace modernc.org/sqlite => github.com/fumiama/sqlite3 v1.29.10-simp

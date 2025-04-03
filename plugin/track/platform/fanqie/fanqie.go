@@ -1,3 +1,4 @@
+// Package fanqie 番茄小说网
 package fanqie
 
 import (
@@ -26,8 +27,11 @@ import (
 type fq struct{}
 
 const (
-	HOST       = `https://fanqienovel.com`
-	URL        = HOST + `/page/`
+	// Host 网站
+	HOST = `https://fanqienovel.com`
+	// URL 链接
+	URL = HOST + `/page/`
+	// ChapterURL 章节链接
 	ChapterURL = HOST + `/reader/`
 )
 
@@ -77,11 +81,11 @@ func (f fq) Init(bookID string) (nv *novel.Novel, err error) {
 	defer shttp.SetUserAgent(shttp.UserAgent)
 	doc, err := htmlquery.LoadURL(nv.URL)
 	if err != nil {
-		return
+		return nv, err
 	}
 	if !strings.Contains(htmls.InnerText(doc, `//title`), `在线免费阅读`) {
 		err = status.ErrStatus(nv.URL, status.BookUnreachable)
-		return
+		return nv, err
 	}
 	// 获取封面
 	nv.CoverURL = gjson.Get(htmls.InnerText(doc,
@@ -125,11 +129,11 @@ func (f fq) Init(bookID string) (nv *novel.Novel, err error) {
 	// 防止章节炸了导致获取章节跳转引发 panic
 	if ncpURL+`/` == nv.URL {
 		err = status.ErrStatus(ncpURL, status.ChapterURLException)
-		return
+		return nv, err
 	}
 	// 加载新章节
 	nv.Chapter, err = f.NewChapter(ncpURL)
-	return
+	return nv, err
 }
 
 // NewChapter 章节信息获取
@@ -143,11 +147,11 @@ func (f fq) NewChapter(cpURL string) (cp *chapter.Chapter, err error) {
 	defer shttp.SetUserAgent(shttp.UserAgent)
 	doc, err := htmlquery.LoadURL(cp.URL)
 	if err != nil {
-		return
+		return cp, err
 	}
 	if !strings.Contains(htmls.InnerText(doc, `//title`), `在线免费阅读`) {
 		err = status.ErrStatus(cp.URL, status.ChapterUnreachable)
-		return
+		return cp, err
 	}
 	// 获取章节标题
 	cp.Title = htmls.InnerText(doc, `//h1[@class="muye-reader-title"]`)
@@ -156,7 +160,7 @@ func (f fq) NewChapter(cpURL string) (cp *chapter.Chapter, err error) {
 	cp.WordNum, err = strconv.Atoi(str.Mid(`本章字数：`, `字`, wordNum))
 	if err != nil {
 		err = fmt.Errorf(`章节 %s 的字数获取错误喵！%w`, cp.URL, err)
-		return
+		return cp, err
 	}
 	js := func() string {
 		for _, t := range htmlquery.Find(doc, `//script`) {
@@ -173,7 +177,7 @@ func (f fq) NewChapter(cpURL string) (cp *chapter.Chapter, err error) {
 	cp.Time, err = platform.ParseTime(f, gjson.Get(htmls.InnerText(doc,
 		`//script[@type="application/ld+json"]`), `dateModified`).String())
 	if err != nil {
-		return
+		return cp, err
 	}
 	// 章节数据
 	cpData := gjson.Get(js, `reader.chapterData`)
@@ -181,5 +185,5 @@ func (f fq) NewChapter(cpURL string) (cp *chapter.Chapter, err error) {
 	cp.PreURL = ChapterURL + cpData.Get(`preItemId`).String()
 	// 获取下一章链接
 	cp.NextURL = ChapterURL + cpData.Get(`nextItemId`).String()
-	return
+	return cp, err
 }

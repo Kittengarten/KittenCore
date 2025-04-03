@@ -16,7 +16,7 @@ require (
 	github.com/fumiama/go-base16384 v1.7.0
 	github.com/gin-gonic/gin v1.10.0
 	github.com/go-playground/assert/v2 v2.2.0
-	github.com/go-playground/validator/v10 v10.25.0
+	github.com/go-playground/validator/v10 v10.26.0
 	github.com/google/uuid v1.6.0
 	github.com/patrickmn/go-cache v2.1.1-0.20191004192108-46f407853014+incompatible
 	github.com/sirupsen/logrus v1.9.3
@@ -32,7 +32,7 @@ require (
 	github.com/FloatTech/gg v1.1.3 // indirect
 	github.com/FloatTech/ttl v0.0.0-20250224045156-012b1463287d // indirect
 	github.com/KyleBanks/depth v1.2.1 // indirect
-	github.com/bytedance/sonic v1.13.1 // indirect
+	github.com/bytedance/sonic v1.13.2 // indirect
 	github.com/bytedance/sonic/loader v0.2.4 // indirect
 	github.com/cloudwego/base64x v0.1.5 // indirect
 	github.com/disintegration/imaging v1.6.2 // indirect
@@ -75,15 +75,15 @@ require (
 	golang.org/x/crypto v0.36.0 // indirect
 	golang.org/x/exp v0.0.0-20250305212735-054e65f0b394 // indirect
 	golang.org/x/image v0.25.0 // indirect
-	golang.org/x/net v0.37.0 // indirect
+	golang.org/x/net v0.38.0 // indirect
 	golang.org/x/sys v0.31.0 // indirect
 	golang.org/x/text v0.23.0 // indirect
 	golang.org/x/tools v0.31.0 // indirect
-	google.golang.org/protobuf v1.36.5 // indirect
-	modernc.org/libc v1.61.13 // indirect
+	google.golang.org/protobuf v1.36.6 // indirect
+	modernc.org/libc v1.62.0 // indirect
 	modernc.org/mathutil v1.7.1 // indirect
-	modernc.org/memory v1.8.2 // indirect
-	modernc.org/sqlite v1.36.1 // indirect
+	modernc.org/memory v1.9.1 // indirect
+	modernc.org/sqlite v1.36.3 // indirect
 )
 
 replace modernc.org/sqlite => github.com/fumiama/sqlite3 v1.29.10-simp

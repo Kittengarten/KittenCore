@@ -9,6 +9,8 @@ import (
 	"strings"
 	"unicode"
 	"unicode/utf8"
+
+	"github.com/sergi/go-diff/diffmatchpatch"
 )
 
 type str interface {
@@ -30,7 +32,10 @@ func CleanAll[T str](s T, lf bool) T {
 					// 如果换行，移除换行符以外的控制字符和空白字符
 					(lf && remove && !strings.ContainsRune("\n\r", r)) ||
 					// 移除可能引发排版和显示错误的字符
-					strings.ContainsRune("\u061c\u200e\u200f\u202a\u202b\u202c\u202d\u202e\u2066\u2067\u2068\u2069\ufffd", r) {
+					strings.ContainsRune(
+						"\u061c\u200e\u200f\u202a\u202b\u202c\u202d\u202e\u2066\u2067\u2068\u2069\ufffd",
+						r,
+					) {
 					return -1
 				}
 				return r
@@ -54,7 +59,7 @@ func ClearRuneBytes[T str](s T, n ...int) T {
 // Compose 排版
 func Compose(b *strings.Builder, s string) string {
 	if b == nil {
-		b = &strings.Builder{}
+		b = new(strings.Builder)
 	}
 	for line := range strings.Lines(strings.TrimSpace(s)) {
 		if line == `` {
@@ -90,46 +95,46 @@ ru:
 }
 
 // 是中文
-func isChinese(ch rune) bool {
-	return unicode.Is(unicode.Han, ch)
+func isChinese(r rune) bool {
+	return unicode.Is(unicode.Han, r)
 }
 
 // 是假名
-func isJapanese(ch rune) bool {
-	return unicode.Is(unicode.Hiragana, ch) ||
-		unicode.Is(unicode.Katakana, ch)
+func isJapanese(r rune) bool {
+	return unicode.Is(unicode.Hiragana, r) ||
+		unicode.Is(unicode.Katakana, r)
 }
 
 // 是谚文
-func isKorean(ch rune) bool {
-	return unicode.Is(unicode.Hangul, ch)
+func isKorean(r rune) bool {
+	return unicode.Is(unicode.Hangul, r)
 }
 
 // 是西里尔字母
-func isRussian(ch rune) bool {
-	return unicode.Is(unicode.Cyrillic, ch)
+func isRussian(r rune) bool {
+	return unicode.Is(unicode.Cyrillic, r)
 }
 
 // 是拉丁字母
-func isFrench(ch rune) bool {
-	return unicode.Is(unicode.Latin, ch)
+func isFrench(r rune) bool {
+	return unicode.Is(unicode.Latin, r)
 }
 
 // 是阿拉伯字母
-func isArabic(ch rune) bool {
-	return unicode.Is(unicode.Arabic, ch)
+func isArabic(r rune) bool {
+	return unicode.Is(unicode.Arabic, r)
 }
 
 // 是希腊字母
-func isGreek(ch rune) bool {
-	return unicode.Is(unicode.Greek, ch)
+func isGreek(r rune) bool {
+	return unicode.Is(unicode.Greek, r)
 }
 
 // 是数字
-func isN(ch rune) bool {
-	return unicode.Is(unicode.Number, ch) ||
-		unicode.Is(unicode.Digit, ch) ||
-		unicode.IsNumber(ch)
+func isN(r rune) bool {
+	return unicode.Is(unicode.Number, r) ||
+		unicode.Is(unicode.Digit, r) ||
+		unicode.IsNumber(r)
 }
 
 // FirstHan 获取第一段中文字符码点组成的字符串
@@ -202,26 +207,66 @@ func mid(pre, suf, str string, isMin bool) string {
 	return str[low:up]
 }
 
-// SimilarityChinese 返回两个汉字字符串的相似程度
-func SimilarityChinese(x, y string) float64 {
+// 计算两个字符串中未更改字符的个数
+func countEqual(diffs []diffmatchpatch.Diff) (count int) {
+	for _, d := range diffs {
+		if d.Type == diffmatchpatch.DiffEqual {
+			count += utf8.RuneCountInString(d.Text)
+		}
+	}
+	return
+}
+
+// Equal 计算两个字符串的未更改字符占比
+func Equal(a, b string) float64 {
+	return float64(countEqual(diffmatchpatch.New().DiffMain(a, b, false))) /
+		float64(max(utf8.RuneCountInString(a), utf8.RuneCountInString(b)))
+}
+
+// 计算两个字符串中公共字符的个数
+func countCommon(a, b string) (count int) {
+	for _, r := range a {
+		if strings.ContainsRune(b, r) {
+			count++
+		}
+	}
+	for _, r := range b {
+		if strings.ContainsRune(a, r) {
+			count++
+		}
+	}
+	return
+}
+
+// Common 计算两个字符串的公共字符占比
+func Common(a, b string) float64 {
+	return float64(countCommon(a, b)) /
+		float64(utf8.RuneCountInString(a)+utf8.RuneCountInString(b))
+}
+
+// Similarity 计算两个字符串的相似程度
+func Similarity(a, b string) float64 {
+	return (Equal(a, b) + Common(a, b)) / 2
+}
+
+// SimilarityChinese 计算两个汉字字符串的相似程度
+func SimilarityChinese(a, b string) float64 {
 	const avg = `盒` // 汉字平均码点值
 	var (
-		xr = []rune(x)
-		yr = []rune(y)
+		ar = []rune(a)
+		br = []rune(b)
 	)
-	switch xc, yc := len(xr), len(yr); cmp.Compare(xc, yc) {
+	switch ac, bc := len(ar), len(br); cmp.Compare(ac, bc) {
 	case -1:
-		x += strings.Repeat(avg, yc-xc)
-		xr = []rune(x)
+		ar = []rune(a + strings.Repeat(avg, bc-ac))
 	case 1:
-		y += strings.Repeat(avg, xc-yc)
-		yr = []rune(y)
+		br = []rune(b + strings.Repeat(avg, ac-bc))
 	}
 	var sum, s1, s2 float64
-	for i, r := range xr {
-		sum += float64(r) * float64(yr[i])
-		s1 += math.Pow(float64(r), 2)
-		s2 += math.Pow(float64(yr[i]), 2)
+	for i := range ar {
+		sum += float64(ar[i]) * float64(br[i])
+		s1 += math.Pow(float64(ar[i]), 2)
+		s2 += math.Pow(float64(br[i]), 2)
 	}
 	if s1 == 0 || s2 == 0 {
 		return 0

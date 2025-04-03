@@ -115,7 +115,7 @@ func stackExe(msgr *kitten.Messager) {
 		if err := msgr.SendEmojiLike(`❔ 问号`); err != nil {
 			kitten.Error(err)
 		}
-		msgr.SendWithImageFailOf(`本命令参数数量：2
+		msgr.SendWithImageFailf(`本命令参数数量：2
 %s%s%s %s|%s|%s|%s
 传入的参数数量：%d
 参数数量错误，请用半角空格隔开各参数喵！`,
@@ -289,20 +289,23 @@ l 为队列高度，n 为结果，w 为叠猫猫前的体重
 func doClear(msgr *kitten.Messager, l, n int, w int, m *meow, r *strings.Builder) {
 	r.WriteByte('\n')
 	if n == l {
-		// 如果清空了猫堆
-		if hasClear(m) {
+		// 清空了猫堆
+		switch hasClear(m) {
+		case true:
+			// 触发了特效
 			if err := msgr.SendEmojiLike(`👏 鼓掌`); err != nil {
 				kitten.Error(err)
 			}
 			fmt.Fprintln(r, `你触发了清空猫堆的特效！`)
-		} else {
+		case false:
+			// 没有触发特效
 			if err := msgr.SendEmojiLike(`哈欠`); err != nil {
 				kitten.Error(err)
 			}
 			fmt.Fprintln(r, `你清空了猫堆，但没有发生特别的事情。`)
 		}
 	}
-	// 如果没有清空猫堆
+	// 体重变化
 	if m.Weight == w {
 		fmt.Fprintf(r, "你的体重为 %.1f kg 不变。\n", itof(w))
 		return
@@ -360,7 +363,7 @@ func (d *data) doStack(msgr *kitten.Messager, m *meow) error {
 	if err = msgr.SendEmojiLike(`爱心`); err != nil {
 		kitten.Error(err)
 	}
-	_ = sendTextOf(msgr, `叠猫猫成功，目前处于队列中第 %d 位喵～
+	_ = sendTextf(msgr, `叠猫猫成功，目前处于队列中第 %d 位喵～
 你的当前体重为 %.1f kg。`,
 		l+1,
 		itof(m.Weight))
@@ -515,6 +518,7 @@ func (d *data) chancePressed(msgr *kitten.Messager) float64 {
 如果没有被压坏则返回 true
 */
 func (d *data) checkPress(msgr *kitten.Messager) bool {
+	//nolint:gosec
 	return rand.Float64() >= d.chancePressed(msgr)
 }
 
@@ -549,6 +553,7 @@ func (d *data) pressResult(msgr *kitten.Messager, m meow) int {
 // 检查是否平地摔，正在叠猫猫的队列才能调用
 func (d *data) checkFlat(m meow) bool {
 	// 当叠猫猫队列为空， 抱枕突破所需体重/当前体重的概率平地摔
+	//nolint:gosec
 	return len(*d) == 0 && rand.Float64() < chanceFlat(m)
 }
 
@@ -629,6 +634,7 @@ func exit(msgr *kitten.Messager, m *meow, r result, h int) {
 
 // 清空猫堆的体重调整
 func hasClear(m *meow) bool {
+	//nolint:gosec
 	if rand.Float64() >= float64(mapMeow[抱枕].weight)/float64(m.Weight) {
 		return false
 	}
@@ -648,7 +654,6 @@ func (d *data) oc(msgr *kitten.Messager) {
 		// 如果当前不在休息，不需要加速，直接返回
 		return
 	}
-	nre = err.(*needRestError) // 需要休息
 	if (*d)[nre.i].getTypeID(msgr) < 大老虎 {
 		// 如果不是大老虎以上，不能加速
 		sendWithImageFail(msgr, `大老虎以上才可以锻炼——`)
@@ -680,7 +685,7 @@ func (d *data) oc(msgr *kitten.Messager) {
 	if err := fio.Save(dataPath, d); err != nil {
 		sendWithImageFail(msgr, `存储叠猫猫数据时发生错误喵！`, err)
 	}
-	_ = sendTextOf(msgr, `锻炼成功喵！
+	_ = sendTextf(msgr, `锻炼成功喵！
 你剩余的休息时间变为 %s喵！
 你的体重减少至 %.1f kg 喵！`,
 		times.ConvertTimeDuration(after.Time.Sub(time.Unix(msgr.Event.Time, 0))),

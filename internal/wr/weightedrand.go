@@ -84,6 +84,7 @@ var (
 //
 // Utilizes global rand as the source of randomness. Safe for concurrent usage.
 func (c Chooser[T, W]) Pick() T {
+	//nolint:gosec
 	r := rand.N(c.max) + 1
 	i, _ := slices.BinarySearch(c.totals, r)
 	return c.data[i].Item

@@ -8,6 +8,7 @@ import (
 
 	"github.com/Kittengarten/KittenCore/kitten"
 	"github.com/Kittengarten/KittenCore/kitten/core/fio"
+	"github.com/Kittengarten/KittenCore/kitten/core/msg/mio"
 	"github.com/Kittengarten/KittenCore/kitten/core/msg/seg"
 
 	"github.com/wdvxdr1123/ZeroBot/message"
@@ -17,6 +18,7 @@ const waifu = `https://www.thiswaifudoesnotexist.net/example-%d.jpg` // AI 随�
 
 // SendWaifu 发送 AI 随机老婆
 func SendWaifu(msgr *kitten.Messager) message.ID {
+	//nolint:gosec
 	return msgr.Reply().AtLf().Image(fio.NewPath(fmt.Sprintf(waifu, rand.N(100001)))).Send()
 }
 
@@ -55,10 +57,10 @@ func Scan(msgr *kitten.Messager, su, hp bool, mpp func() bool) message.ID {
 func scanQRCode(msgr *kitten.Messager) message.ID {
 	r := make([]string, 0, len(msgr.Event.Message))
 	for _, e := range msgr.Event.Message {
-		if e.Type != seg.Image || e.Data[`file`] == `` {
+		if e.Type != seg.Image || mio.GetImagePath(e) == `` {
 			continue
 		}
-		s, err := msgr.ScanQRCodeInQQ(e.Data[`file`])
+		s, err := msgr.ScanQRCodeInQQ(mio.GetImagePath(e).String())
 		if err != nil {
 			kitten.Error(err)
 			r = append(r, err.Error())

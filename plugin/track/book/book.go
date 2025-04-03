@@ -3,6 +3,7 @@ package book
 import (
 	"net/http"
 	"slices"
+	"sync"
 	"time"
 
 	"github.com/Kittengarten/KittenCore/kitten"
@@ -22,17 +23,18 @@ const (
 )
 
 type (
-	// 多项小说报更项目的数据集组成的切片
+	// Books 多项小说报更项目的数据集组成的切片
 	Books []Book
-	// 小说报更项目的数据集
+	// Book 小说报更项目的数据集
 	Book struct {
-		Platform   string      // 报更平台
-		BookID     string      // 报更书号（为了未来兼容性，不使用数值）
-		BookName   string      // 报更书名
-		Writer     string      // 小说作者
-		Users      []kitten.QQ // 用户，正数代表 QQ 号，负数代表群号
-		RecordURL  string      // 上次更新链接
-		UpdateTime time.Time   // 上次更新时间
+		Platform     string      // Platform 报更平台
+		BookID       string      // BookID 报更书号（为了未来兼容性，不使用数值）
+		BookName     string      // BookName 报更书名
+		Writer       string      // Writer 小说作者
+		Protagonists []string    `yaml:",omitempty"` // Protagonists 主角
+		Users        []kitten.QQ // Users 用户，正数代表 QQ 号，负数代表群号
+		RecordURL    string      `yaml:",omitempty"` // RecordURL 上次更新链接
+		UpdateTime   time.Time   `yaml:",omitempty"` // UpdateTime 上次更新时间
 	}
 )
 
@@ -57,6 +59,7 @@ func (c *Books) SaveConfig(cu chan Books, path fio.Path) error {
 func (c *Books) Report(
 	msgr *kitten.Messager,
 	cu chan Books,
+	mu *sync.RWMutex,
 	path fio.Path,
 	cycle time.Duration,
 	st *time.Ticker,
@@ -73,7 +76,7 @@ func (c *Books) Report(
 				break
 			}
 			if res != nil && res.StatusCode == http.StatusOK {
-				res.Body.Close()
+				_ = res.Body.Close()
 				// API 可以访问，切换为 API 模式
 				b.Platform = fanqie.API.String()
 			}
@@ -97,6 +100,9 @@ func (c *Books) Report(
 				continue
 			}
 		}
+		if len(nv.Protagonists) == 0 {
+			nv.Protagonists = b.Protagonists
+		}
 		// 发送更新消息
 		go novel.TryCommentUpdate(
 			msgr,
@@ -117,6 +123,8 @@ func (c *Books) Report(
 		c.sortByUpdate()
 		// 异步保存配置
 		go func() {
+			mu.Lock()
+			defer mu.Unlock()
 			err = c.SaveConfig(cu, path)
 		}()
 		if err != nil {

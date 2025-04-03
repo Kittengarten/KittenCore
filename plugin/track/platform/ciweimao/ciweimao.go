@@ -1,3 +1,4 @@
+// Package ciweimao 刺猬猫阅读
 package ciweimao
 
 import (
@@ -25,8 +26,10 @@ import (
 type cwm struct{}
 
 const (
+	// Host 网站
 	Host = `https://www.ciweimao.com`
-	URL  = Host + `/book/`
+	// URL 链接
+	URL = Host + `/book/`
 )
 
 // Platform 刺猬猫阅读
@@ -83,11 +86,11 @@ func (c cwm) Init(bookID string) (nv *novel.Novel, err error) {
 	// 获取小说网页，失败则返回
 	doc, err := htmlquery.LoadURL(nv.URL)
 	if err != nil {
-		return
+		return nv, err
 	}
 	if htmls.InnerText(doc, `//title`) == `刺猬猫` {
 		err = status.ErrStatus(nv.URL, status.BookUnreachable)
-		return
+		return nv, err
 	}
 	// 获取小说信息
 	bookInfo := htmlquery.FindOne(doc, `//div[@class="book-info"]`)
@@ -108,7 +111,7 @@ func (c cwm) Init(bookID string) (nv *novel.Novel, err error) {
 	bookGrade := htmlquery.Find(bookInfo, `/p[@class="book-grade"]/b`)
 	if len(bookGrade) < 3 {
 		err = status.ErrStatus(nv.URL, status.BookUnreachable)
-		return
+		return nv, err
 	}
 	// 获取小说点击
 	nv.HitNum = htmlquery.InnerText(bookGrade[0])
@@ -130,7 +133,7 @@ func (c cwm) Init(bookID string) (nv *novel.Novel, err error) {
 	property := htmlquery.Find(doc, `//div[starts-with(@class,"book-property")]/span/i`)
 	if len(property) < 9 {
 		err = status.ErrStatus(nv.URL, status.BookStatusException)
-		return
+		return nv, err
 	}
 	// 获取上架状态
 	nv.Right = append(nv.Right, htmlquery.InnerText(property[0]))
@@ -147,16 +150,16 @@ func (c cwm) Init(bookID string) (nv *novel.Novel, err error) {
 	if ncp == nil {
 		// 如果新章节链接不存在，防止更新章节炸了跳转到网站首页引起程序报错
 		err = fmt.Errorf(`新章节链接错误：%w`, status.ErrStatus(nv.URL, status.NoChapterURL))
-		return
+		return nv, err
 	}
 	ncpURL := htmlquery.InnerText(ncp)
 	if ncpURL == nv.URL {
 		err = status.ErrStatus(ncpURL, status.ChapterURLException)
-		return
+		return nv, err
 	}
 	// 加载新章节
 	nv.Chapter, err = c.NewChapter(ncpURL)
-	return
+	return nv, err
 }
 
 // NewChapter 章节信息获取
@@ -168,11 +171,11 @@ func (c cwm) NewChapter(cpURL string) (cp *chapter.Chapter, err error) {
 	// 获取章节网页，失败则返回
 	doc, err := htmlquery.LoadURL(cp.URL)
 	if err != nil {
-		return
+		return cp, err
 	}
 	if htmls.InnerText(doc, `//title`) == `刺猬猫` {
 		err = status.ErrStatus(cp.URL, status.ChapterUnreachable)
-		return
+		return cp, err
 	}
 	// 获取章节标题
 	cp.Title = htmls.InnerText(doc, `//div[@class="read-hd"]/h1[@class="chapter"]`)
@@ -180,14 +183,14 @@ func (c cwm) NewChapter(cpURL string) (cp *chapter.Chapter, err error) {
 	cp.Time, err = platform.ParseTime(c, strings.TrimPrefix(
 		htmls.InnerText(doc, `//div[@class="read-hd"]/p/span[3]`), `更新时间：`))
 	if err != nil {
-		return
+		return cp, err
 	}
 	// 获取章节字数
 	cp.WordNum, err = strconv.Atoi(strings.TrimPrefix(
 		htmls.InnerText(doc, `//div[@class="read-hd"]/p/span[5]`), `字数：`))
 	if err != nil {
 		err = fmt.Errorf(`章节 %s 的字数获取错误喵！%w`, cp.URL, err)
-		return
+		return cp, err
 	}
 	// 获取上一章链接
 	if pre := htmlquery.FindOne(doc,
@@ -208,5 +211,5 @@ func (c cwm) NewChapter(cpURL string) (cp *chapter.Chapter, err error) {
 	default:
 		err = status.ErrStatus(cp.URL, status.VIPChapterException)
 	}
-	return
+	return cp, err
 }

@@ -26,7 +26,7 @@ type (
 		NewChapter(cpURL string) (*chapter.Chapter, error)
 	}
 	// 不支持的平台
-	notSupportedError struct {
+	NotSupportedError struct {
 		Platform // 平台
 	}
 )
@@ -34,8 +34,9 @@ type (
 var (
 	// Platforms 小说平台，用于各平台的实现导入
 	Platforms []Platform
-	// CommentUpdate 评论更新
-	CommentUpdate = func(p Platform, nv fmt.Stringer, bookID string, cpID string) string {
+	// CommentUpdate (p Platform, nv fmt.Stringer, bookID string, cpID string) string
+	// 评论更新
+	CommentUpdate = func(_ Platform, _ fmt.Stringer, _ string, _ string) string {
 		// 默认为空实现
 		return ``
 	}
@@ -60,16 +61,16 @@ func Get(platform string) Platform {
 	return nil
 }
 
-// NotSupported *notSupportedErr 的构造函数，不支持的平台
-func NotSupported(p Platform) *notSupportedError {
-	return &notSupportedError{
+// NotSupported *NotSupportedError 的构造函数，不支持的平台
+func NotSupported(p Platform) *NotSupportedError {
+	return &NotSupportedError{
 		Platform: p,
 	}
 }
 
 // Error 实现 error
-func (e *notSupportedError) Error() string {
-	return e.Platform.String() + `不是受支持的小说平台喵！`
+func (e *NotSupportedError) Error() string {
+	return e.String() + `不是受支持的小说平台喵！`
 }
 
 // ParseTime 解析时间
