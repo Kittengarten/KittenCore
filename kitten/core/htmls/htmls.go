@@ -31,6 +31,9 @@ func walk(node *html.Node, f func(*html.Node) bool) {
 
 // ExtractText 从 HTML 文档中提取纯文本
 func ExtractText(doc *html.Node) string {
+	if doc == nil {
+		return ``
+	}
 	var b strings.Builder
 	walk(doc, func(n *html.Node) bool {
 		if n.Type == html.TextNode {
