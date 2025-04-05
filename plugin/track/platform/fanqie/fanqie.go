@@ -94,13 +94,15 @@ func (f fq) Init(bookID string) (nv *novel.Novel, err error) {
 	nv.Name = htmls.InnerText(doc, `//div[@class="info-name"]`)
 	// 获取小说信息
 	bookInfo := htmlquery.FindOne(doc, `//div[@class="info-label"]`)
-	// 获取小说状态
-	nv.Status = htmls.InnerText(bookInfo, `//span[@class="info-label-yellow"]`)
-	// 获取标签
-	nv.TagList = utils.ConvertSlice(
-		htmlquery.Find(bookInfo, `//span[@class="info-label-grey"]`),
-		htmlquery.InnerText,
-	)
+	if bookInfo != nil {
+		// 获取小说状态
+		nv.Status = htmls.InnerText(bookInfo, `//span[@class="info-label-yellow"]`)
+		// 获取标签
+		nv.TagList = utils.ConvertSlice(
+			htmlquery.Find(bookInfo, `//span[@class="info-label-grey"]`),
+			htmlquery.InnerText,
+		)
+	}
 	// 获取小说字数
 	nv.TotalWordNum = func(wordNum *html.Node) (s string) {
 		s = htmls.InnerText(wordNum, `/span[@class="detail"]`)

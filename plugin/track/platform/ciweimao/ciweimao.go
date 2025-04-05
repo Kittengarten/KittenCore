@@ -94,31 +94,31 @@ func (c cwm) Init(bookID string) (nv *novel.Novel, err error) {
 	}
 	// 获取小说信息
 	bookInfo := htmlquery.FindOne(doc, `//div[@class="book-info"]`)
-	// 获取书名
-	nv.Name = htmls.InnerText(bookInfo, `/h1[@class="title"]/text()`)
-	// 获取作者
-	nv.Writer = htmls.InnerText(bookInfo, `/h1[@class="title"]/span/a`)
-	// 获取标签
-	nv.TagList = utils.ConvertSlice(
-		htmlquery.Find(bookInfo, `/p/span[starts-with(@class,"label")]/a`),
-		func(n *html.Node) string {
-			return str.CleanAll(htmlquery.InnerText(n), false)
-		},
-	)
-	// 获取小说状态
-	nv.Status = htmls.InnerText(bookInfo, `/p[@class="update-state"]`)
-	// 获取小说成绩
-	bookGrade := htmlquery.Find(bookInfo, `/p[@class="book-grade"]/b`)
-	if len(bookGrade) < 3 {
-		err = status.ErrStatus(nv.URL, status.BookUnreachable)
-		return nv, err
+	if bookInfo != nil {
+		// 获取书名
+		nv.Name = htmls.InnerText(bookInfo, `/h1[@class="title"]/text()`)
+		// 获取作者
+		nv.Writer = htmls.InnerText(bookInfo, `/h1[@class="title"]/span/a`)
+		// 获取标签
+		nv.TagList = utils.ConvertSlice(
+			htmlquery.Find(bookInfo, `/p/span[starts-with(@class,"label")]/a`),
+			func(n *html.Node) string {
+				return str.CleanAll(htmlquery.InnerText(n), false)
+			},
+		)
+		// 获取小说状态
+		nv.Status = htmls.InnerText(bookInfo, `/p[@class="update-state"]`)
+		// 获取小说成绩
+		bookGrade := htmlquery.Find(bookInfo, `/p[@class="book-grade"]/b`)
+		if len(bookGrade) >= 3 {
+			// 获取小说点击
+			nv.HitNum = htmlquery.InnerText(bookGrade[0])
+			// 获取小说收藏
+			nv.Collection = htmlquery.InnerText(bookGrade[1])
+			// 获取小说字数
+			nv.TotalWordNum = htmlquery.InnerText(bookGrade[2])
+		}
 	}
-	// 获取小说点击
-	nv.HitNum = htmlquery.InnerText(bookGrade[0])
-	// 获取小说收藏
-	nv.Collection = htmlquery.InnerText(bookGrade[1])
-	// 获取小说字数
-	nv.TotalWordNum = htmlquery.InnerText(bookGrade[2])
 	// 获取项目
 	if item := htmlquery.FindOne(doc, `//div[starts-with(@class,"book-desc")]/p`); item != nil {
 		nv.Item = append(nv.Item, str.Mid(`【`, `】`, htmlquery.InnerText(item)))

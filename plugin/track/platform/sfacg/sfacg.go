@@ -109,14 +109,17 @@ func (s sf) Init(bookID string) (nv *novel.Novel, err error) {
 	nv.HeadURL = htmls.InnerText(doc, `//div[@class="author-mask"]//img/@src`)
 	// 小说详细信息
 	textRow := htmlquery.Find(doc, `//div[@class="text-row"]/span`)
-	// 获取类型
-	nv.Theme = strings.TrimPrefix(htmlquery.InnerText(textRow[0]), `类型：`)
-	// 获取小说字数信息
-	nv.TotalWordNum = str.Mid(`字数：`, `字[`, htmlquery.InnerText(textRow[1]))
-	// 获取状态
-	nv.Status = str.Mid(`[`, `]`, htmlquery.InnerText(textRow[1]))
-	// 获取点击
-	nv.HitNum = strings.TrimPrefix(htmlquery.InnerText(textRow[2]), `点击：`)
+	if len(textRow) >= 3 {
+		// 获取类型
+		nv.Theme = strings.TrimPrefix(htmlquery.InnerText(textRow[0]), `类型：`)
+		textRow1 := htmlquery.InnerText(textRow[1])
+		// 获取小说字数信息
+		nv.TotalWordNum = str.Mid(`字数：`, `字[`, textRow1)
+		// 获取状态
+		nv.Status = str.Mid(`[`, `]`, textRow1)
+		// 获取点击
+		nv.HitNum = strings.TrimPrefix(htmlquery.InnerText(textRow[2]), `点击：`)
+	}
 	// 获取简述
 	nv.Introduce = htmls.InnerText(doc, `//p[@class="introduce"]`)
 	// 获取移动版简述
