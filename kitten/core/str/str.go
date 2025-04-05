@@ -13,6 +13,7 @@ import (
 	"github.com/sergi/go-diff/diffmatchpatch"
 )
 
+// 表示字符串的接口
 type str interface {
 	~string | ~[]rune | ~[]byte
 }

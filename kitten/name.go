@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"slices"
 	"strconv"
-	"sync"
 
 	"github.com/Kittengarten/KittenCore/kitten/core/fio"
 
@@ -15,19 +14,17 @@ import (
 
 type name map[QQ]string // 昵称配置
 
-var (
-	nameFile = fio.NewPath(`data`, `zbp`, `name.yaml`) // 当前昵称文件
-	nameMu   sync.RWMutex                              // 当前昵称文件锁
-)
+// 当前昵称文件
+var nameFile = fio.PathRWMutex{Path: fio.NewPath(`data`, `zbp`, `name.yaml`)}
 
 // ErrNotDefaultName 不是预设的昵称喵！
 var ErrNotDefaultName = errors.New(`不是预设的昵称喵！`)
 
 // Name 获取当前的 bot 昵称
 func (u *QQ) Name() (string, error) {
-	nameMu.RLock()
-	defer nameMu.RUnlock()
-	n, err := fio.Load[name](nameFile, fio.Blank)
+	nameFile.RLock()
+	defer nameFile.RUnlock()
+	n, err := fio.Load[name](nameFile.Path, fio.Blank)
 	if err != nil {
 		return ``, err
 	}
@@ -52,14 +49,14 @@ func (u *QQ) SetName(nickname string) error {
 	if !slices.Contains(botConfig.NickName, nickname) {
 		return fmt.Errorf(`“%s”%w`, nickname, ErrNotDefaultName)
 	}
-	nameMu.Lock()
-	defer nameMu.Unlock()
-	n, err := fio.Load[name](nameFile, fio.Blank)
+	nameFile.Lock()
+	defer nameFile.Unlock()
+	n, err := fio.Load[name](nameFile.Path, fio.Blank)
 	if err != nil {
 		return err
 	}
 	n[*u] = nickname
-	return fio.Save(nameFile, n)
+	return fio.Save(nameFile.Path, n)
 }
 
 // SetCardThisGroup 在本群设置自己的群昵称，h 为猫堆高度

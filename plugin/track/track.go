@@ -9,7 +9,6 @@ import (
 	"slices"
 	"strconv"
 	"strings"
-	"sync"
 	"time"
 
 	"github.com/Kittengarten/KittenCore/kitten"
@@ -73,11 +72,9 @@ var (
 
 var (
 	// 配置文件路径
-	configPath = fio.NewPath(engine.DataFolder(), configFile)
+	configPath = fio.PathRWMutex{Path: fio.NewPath(engine.DataFolder(), configFile)}
 	// 报更更新的信号
 	cu = make(chan book.Books, 1)
-	// 读写锁
-	mu sync.RWMutex
 )
 
 // ErrArgumentCount 参数数量错误喵！
@@ -191,9 +188,9 @@ func setProtagonists(msgr *kitten.Messager) {
 		}
 	}
 	msgr.Reply().AtLf().Text(`平台：`, p, "\n书号：", bookID).Send()
-	mu.Lock()
-	defer mu.Unlock()
-	c, err := fio.Load[book.Books](configPath, fio.Empty) // 报更配置
+	configPath.Lock()
+	defer configPath.Unlock()
+	c, err := fio.Load[book.Books](configPath.Path, fio.Empty) // 报更配置
 	if err != nil {
 		msgr.SendWithImageFail(book.ErrLoad, err)
 		return
@@ -207,7 +204,7 @@ func setProtagonists(msgr *kitten.Messager) {
 		return
 	}
 	c[i].Protagonists = args[2:]
-	if err := c.SaveConfig(cu, configPath); err != nil {
+	if err := c.SaveConfig(cu, configPath.Path); err != nil {
 		msgr.SendWithImageFail(`设置`, strings.Join(args[2:], `、`), `为主角时`, book.ErrSave, err)
 		return
 	}
@@ -257,9 +254,9 @@ func add(msgr *kitten.Messager) {
 		msgr.SendWithImageFail(err)
 		return
 	}
-	mu.Lock()
-	defer mu.Unlock()
-	c, err := fio.Load[book.Books](configPath, fio.Empty) // 报更配置
+	configPath.Lock()
+	defer configPath.Unlock()
+	c, err := fio.Load[book.Books](configPath.Path, fio.Empty) // 报更配置
 	if err != nil {
 		msgr.SendWithImageFail(book.ErrLoad, err)
 		return
@@ -297,7 +294,7 @@ func add(msgr *kitten.Messager) {
 		c[i].Users = append(c[i].Users, *o)
 		slices.Sort(c[i].Users)
 	}
-	if err := c.SaveConfig(cu, configPath); err != nil {
+	if err := c.SaveConfig(cu, configPath.Path); err != nil {
 		msgr.SendWithImageFail(`添加《`, nv.Name, `》时`, book.ErrSave, err)
 		return
 	}
@@ -311,9 +308,9 @@ func cancel(msgr *kitten.Messager) {
 		msgr.SendWithImageFail(err)
 		return
 	}
-	mu.Lock()
-	defer mu.Unlock()
-	c, err := fio.Load[book.Books](configPath, fio.Empty) // 报更配置
+	configPath.Lock()
+	defer configPath.Unlock()
+	c, err := fio.Load[book.Books](configPath.Path, fio.Empty) // 报更配置
 	if err != nil {
 		msgr.SendWithImageFail(book.ErrLoad, err)
 		return
@@ -346,7 +343,7 @@ func cancel(msgr *kitten.Messager) {
 		// 如果移除后，不再有报更对象（也可能本来就没有报更对象），则整体移除该小说
 		c = slices.Delete(c, i, i+1)
 	}
-	if err := c.SaveConfig(cu, configPath); err != nil {
+	if err := c.SaveConfig(cu, configPath.Path); err != nil {
 		msgr.SendWithImageFail(`取消《`, nv.Name, `》时`, book.ErrSave, err)
 		return
 	}
@@ -360,9 +357,9 @@ func query(msgr *kitten.Messager) {
 		msgr.SendWithImageFail(err)
 		return
 	}
-	mu.RLock()
-	c, err := fio.Load[book.Books](configPath, fio.Empty) // 报更配置
-	mu.RUnlock()
+	configPath.RLock()
+	c, err := fio.Load[book.Books](configPath.Path, fio.Empty) // 报更配置
+	configPath.RUnlock()
 	if err != nil {
 		msgr.SendWithImageFail(book.ErrLoad, err)
 		return
@@ -448,13 +445,13 @@ func track() {
 		}
 	}()
 	// 初始化报更配置文件
-	if err := configPath.InitFile(fio.Empty); err != nil {
+	if err := configPath.Path.InitFile(fio.Empty); err != nil {
 		kitten.Error(`初始化报更配置文件时发生错误喵！`, err)
 		return
 	}
-	mu.RLock()
-	data, err := fio.Load[book.Books](configPath, fio.Empty)
-	mu.RUnlock()
+	configPath.RLock()
+	data, err := fio.Load[book.Books](configPath.Path, fio.Empty)
+	configPath.RUnlock()
 	if err != nil {
 		kitten.Error(book.ErrLoad, err)
 		return
@@ -485,7 +482,7 @@ func track() {
 		case data = <-cu: // 接收到更新配置则使用
 		case <-t.C: // 接收到时钟信号则释放
 		}
-		data.Report(bot, cu, &mu, configPath, cycle, st) // 执行报更
+		data.Report(bot, cu, configPath, cycle, st) // 执行报更
 	}
 }
 

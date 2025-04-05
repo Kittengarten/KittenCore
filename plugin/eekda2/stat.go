@@ -11,17 +11,12 @@ import (
 	zero "github.com/wdvxdr1123/ZeroBot"
 )
 
-// 比较结构体
-type compare struct {
-	sum, max, min int
-}
-
 // 查询被吃次数
 func getStat(ctx *zero.Ctx) {
-	mu.RLock()
-	defer mu.RUnlock()
+	statPath.RLock()
+	defer statPath.RUnlock()
 	var (
-		s, err = fio.Load[stat](statPath, fio.Empty)
+		s, err = fio.Load[stat](statPath.Path, fio.Empty)
 		msgr   = kitten.New(ctx)
 	)
 	if err != nil {
@@ -34,7 +29,7 @@ func getStat(ctx *zero.Ctx) {
 		msgr.DoNotKnow()
 		return
 	}
-	c, err := fio.Load[config](todayPath, fio.Empty)
+	c, err := fio.Load[config](todayPath.Path, fio.Empty)
 	if err != nil {
 		msgr.SendWithImageFail(err)
 	}
@@ -57,7 +52,7 @@ func getStat(ctx *zero.Ctx) {
 
 // 统计被吃次数
 func doStat(msgr *kitten.Messager, td today) {
-	s, err := fio.Load[stat](statPath, fio.Empty)
+	s, err := fio.Load[stat](statPath.Path, fio.Empty)
 	if err != nil {
 		msgr.SendWithImageFail(err)
 	}
@@ -91,7 +86,7 @@ func doStat(msgr *kitten.Messager, td today) {
 	// 排序
 	s.sort()
 	// 写入文件
-	if err := fio.Save(statPath, s); err != nil {
+	if err := fio.Save(statPath.Path, s); err != nil {
 		msgr.SendWithImageFail(err)
 	}
 }
@@ -120,7 +115,7 @@ func (s *stat) sort() {
 }
 
 // 比较
-func (fd *food) cmpStat() (c compare) {
+func (fd *food) cmpStat() (c struct{ sum, max, min int }) {
 	for _, v := range fd.Stat {
 		for _, n := range v {
 			c.sum += n

@@ -3,7 +3,6 @@ package eekda2
 import (
 	"slices"
 	"strings"
-	"sync"
 	"time"
 
 	"github.com/Kittengarten/KittenCore/kitten"
@@ -48,11 +47,9 @@ var (
 		PrivateDataFolder: replyServiceName,
 	}).ApplySingle(ctxext.DefaultSingle)
 	// 今日文件路径
-	todayPath = fio.NewPath(engine.DataFolder(), todayFile)
+	todayPath = fio.PathMutex{Path: fio.NewPath(engine.DataFolder(), todayFile)}
 	// 统计文件路径
-	statPath = fio.NewPath(engine.DataFolder(), statFile)
-	// 读写锁
-	mu sync.RWMutex
+	statPath = fio.PathRWMutex{Path: fio.NewPath(engine.DataFolder(), statFile)}
 )
 
 func init() {
@@ -67,10 +64,10 @@ func init() {
 
 // XX 今天吃什么
 func todayMeal(ctx *zero.Ctx) {
-	mu.Lock()
-	defer mu.Unlock()
+	todayPath.Lock()
+	defer todayPath.Unlock()
 	var (
-		c, err = fio.Load[config](todayPath, fio.Empty)
+		c, err = fio.Load[config](todayPath.Path, fio.Empty)
 		msgr   = kitten.New(ctx)
 	)
 	if err != nil {
@@ -113,7 +110,7 @@ func todayMeal(ctx *zero.Ctx) {
 			Group: []kitten.QQ{*g},
 		})
 		// 写入文件
-		if err := fio.Save(todayPath, c); err != nil {
+		if err := fio.Save(todayPath.Path, c); err != nil {
 			msgr.SendWithImageFail(err)
 			return
 		}
@@ -137,7 +134,7 @@ func todayMeal(ctx *zero.Ctx) {
 		// 注册
 		c[ci].Group = append(c[ci].Group, *g)
 		// 写入文件
-		if err := fio.Save(todayPath, c); err != nil {
+		if err := fio.Save(todayPath.Path, c); err != nil {
 			msgr.SendWithImageFail(err)
 			return
 		}
@@ -167,7 +164,7 @@ func todayMeal(ctx *zero.Ctx) {
 			})
 		}
 		// 写入文件
-		if err := fio.Save(todayPath, c); err != nil {
+		if err := fio.Save(todayPath.Path, c); err != nil {
 			msgr.SendWithImageFail(err)
 			return
 		}
@@ -209,7 +206,7 @@ func todayMeal(ctx *zero.Ctx) {
 		// 写入时间
 		c[ci].Time = time.Unix(msgr.Event.Time, 0)
 		// 写入文件
-		if err := fio.Save(todayPath, c); err != nil {
+		if err := fio.Save(todayPath.Path, c); err != nil {
 			msgr.SendWithImageFail(err)
 			return
 		}

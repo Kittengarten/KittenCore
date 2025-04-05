@@ -25,8 +25,10 @@ var (
 	//go:embed data_internal
 	data      embed.FS
 	imagePath mio.Path // 图片路径
-	Weight    int      // 自身叠猫猫体重（0.1 kg 数）
 )
+
+// Weight 自身叠猫猫体重（0.1 kg 数）
+var Weight int
 
 func init() {
 	var err error

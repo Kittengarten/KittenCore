@@ -12,6 +12,7 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"sync"
 
 	"github.com/Kittengarten/KittenCore/kitten/core/shttp"
 	"github.com/Kittengarten/KittenCore/kitten/core/utils"
@@ -19,8 +20,20 @@ import (
 	"gopkg.in/yaml.v3"
 )
 
-// Path 是一个表示文件路径的字符串
-type Path string
+type (
+	// Path 是一个表示文件路径的字符串
+	Path string
+	// PathMutex 是 Path 的互斥锁版本
+	PathMutex struct {
+		Path
+		*sync.Mutex
+	}
+	// PathRWMutex 是 Path 的读写锁版本
+	PathRWMutex struct {
+		Path
+		*sync.RWMutex
+	}
+)
 
 const (
 	Empty = `[]` // Empty YAML 空数组（slice）

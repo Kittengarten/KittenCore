@@ -4,7 +4,6 @@ package repeat
 import (
 	"math/rand/v2"
 	"strconv"
-	"sync"
 
 	"github.com/Kittengarten/KittenCore/kitten"
 	"github.com/Kittengarten/KittenCore/kitten/core"
@@ -53,15 +52,13 @@ var (
 		PrivateDataFolder: replyServiceName,
 	})
 	// 配置文件路径
-	configPath = fio.NewPath(engine.DataFolder(), configFile)
+	configPath = fio.PathMutex{Path: fio.NewPath(engine.DataFolder(), configFile)}
 	// 触发复读的次数
 	count uint = 2
 	// 触发复读的概率
 	chance = 0.5
 	// 消息缓存
 	m syncx.Map[kitten.QQ, stat]
-	// 互斥锁（只写不读）
-	mu sync.Mutex
 )
 
 func init() {
@@ -75,7 +72,7 @@ func init() {
 }
 
 func repeatInit() {
-	repeatConfig, err := fio.Load[config](configPath, "count: 2\nchance: 0.5") // 复读姬配置文件
+	repeatConfig, err := fio.Load[config](configPath.Path, "count: 2\nchance: 0.5") // 复读姬配置文件
 	if err != nil {
 		kitten.Error(`复读姬配置文件错误喵！`, err)
 		return
@@ -131,9 +128,9 @@ func repeatSet(ctx *zero.Ctx) {
 		msgr.SendWithImageFail(`[概率] 警告：不能 ＞ 1 喵！`)
 		return
 	}
-	mu.Lock()
-	defer mu.Unlock()
-	err = fio.Save(configPath, config{
+	configPath.Lock()
+	defer configPath.Unlock()
+	err = fio.Save(configPath.Path, config{
 		Count:  count,
 		Chance: chance,
 	})

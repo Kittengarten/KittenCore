@@ -3,7 +3,6 @@ package book
 import (
 	"net/http"
 	"slices"
-	"sync"
 	"time"
 
 	"github.com/Kittengarten/KittenCore/kitten"
@@ -59,8 +58,7 @@ func (c *Books) SaveConfig(cu chan Books, path fio.Path) error {
 func (c *Books) Report(
 	msgr *kitten.Messager,
 	cu chan Books,
-	mu *sync.RWMutex,
-	path fio.Path,
+	path fio.PathRWMutex,
 	cycle time.Duration,
 	st *time.Ticker,
 ) {
@@ -123,9 +121,9 @@ func (c *Books) Report(
 		c.sortByUpdate()
 		// 异步保存配置
 		go func() {
-			mu.Lock()
-			defer mu.Unlock()
-			err = c.SaveConfig(cu, path)
+			path.Lock()
+			defer path.Unlock()
+			err = c.SaveConfig(cu, path.Path)
 		}()
 		if err != nil {
 			kitten.Error(ErrSave, err)
