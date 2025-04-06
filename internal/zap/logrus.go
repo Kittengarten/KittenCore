@@ -19,6 +19,10 @@ func Warn(args ...any) {
 	zap.S().Warn(args...)
 }
 
+func Warning(args ...any) {
+	zap.S().Warn(args...)
+}
+
 func Error(args ...any) {
 	zap.S().Error(args...)
 }
@@ -43,6 +47,10 @@ func Warnf(format string, args ...any) {
 	zap.S().Warnf(format, args...)
 }
 
+func Warningf(format string, args ...any) {
+	zap.S().Warnf(format, args...)
+}
+
 func Errorf(format string, args ...any) {
 	zap.S().Errorf(format, args...)
 }
@@ -64,6 +72,10 @@ func Infoln(args ...any) {
 }
 
 func Warnln(args ...any) {
+	zap.S().Warnln(args...)
+}
+
+func Warningln(args ...any) {
 	zap.S().Warnln(args...)
 }
 
