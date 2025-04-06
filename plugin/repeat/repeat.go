@@ -52,7 +52,7 @@ var (
 		PrivateDataFolder: replyServiceName,
 	})
 	// 配置文件路径
-	configPath = fio.PathMutex{Path: fio.NewPath(engine.DataFolder(), configFile)}
+	configPath = fio.NewPath(engine.DataFolder(), configFile).WithMutex()
 	// 触发复读的阈值
 	threshold uint = 2
 	// 触发复读的概率

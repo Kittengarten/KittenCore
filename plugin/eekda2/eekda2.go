@@ -47,9 +47,9 @@ var (
 		PrivateDataFolder: replyServiceName,
 	}).ApplySingle(ctxext.DefaultSingle)
 	// 今日文件路径
-	todayPath = fio.PathMutex{Path: fio.NewPath(engine.DataFolder(), todayFile)}
+	todayPath = fio.NewPath(engine.DataFolder(), todayFile).WithMutex()
 	// 统计文件路径
-	statPath = fio.PathRWMutex{Path: fio.NewPath(engine.DataFolder(), statFile)}
+	statPath = fio.NewPath(engine.DataFolder(), statFile).WithRWMutex()
 )
 
 func init() {

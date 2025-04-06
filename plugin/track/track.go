@@ -72,7 +72,7 @@ var (
 
 var (
 	// 配置文件路径
-	configPath = fio.PathRWMutex{Path: fio.NewPath(engine.DataFolder(), configFile)}
+	configPath = fio.NewPath(engine.DataFolder(), configFile).WithRWMutex()
 	// 报更更新的信号
 	cu = make(chan book.Books, 1)
 )

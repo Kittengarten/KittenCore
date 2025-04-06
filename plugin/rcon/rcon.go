@@ -31,7 +31,7 @@ var (
 		PrivateDataFolder: replyServiceName,
 	}).ApplySingle(ctxext.DefaultSingle)
 	// 配置文件路径
-	configPath = fio.PathRWMutex{Path: fio.NewPath(engine.DataFolder(), configFile)}
+	configPath = fio.NewPath(engine.DataFolder(), configFile).WithRWMutex()
 )
 
 func init() {

@@ -15,7 +15,7 @@ import (
 type name map[QQ]string // 昵称配置
 
 // 当前昵称文件
-var nameFile = fio.PathRWMutex{Path: fio.NewPath(`data`, `zbp`, `name.yaml`)}
+var nameFile = fio.NewPath(`data`, `zbp`, `name.yaml`).WithRWMutex()
 
 // ErrNotDefaultName 不是预设的昵称喵！
 var ErrNotDefaultName = errors.New(`不是预设的昵称喵！`)

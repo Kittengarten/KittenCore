@@ -66,6 +66,16 @@ func init() {
 	os.ErrClosed = ErrClosed
 }
 
+// WithMutex 为 Path 附加互斥锁
+func (p Path) WithMutex() PathMutex {
+	return PathMutex{Path: p, Mutex: new(sync.Mutex)}
+}
+
+// WithRWMutex 为 Path 附加读写锁
+func (p Path) WithRWMutex() PathRWMutex {
+	return PathRWMutex{Path: p, RWMutex: new(sync.RWMutex)}
+}
+
 // Load 加载 YAML 配置文件，def 为默认值（加载不到的时候会尝试初始化）
 func Load[T any](p Path, def string) (c T, err error) {
 	if err = p.InitFile(def); err != nil {
