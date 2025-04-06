@@ -3,11 +3,11 @@ module github.com/Kittengarten/KittenCore
 go 1.24
 
 require (
-	github.com/FloatTech/ZeroBot-Plugin v1.9.6-0.20250325034142-6a747d2f9dad
+	github.com/FloatTech/ZeroBot-Plugin v1.9.6
 	github.com/FloatTech/ZeroBot-Plugin-Playground v0.0.0-20240530090706-3f2af06caa95
 	github.com/FloatTech/floatbox v0.0.0-20241106130736-5aea0a935024
 	github.com/FloatTech/zbpctrl v1.7.0
-	github.com/FloatTech/zbputils v1.7.2-0.20250222055844-5d403aa9cecf
+	github.com/FloatTech/zbputils v1.7.2-0.20250330125231-d8be1c9d3b9c
 	github.com/Kittengarten/KittenAnno v1.0.1
 	github.com/RomiChan/syncx v0.0.0-20240418144900-b7402ffdebc7
 	github.com/antchfx/htmlquery v1.3.4
@@ -22,11 +22,11 @@ require (
 	github.com/sahilm/fuzzy v0.1.1
 	github.com/sashabaranov/go-openai v1.38.1
 	github.com/sergi/go-diff v1.3.1
-	github.com/shirou/gopsutil/v4 v4.25.2
+	github.com/shirou/gopsutil/v4 v4.25.3
 	github.com/tidwall/gjson v1.18.0
 	github.com/tidwall/sjson v1.2.5
 	github.com/vicanso/go-charts/v2 v2.6.10
-	github.com/wdvxdr1123/ZeroBot v1.8.0
+	github.com/wdvxdr1123/ZeroBot v1.8.2-0.20250330133859-27c25d9412b5
 	go.uber.org/zap v1.27.0
 	golang.org/x/exp v0.0.0-20250305212735-054e65f0b394
 	golang.org/x/net v0.38.0
@@ -40,11 +40,11 @@ require (
 	github.com/FloatTech/gg v1.1.3 // indirect
 	github.com/FloatTech/imgfactory v0.2.2-0.20230413152719-e101cc3606ef // indirect
 	github.com/FloatTech/rendercard v0.2.0 // indirect
-	github.com/FloatTech/sqlite v1.7.1 // indirect
+	github.com/FloatTech/sqlite v1.7.2 // indirect
 	github.com/FloatTech/ttl v0.0.0-20250224045156-012b1463287d // indirect
 	github.com/KyleBanks/depth v1.2.1 // indirect
 	github.com/RomiChan/websocket v1.4.3-0.20220227141055-9b2c6168c9c5 // indirect
-	github.com/antchfx/xpath v1.3.3 // indirect
+	github.com/antchfx/xpath v1.3.4 // indirect
 	github.com/bytedance/sonic v1.13.2 // indirect
 	github.com/bytedance/sonic/loader v0.2.4 // indirect
 	github.com/cloudwego/base64x v0.1.5 // indirect
@@ -119,23 +119,21 @@ require (
 	github.com/yusufpapurcu/wmi v1.2.4 // indirect
 	gitlab.com/gomidi/midi/v2 v2.2.19 // indirect
 	go.uber.org/multierr v1.11.0 // indirect
-	golang.org/x/arch v0.15.0 // indirect
+	golang.org/x/arch v0.16.0 // indirect
 	golang.org/x/crypto v0.36.0 // indirect
 	golang.org/x/exp/shiny v0.0.0-20250305212735-054e65f0b394 // indirect
 	golang.org/x/image v0.25.0 // indirect
 	golang.org/x/mobile v0.0.0-20250305212854-3a7bc9f8a4de // indirect
-	golang.org/x/sync v0.12.0 // indirect
-	golang.org/x/sys v0.31.0 // indirect
-	golang.org/x/text v0.23.0 // indirect
+	golang.org/x/sync v0.13.0 // indirect
+	golang.org/x/sys v0.32.0 // indirect
+	golang.org/x/text v0.24.0 // indirect
 	golang.org/x/tools v0.31.0 // indirect
 	golang.org/x/xerrors v0.0.0-20240903120638-7835f813f4da // indirect
 	google.golang.org/protobuf v1.36.6 // indirect
-	modernc.org/libc v1.62.0 // indirect
+	modernc.org/libc v1.62.1 // indirect
 	modernc.org/mathutil v1.7.1 // indirect
 	modernc.org/memory v1.9.1 // indirect
-	modernc.org/sqlite v1.36.3 // indirect
+	modernc.org/sqlite v1.37.0 // indirect
 )
 
 replace modernc.org/sqlite => github.com/fumiama/sqlite3 v1.29.10-simp
-
-exclude github.com/wdvxdr1123/ZeroBot v1.8.1 // 不兼容

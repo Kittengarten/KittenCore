@@ -19,25 +19,25 @@ var (
 	ErrNoMatch = errors.New(`正则表达式没有匹配到喵！`)
 )
 
-// GenerateRandomNumber 生成 count 个 [start, end) 范围的不重复的随机数
-func GenerateRandomNumber(start, end, count int) ([]int, error) {
+// GenerateRandomNumber 生成 n 个 [start, end) 范围的不重复的随机数
+func GenerateRandomNumber(start, end, n int) ([]int, error) {
 	// 范围检查
 	if start >= end {
 		return nil, fmt.Errorf(`上限 %d 必须大于下限 %d：%w`,
 			end, start, ErrInvalidArgument)
 	}
-	if (end - start) < count {
+	if (end - start) < n {
 		return nil, fmt.Errorf(`下限 %d 和上限 %d 之间的数字只有 %d 个，`+
 			`不满足 %d 个的要求：%w`,
-			start, end, end-start, count, ErrInvalidArgument)
+			start, end, end-start, n, ErrInvalidArgument)
 	}
-	if count <= 0 {
+	if n <= 0 {
 		return nil, fmt.Errorf(`个数 %d 不是正整数：%w`,
-			count, ErrInvalidArgument)
+			n, ErrInvalidArgument)
 	}
 	// 存放不重复结果的集合
-	set := make(map[int]struct{}, count)
-	for len(set) < count {
+	set := make(map[int]struct{}, n)
+	for len(set) < n {
 		// 生成随机数
 		//nolint:gosec
 		set[rand.N(end-start)+start] = struct{}{}

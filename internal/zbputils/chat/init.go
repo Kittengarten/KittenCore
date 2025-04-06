@@ -2,6 +2,7 @@ package chat
 
 import (
 	_ "embed"
+	"strings"
 
 	"github.com/fumiama/deepinfra"
 	"github.com/fumiama/deepinfra/chat"
@@ -37,6 +38,22 @@ func Reply(grp int64, txt string) {
 	lst.Add(grp, "", txt, true, false)
 }
 
-func Ask(p model.Protocol, grp int64, sysp string) deepinfra.Model {
-	return lst.Modelize(p, grp, sysp)
+func Ask(p model.Protocol, grp int64, sysp string, isusersys bool) deepinfra.Model {
+	return lst.Modelize(p, grp, sysp, isusersys)
+}
+
+func AskCustom[T any](grp int64, f func(int, string) T) []T {
+	return chat.Modelize(&lst, grp, f)
+}
+
+func Sanitize(msg string) string {
+	_, s, ok := strings.Cut(msg, "】")
+	if ok {
+		return s
+	}
+	_, s, ok = strings.Cut(msg, "]")
+	if ok {
+		return s
+	}
+	return msg
 }

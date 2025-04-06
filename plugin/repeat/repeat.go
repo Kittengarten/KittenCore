@@ -24,26 +24,26 @@ const (
 	configFile       = `config.yaml` // 配置文件名
 	cRepeat          = `复读`
 	brief            = `喵类的本质是复读姬`
-	maxCount         = 10 // MaxCount 最大复读次数
+	maxThreshold     = 10 // MaxThreshold 最大复读阈值
 )
 
 type (
 	// 消息统计
 	stat struct {
-		t               uint // 次数
+		t               uint // 阈值
 		message.Message      // 消息
 	}
 
 	// 复读姬配置
 	config struct {
-		Count  uint    // 触发复读的次数
-		Chance float64 // 触发复读的概率
+		Threshold uint    // 触发复读的阈值
+		Chance    float64 // 触发复读的概率
 	}
 )
 
 var (
 	// 帮助
-	help = kitten.MainConfig().CommandPrefix + cRepeat + ` [次数] [概率]`
+	help = kitten.MainConfig().CommandPrefix + cRepeat + ` [阈值] [概率]`
 	// 注册插件
 	engine = control.AutoRegister(&ctrl.Options[*zero.Ctx]{
 		DisableOnDefault:  false,
@@ -53,8 +53,8 @@ var (
 	})
 	// 配置文件路径
 	configPath = fio.PathMutex{Path: fio.NewPath(engine.DataFolder(), configFile)}
-	// 触发复读的次数
-	count uint = 2
+	// 触发复读的阈值
+	threshold uint = 2
 	// 触发复读的概率
 	chance = 0.5
 	// 消息缓存
@@ -72,12 +72,12 @@ func init() {
 }
 
 func repeatInit() {
-	repeatConfig, err := fio.Load[config](configPath.Path, "count: 2\nchance: 0.5") // 复读姬配置文件
+	repeatConfig, err := fio.Load[config](configPath.Path, "threshold: 2\nchance: 0.5") // 复读姬配置文件
 	if err != nil {
 		kitten.Error(`复读姬配置文件错误喵！`, err)
 		return
 	}
-	count, chance = repeatConfig.Count, repeatConfig.Chance
+	threshold, chance = repeatConfig.Threshold, repeatConfig.Chance
 }
 
 // 复读设置
@@ -96,7 +96,7 @@ func repeatSet(ctx *zero.Ctx) {
 	}
 	t, err := strconv.ParseUint(args[0], 10, core.PlatformBits)
 	if err != nil {
-		msgr.SendWithImageFailf(`[次数] 错误：
+		msgr.SendWithImageFailf(`[阈值] 错误：
 %v
 %s`,
 			err,
@@ -104,11 +104,11 @@ func repeatSet(ctx *zero.Ctx) {
 		)
 		return
 	}
-	if t > 2 || maxCount < t {
-		msgr.SendWithImageFailf(`[次数] 错误：最少为 2，最多为 %d 喵！`, maxCount)
+	if t > 2 || maxThreshold < t {
+		msgr.SendWithImageFailf(`[阈值] 错误：最少为 2，最多为 %d 喵！`, maxThreshold)
 		return
 	}
-	count = uint(t)
+	threshold = uint(t)
 	if chance, err = strconv.ParseFloat(args[1], 64); err != nil {
 		msgr.SendWithImageFailf(`[概率] 错误：
 %v
@@ -131,8 +131,8 @@ func repeatSet(ctx *zero.Ctx) {
 	configPath.Lock()
 	defer configPath.Unlock()
 	err = fio.Save(configPath.Path, config{
-		Count:  count,
-		Chance: chance,
+		Threshold: threshold,
+		Chance:    chance,
 	})
 	if err != nil {
 		msgr.SendWithImageFail(`保存复读姬配置文件错误喵！`, err)
@@ -150,7 +150,7 @@ func repeatSet(ctx *zero.Ctx) {
 	}
 	msgr.Reply().AtLf().
 		Textf(`%s将会开始以 %.2f%% 概率复读重复 %d 次的消息喵！`,
-			n, 100*chance, count,
+			n, 100*chance, threshold,
 		).Send()
 }
 
@@ -160,7 +160,12 @@ func repeat(ctx *zero.Ctx) {
 		c, ok = m.Load(*g)                           // 尝试获取本群的缓存
 	)
 	if ok && kitten.IsSameMessage(c.Message, ctx.Event.Message) {
-		// 如果消息与缓存的内容一致，增加一次复读计数
+		// 消息与缓存的内容一致
+		if c.t == 0 {
+			// 已经复读过，不再复读
+			return
+		}
+		// 增加一次复读计数
 		c.t++
 	} else {
 		// 如果没有缓存，或消息与缓存的内容不一致，初始化缓存
@@ -170,7 +175,7 @@ func repeat(ctx *zero.Ctx) {
 	// 更新缓存
 	m.Store(*g, c)
 	//nolint:gosec
-	if c.t < count || rand.Float64() >= chance {
+	if c.t < threshold || rand.Float64() >= chance {
 		// 如果没有达到复读阈值，或者没有按概率触发复读，则返回
 		return
 	}
@@ -178,15 +183,18 @@ func repeat(ctx *zero.Ctx) {
 	c.handleImage(kitten.New(ctx))
 	// 发送消息
 	ctx.Send(c.Message)
+	// 清空复读计数，避免再次复读
+	c.t = 0
 }
 
 // 处理图片
 func (s *stat) handleImage(msgr *kitten.Messager) {
 	for i, e := range s.Message {
 		if e.Type != seg.Image {
+			// 不是图片，跳过
 			continue
 		}
-		// 如果是单张图片，进行一个图片的获取
+		// 单张图片，进行一个图片的获取
 		switch file := mio.GetImagePath(e); file {
 		case ``:
 			// 获取不到，跳过
@@ -197,7 +205,7 @@ func (s *stat) handleImage(msgr *kitten.Messager) {
 		default:
 			// 默认
 			if len(e.Data[`summary`]) > 2 {
-				// 是表情包，跳过
+				// 表情包，跳过
 				continue
 			}
 			s.Message[i] = kitten.Image(msgr.GetImage(file.String()).Get(`file`).String())

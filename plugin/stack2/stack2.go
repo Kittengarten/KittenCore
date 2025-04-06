@@ -9,7 +9,6 @@ import (
 	"math/rand/v2"
 	"slices"
 	"strings"
-	"sync"
 	"time"
 
 	"github.com/Kittengarten/KittenCore/kitten"
@@ -47,8 +46,6 @@ var (
 	GlobalMessager *kitten.Messager
 	// 叠猫猫缓存
 	stackBuffer buffer
-	// Mu 可导出的读写锁，用于叠猫猫文件
-	Mu sync.Mutex
 )
 
 func init() {
@@ -73,8 +70,8 @@ func init() {
 		Limit(rate.Get(rate.User)).
 		Limit(rate.Get(rate.GroupFast)).
 		Handle(func(ctx *zero.Ctx) {
-			Mu.Lock()
-			defer Mu.Unlock()
+			Lock()
+			defer Unlock()
 			switch msgr := kitten.New(ctx); msgr.Command() {
 			case cStack, cStackT0, cStackT1:
 				// 叠猫猫

@@ -24,7 +24,7 @@ const (
 	replyServiceName  = `eekda2`     // 插件名
 	todayFile         = `today.yaml` // 保存今天吃什么的文件
 	statFile          = `stat.yaml`  // 保存统计数据的文件
-	count             = 5            // 每天餐数
+	mealsPerDay       = 5            // 每天餐数
 	cEEKDA            = `今天吃什么`
 	cRegister         = `注册`
 	cUnregister       = `注销`
@@ -194,7 +194,7 @@ func todayMeal(ctx *zero.Ctx) {
 				time.Unix(msgr.Event.Time, 0).AddDate(0, 0, -1))
 		})
 		// 在其中取足够人的下标
-		nums, err := utils.GenerateRandomNumber(0, len(list), count)
+		nums, err := utils.GenerateRandomNumber(0, len(list), mealsPerDay)
 		if err != nil {
 			msgr.SendWithImageFail(`没有足够的食物喵！`, err)
 			return

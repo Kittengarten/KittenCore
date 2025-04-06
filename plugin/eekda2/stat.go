@@ -39,7 +39,7 @@ func getStat(ctx *zero.Ctx) {
 			continue
 		}
 		// 如果当前角色在本群未注册，移除
-		maps.DeleteFunc(s[i].Stat, func(k string, _ [count]int) bool {
+		maps.DeleteFunc(s[i].Stat, func(k string, _ [mealsPerDay]int) bool {
 			return k == t.ID
 		})
 	}
@@ -56,7 +56,7 @@ func doStat(msgr *kitten.Messager, td today) {
 	if err != nil {
 		msgr.SendWithImageFail(err)
 	}
-	var ok [count]bool
+	var ok [mealsPerDay]bool
 	// 查询 QQ
 	for k, v := range s {
 		// 用餐类型
@@ -74,11 +74,11 @@ func doStat(msgr *kitten.Messager, td today) {
 		if v {
 			continue
 		}
-		var a [count]int
+		var a [mealsPerDay]int
 		a[m] = 1
 		s = append(s, food{
 			ID: td.Meal[m],
-			Stat: map[string][count]int{
+			Stat: map[string][mealsPerDay]int{
 				td.ID: a,
 			},
 		})

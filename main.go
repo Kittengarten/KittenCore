@@ -34,6 +34,7 @@ import (
 	_ "github.com/FloatTech/ZeroBot-Plugin/plugin/ahsai"           // ahsai tts
 	_ "github.com/FloatTech/ZeroBot-Plugin/plugin/aifalse"         // 服务器监控
 	_ "github.com/FloatTech/ZeroBot-Plugin/plugin/aiwife"          // 随机老婆
+	_ "github.com/FloatTech/ZeroBot-Plugin/plugin/animetrace"      // AnimeTrace 动画/Galgame识别
 	_ "github.com/FloatTech/ZeroBot-Plugin/plugin/base16384"       // base16384加解密
 	_ "github.com/FloatTech/ZeroBot-Plugin/plugin/base64gua"       // base64卦加解密
 	_ "github.com/FloatTech/ZeroBot-Plugin/plugin/baseamasiro"     // base天城文加解密

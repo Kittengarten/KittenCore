@@ -7,12 +7,12 @@ require (
 	github.com/FloatTech/floatbox v0.0.0-20241106130736-5aea0a935024
 	github.com/FloatTech/imgfactory v0.2.2-0.20230413152719-e101cc3606ef
 	github.com/FloatTech/rendercard v0.2.0
-	github.com/FloatTech/sqlite v1.7.1
+	github.com/FloatTech/sqlite v1.7.2
 	github.com/FloatTech/zbpctrl v1.7.0
 	github.com/RomiChan/syncx v0.0.0-20240418144900-b7402ffdebc7
 	github.com/RomiChan/websocket v1.4.3-0.20220227141055-9b2c6168c9c5
 	github.com/fumiama/cron v1.3.0
-	github.com/fumiama/deepinfra v0.0.0-20250222123807-c64d9d26d2f8
+	github.com/fumiama/deepinfra v0.0.0-20250330125128-71ec2f7c085e
 	github.com/fumiama/go-base16384 v1.7.0
 	github.com/gin-gonic/gin v1.10.0
 	github.com/go-playground/assert/v2 v2.2.0
@@ -24,7 +24,7 @@ require (
 	github.com/swaggo/gin-swagger v1.6.0
 	github.com/swaggo/swag v1.16.4
 	github.com/tidwall/gjson v1.18.0
-	github.com/wdvxdr1123/ZeroBot v1.8.0
+	github.com/wdvxdr1123/ZeroBot v1.8.2-0.20250330133859-27c25d9412b5
 	gopkg.in/yaml.v3 v3.0.1
 )
 
@@ -71,19 +71,19 @@ require (
 	github.com/tidwall/pretty v1.2.1 // indirect
 	github.com/twitchyliquid64/golang-asm v0.15.1 // indirect
 	github.com/ugorji/go/codec v1.2.12 // indirect
-	golang.org/x/arch v0.15.0 // indirect
+	golang.org/x/arch v0.16.0 // indirect
 	golang.org/x/crypto v0.36.0 // indirect
 	golang.org/x/exp v0.0.0-20250305212735-054e65f0b394 // indirect
 	golang.org/x/image v0.25.0 // indirect
 	golang.org/x/net v0.38.0 // indirect
-	golang.org/x/sys v0.31.0 // indirect
-	golang.org/x/text v0.23.0 // indirect
+	golang.org/x/sys v0.32.0 // indirect
+	golang.org/x/text v0.24.0 // indirect
 	golang.org/x/tools v0.31.0 // indirect
 	google.golang.org/protobuf v1.36.6 // indirect
-	modernc.org/libc v1.62.0 // indirect
+	modernc.org/libc v1.62.1 // indirect
 	modernc.org/mathutil v1.7.1 // indirect
 	modernc.org/memory v1.9.1 // indirect
-	modernc.org/sqlite v1.36.3 // indirect
+	modernc.org/sqlite v1.37.0 // indirect
 )
 
 replace modernc.org/sqlite => github.com/fumiama/sqlite3 v1.29.10-simp

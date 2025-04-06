@@ -75,24 +75,24 @@ func Compose(b *strings.Builder, s string) string {
 // First 获取第一段满足条件的码点组成的字符串
 func First[T str](s T, f ...func(r rune) bool) T {
 	var (
-		pre, count int
-		ok         bool
+		pre, n int
+		ok     bool
 	)
 ru:
 	for _, r := range string(s) {
 		for _, v := range f {
 			if v(r) {
 				ok = true
-				count++
+				n++
 				continue ru
 			}
 		}
 		if ok {
-			return T(string([]rune(string(s))[pre : pre+count]))
+			return T(string([]rune(string(s))[pre : pre+n]))
 		}
 		pre++
 	}
-	return T(string([]rune(string(s))[pre : pre+count]))
+	return T(string([]rune(string(s))[pre : pre+n]))
 }
 
 // 是中文
@@ -209,10 +209,10 @@ func mid(pre, suf, str string, isMin bool) string {
 }
 
 // 计算两个字符串中未更改字符的个数
-func countEqual(diffs []diffmatchpatch.Diff) (count int) {
+func countEqual(diffs []diffmatchpatch.Diff) (n int) {
 	for _, d := range diffs {
 		if d.Type == diffmatchpatch.DiffEqual {
-			count += utf8.RuneCountInString(d.Text)
+			n += utf8.RuneCountInString(d.Text)
 		}
 	}
 	return
@@ -225,15 +225,15 @@ func Equal(a, b string) float64 {
 }
 
 // 计算两个字符串中公共字符的个数
-func countCommon(a, b string) (count int) {
+func countCommon(a, b string) (n int) {
 	for _, r := range a {
 		if strings.ContainsRune(b, r) {
-			count++
+			n++
 		}
 	}
 	for _, r := range b {
 		if strings.ContainsRune(a, r) {
-			count++
+			n++
 		}
 	}
 	return

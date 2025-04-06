@@ -25,11 +25,11 @@ type (
 
 	// 今天吃什么
 	today struct {
-		*kitten.Messager `yaml:"-"`       // 待发送的消息
-		Time             time.Time        // 更新时间
-		ID               string           // 角色名
-		Group            []kitten.QQ      // 该角色对应的群号
-		Meal             [count]kitten.QQ // 今天的每一餐
+		*kitten.Messager `yaml:"-"`             // 待发送的消息
+		Time             time.Time              // 更新时间
+		ID               string                 // 角色名
+		Group            []kitten.QQ            // 该角色对应的群号
+		Meal             [mealsPerDay]kitten.QQ // 今天的每一餐
 	}
 
 	// 统计数据切片
@@ -37,8 +37,8 @@ type (
 
 	// 食物数据
 	food struct {
-		ID   kitten.QQ             // QQ
-		Stat map[string][count]int // 每个角色的个人统计数据
+		ID   kitten.QQ                   // QQ
+		Stat map[string][mealsPerDay]int // 每个角色的个人统计数据
 	}
 )
 
