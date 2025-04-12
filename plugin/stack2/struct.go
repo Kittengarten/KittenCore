@@ -8,12 +8,13 @@ import (
 )
 
 const (
-	flat    result = iota // 平地摔
-	fall                  // 摔下去
-	press                 // 压坏
-	pressed               // 被压坏
-	eat                   // 吃猫猫
-	eaten                 // 被吃
+	noReason result = iota // 未知原因
+	flat                   // 平地摔
+	fall                   // 摔下去
+	press                  // 压坏
+	pressed                // 被压坏
+	eat                    // 吃猫猫
+	eaten                  // 被吃
 )
 
 const (

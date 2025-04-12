@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"strings"
 	"sync"
+
+	"github.com/Kittengarten/KittenCore/kitten/core/times"
 )
 
 var (
@@ -11,6 +13,11 @@ var (
 	Comment = func(_ fmt.Stringer) string {
 		// 默认为空实现
 		return ``
+	}
+	// ChapterID (nv *Novel) (string, error) 获取小说更新章号
+	ChapterID = func(_ *Novel) (string, error) {
+		// 默认为空实现
+		return ``, nil
 	}
 	// Pool 小说池
 	Pool = sync.Pool{
@@ -28,6 +35,11 @@ func (nv *Novel) platform() string {
 // 获取小说书名
 func (nv *Novel) name() string {
 	return `书名：` + nv.Name
+}
+
+// BookID 获取小说书号
+func (nv *Novel) BookID() string {
+	return nv.ID
 }
 
 // 获取小说书号
@@ -110,9 +122,19 @@ func (nv *Novel) hitNum() string {
 	return `点击：` + nv.HitNum
 }
 
-// 获取小说更新、简介
-func (nv *Novel) updateIntroduce() string {
-	return "更新：\n\n" + nv.Introduce
+// 获取小说更新时间
+func (nv *Novel) update() string {
+	return `更新：` + nv.Format(times.LayoutHeart)
+}
+
+// 获取小说简介
+func (nv *Novel) introduce() string {
+	return "简介：\n\n" + nv.Introduce
+}
+
+// ChapterID 获取小说更新章号
+func (nv *Novel) ChapterID() (string, error) {
+	return ChapterID(nv)
 }
 
 // String 实现 fmt.Stringer
@@ -132,6 +154,7 @@ func (nv *Novel) String() string {
 		nv.collection(),
 		nv.wordNum(),
 		nv.hitNum(),
-		nv.updateIntroduce(),
+		nv.update(),
+		nv.introduce(),
 	}, "\n")
 }

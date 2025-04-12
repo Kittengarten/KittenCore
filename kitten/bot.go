@@ -24,8 +24,9 @@ import (
 type Item byte // 对上下文的检查类型
 
 const (
-	Caller Item = iota // APICaller
-	Event              // *Event
+	Unknown Item = iota // Unknown 未知检查类型
+	Caller              // Caller zero.APICaller
+	Event               // Event *zero.Event
 )
 
 const (

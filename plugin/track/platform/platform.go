@@ -25,52 +25,78 @@ type (
 		// NewChapter 初始化章节
 		NewChapter(cpURL string) (*chapter.Chapter, error)
 	}
-	// 不支持的平台
+
+	// NotSupportedError 不支持的平台
 	NotSupportedError struct {
-		Platform // 平台
+		platform Platform // 平台
+	}
+
+	// IDStringer 实现 fmt.Stringer，获得书号、更新章号
+	BookChapterIDStringer interface {
+		BookID() string
+		ChapterID() (string, error)
+		fmt.Stringer
 	}
 )
 
 var (
 	// Platforms 小说平台，用于各平台的实现导入
 	Platforms []Platform
-	// CommentUpdate (p Platform, nv fmt.Stringer, bookID string, cpID string) string
+	// CommentUpdate (p Platform, nv BookChapterIDStringer) (string, error)
 	// 评论更新
-	CommentUpdate = func(_ Platform, _ fmt.Stringer, _ string, _ string) string {
+	CommentUpdate = func(_ Platform, _ BookChapterIDStringer) (string, error) {
 		// 默认为空实现
-		return ``
+		return ``, nil
 	}
 )
 
 func init() {
 	novel.NewChapter = func(nv *novel.Novel, cpURL string) (*chapter.Chapter, error) {
-		return Get(nv.Platform).NewChapter(cpURL)
+		p, err := Get(nv.Platform)
+		if err != nil {
+			return nil, err
+		}
+		return p.NewChapter(cpURL)
 	}
-	novel.CommentUpdate = func(nv *novel.Novel, cpID string) string {
-		return CommentUpdate(Get(nv.Platform), nv, nv.ID, cpID)
+	novel.CommentUpdate = func(nv *novel.Novel) (string, error) {
+		p, err := Get(nv.Platform)
+		if err != nil {
+			return ``, err
+		}
+		return CommentUpdate(p, nv)
+	}
+	novel.ChapterID = func(nv *novel.Novel) (string, error) {
+		p, err := Get(nv.Platform)
+		if err != nil {
+			return ``, err
+		}
+		return p.ChapterID(nv.Chapter.URL), nil
 	}
 }
 
 // Get 获取小说平台
-func Get(platform string) Platform {
+func Get(platform string) (Platform, error) {
 	for _, p := range Platforms {
 		if p.String() == platform {
-			return p
+			return p, nil
 		}
 	}
-	return nil
+	return nil, NotSupported(nil)
 }
 
 // NotSupported *NotSupportedError 的构造函数，不支持的平台
 func NotSupported(p Platform) *NotSupportedError {
 	return &NotSupportedError{
-		Platform: p,
+		platform: p,
 	}
 }
 
 // Error 实现 error
 func (e *NotSupportedError) Error() string {
-	return e.String() + `不是受支持的小说平台喵！`
+	if p := e.platform; p != nil {
+		return p.String() + `不是受支持的小说平台喵！`
+	}
+	return `小说平台无法识别喵！`
 }
 
 // ParseTime 解析时间

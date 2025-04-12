@@ -39,7 +39,7 @@ func (p Path) Image(name fio.Path) (message.Segment, error) {
 				return ``
 			}
 		}()
-		fn = `[` + name.FileName() + `]`
+		fn = `[` + name.Name() + `]`
 	)
 	if filepath.IsAbs(name.String()) {
 		// 传入的是绝对路径

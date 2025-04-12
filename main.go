@@ -3,11 +3,13 @@ package main
 
 import (
 	// 标准库
+	"fmt"
 	"runtime/debug"
 
 	// KittenCore 的核心库
 	"github.com/Kittengarten/KittenCore/internal/protocol"
 	"github.com/Kittengarten/KittenCore/kitten"
+	"github.com/Kittengarten/KittenCore/kitten/core/fio"
 
 	// 内部插件
 	// _ "github.com/Kittengarten/KittenCore/internal/auth" // 内置黑名单控制插件
@@ -108,7 +110,12 @@ func main() {
 	// 处理 panic，防止程序崩溃
 	defer func() {
 		if err := recover(); err != nil {
-			kitten.Errorln(`主函数有 Bug 喵！`, err, string(debug.Stack()))
+			kitten.Errorln(`main() 从 panic 中恢复`, err, string(debug.Stack()))
+			if err := fio.NewPath(kitten.MainConfig().Log.Crash).WriteString(
+				fmt.Sprintln(err, string(debug.Stack())),
+			); err != nil {
+				kitten.Errorln(`写入`, kitten.MainConfig().Log.Crash, err)
+			}
 		}
 	}()
 	protocol.RunBot(protocol.Forward)

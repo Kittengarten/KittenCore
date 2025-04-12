@@ -39,7 +39,7 @@ func chanceFlat(m meow) float64 {
 // String 实现 fmt.Stringer
 func (m meow) String() string {
 	if globalLocation == cockroach {
-		return fmt.Sprintf(`【%s】	翼展 %.1f cm`, m.getType(GlobalMessager).String(), itof(m.Weight))
+		return fmt.Sprintf(`【%s】	翼展 %.1f cm`, m.getType(GlobalMessager).String(), i2f(m.Weight))
 	}
 	return fmt.Sprintf(
 		l10nReplacer().Replace(`%s	❤	%d	❤	%.1f kg	%s`),
@@ -47,7 +47,7 @@ func (m meow) String() string {
 			GlobalMessager,
 		),
 		m.Int(),
-		itof(m.Weight),
+		i2f(m.Weight),
 		m.getType(GlobalMessager).String(),
 	)
 }
@@ -99,12 +99,12 @@ func (m meowType) String() string {
 }
 
 // 整数体重转换为浮点（千克数）
-func itof(w int) float64 {
+func i2f(w int) float64 {
 	return float64(w) / 10
 }
 
 // 浮点体重（千克数）转换为整数
-func ftoi(w float64) int {
+func f2i(w float64) int {
 	return int(min(10*w, math.MaxInt))
 }
 

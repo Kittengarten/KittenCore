@@ -4,6 +4,7 @@ package fio
 import (
 	"bytes"
 	"crypto/sha512"
+	"encoding/hex"
 	"errors"
 	"fmt"
 	"io"
@@ -11,10 +12,12 @@ import (
 	"log/slog"
 	"os"
 	"path/filepath"
+	"slices"
 	"strings"
 	"sync"
 
 	"github.com/Kittengarten/KittenCore/kitten/core/shttp"
+	"github.com/Kittengarten/KittenCore/kitten/core/str"
 	"github.com/Kittengarten/KittenCore/kitten/core/utils"
 
 	"gopkg.in/yaml.v3"
@@ -23,12 +26,12 @@ import (
 type (
 	// Path 是一个表示文件路径的字符串
 	Path string
-	// PathMutex 是 Path 的互斥锁版本
+	// PathMutex Path 的互斥锁版本
 	PathMutex struct {
 		Path
 		*sync.Mutex
 	}
-	// PathRWMutex 是 Path 的读写锁版本
+	// PathRWMutex Path 的读写锁版本
 	PathRWMutex struct {
 		Path
 		*sync.RWMutex
@@ -40,38 +43,12 @@ const (
 	Blank = `{}` // Blank YAML 空集合（map）
 )
 
-var (
-	// ErrInvalid 无效的参数喵！
-	ErrInvalid = errors.New(`无效的参数喵！`)
-	// ErrPermission 没有权限喵！
-	ErrPermission = errors.New(`没有权限喵！`)
-	// ErrExist 文件已存在喵！
-	ErrExist = errors.New(`文件已存在喵！`)
-	// ErrNotExist 文件不存在喵！
-	ErrNotExist = errors.New(`文件不存在喵！`)
-	// ErrClosed 文件已关闭喵！
-	ErrClosed = errors.New(`文件已关闭喵！`)
-)
-
-func init() {
-	fs.ErrInvalid = ErrInvalid
-	fs.ErrPermission = ErrPermission
-	fs.ErrExist = ErrExist
-	fs.ErrNotExist = ErrNotExist
-	fs.ErrClosed = ErrClosed
-	os.ErrInvalid = ErrInvalid
-	os.ErrPermission = ErrPermission
-	os.ErrExist = ErrExist
-	os.ErrNotExist = ErrNotExist
-	os.ErrClosed = ErrClosed
-}
-
-// WithMutex 为 Path 附加互斥锁
+// WithMutex 附加互斥锁
 func (p Path) WithMutex() PathMutex {
 	return PathMutex{Path: p, Mutex: new(sync.Mutex)}
 }
 
-// WithRWMutex 为 Path 附加读写锁
+// WithRWMutex 附加读写锁
 func (p Path) WithRWMutex() PathRWMutex {
 	return PathRWMutex{Path: p, RWMutex: new(sync.RWMutex)}
 }
@@ -127,32 +104,84 @@ func NewPath[T ~string](elem ...T) Path {
 	)
 }
 
-// FileName 文件名
-func (p Path) FileName() string {
+// NoDuplicate 生成不重复的文件或文件夹名
+func NoDuplicate(names []string, name string) string {
+	for slices.Contains(names, name) {
+		name = str.Rename(name)
+	}
+	return name
+}
+
+// NoDuplicate 生成不重复的文件或文件夹名
+func (p Path) NoDuplicate() (Path, error) {
+	names, err := p.Names()
+	return NewPath(p.Dir(), NoDuplicate(names, p.Name())), err
+}
+
+/*
+Names 获取文件夹下所有文件（夹）名
+
+如果是文件，获取父文件夹下的所有文件（夹）名
+*/
+func (p Path) Names() ([]string, error) {
+	isDir, err := p.IsDir()
+	if err != nil {
+		return nil, err
+	}
+	dir := func() string {
+		if isDir {
+			return p.String()
+		}
+		return p.Dir()
+	}()
+	// 读取目录内容
+	entries, err := os.ReadDir(dir)
+	if err != nil {
+		return nil, err
+	}
+	return utils.ConvertSlice(
+		entries, func(e fs.DirEntry) string {
+			return e.Name()
+		},
+	), nil
+}
+
+// Dir 父文件夹名
+func (p Path) Dir() string {
+	return filepath.Dir(string(p))
+}
+
+// Name 文件或文件夹名
+func (p Path) Name() string {
 	return filepath.Base(string(p))
+}
+
+// Split 分割为文件夹和文件名
+func (p Path) Split() (dir, file string) {
+	return filepath.Split(string(p))
 }
 
 // Delete 删除文件
 func (p Path) Delete() error {
-	return os.Remove(string(p))
+	return os.Remove(p.String())
 }
 
 // 载入文件以供操作，当 write 为 false 时只读
 func (p Path) Load(write bool) (f *os.File, err error) {
 	// 检查其父文件夹是否存在，不存在则创建
 	if err := p.TryMakeDir(); err != nil {
-		err = fmt.Errorf(`创建 %s 失败喵！%w`, filepath.Dir(string(p)), err)
+		err = fmt.Errorf(`创建 %s 失败喵！%w`, p.Dir(), err)
 		return nil, err
 	}
 	if !write {
 		// 只读，打开文件
-		f, err = os.Open(string(p))
+		f, err = os.Open(p.String())
 		if err == nil {
 			return f, nil
 		}
 	}
 	// 需要写入或不存在，尝试创建文件
-	return os.Create(string(p))
+	return os.Create(p.String())
 }
 
 // ReadBytes 从文件读取字节切片
@@ -216,7 +245,7 @@ func (p Path) Len() int {
 
 // Size 获取文件大小
 func (p Path) Size() (int64, error) {
-	info, err := os.Stat(string(p))
+	info, err := os.Stat(p.String())
 	if err != nil {
 		return 0, err
 	}
@@ -225,18 +254,18 @@ func (p Path) Size() (int64, error) {
 
 // TryMakeDir 检查其父文件夹是否存在，不存在则创建
 func (p Path) TryMakeDir() error {
-	return os.MkdirAll(filepath.Dir(string(p)), 0o750)
+	return os.MkdirAll(p.Dir(), 0o750)
 }
 
 // Exists 判断文件或文件夹是否存在
 func (p Path) Exists() bool {
-	_, err := os.Stat(string(p))
+	_, err := os.Stat(p.String())
 	return err == nil || os.IsExist(err)
 }
 
 // IsDir 判断路径是否文件夹
 func (p Path) IsDir() (bool, error) {
-	info, err := os.Stat(string(p))
+	info, err := os.Stat(p.String())
 	if err != nil {
 		return false, err
 	}
@@ -330,16 +359,24 @@ func (p Path) Copy(src Path) (size int64, err error) {
 	return size, errors.Join(source.Close(), destination.Close())
 }
 
+// SHA512 ...
+type SHA512 [sha512.Size]byte
+
+// String 实现 fmt.Stringer，返回十六进制哈希值（128 位数字）
+func (s SHA512) String() string {
+	return hex.EncodeToString(s[:])
+}
+
 // SHA512 获取文件 SHA512 哈希值
-func (p Path) SHA512() ([sha512.Size]byte, error) {
+func (p Path) SHA512() (SHA512, error) {
 	if !p.Exists() {
-		return [sha512.Size]byte{}, os.ErrNotExist
+		return SHA512{}, os.ErrNotExist
 	}
 	b, err := p.ReadBytes()
 	if err != nil {
-		return [sha512.Size]byte{}, err
+		return SHA512{}, err
 	}
-	return sha512.Sum512(b.Bytes()), nil
+	return SHA512(sha512.Sum512(b.Bytes())), nil
 }
 
 // ProcessPath 获取程序运行的绝对路径

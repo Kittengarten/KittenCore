@@ -22,8 +22,9 @@ type (
 )
 
 const (
-	Host     item = iota // 主机
-	Password             // 密码
+	Unknown  item = iota // Unknown 未知
+	Host                 // Host 主机
+	Password             // Password 密码
 )
 
 // 设置类型

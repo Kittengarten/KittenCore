@@ -142,7 +142,7 @@ func (d *data) evaluateEat(msgr *kitten.Messager) float64 {
 		return 0
 	}
 	// 如果是非空队列，吃猫猫的概率为期望占小老虎体重的比例 - 0.5
-	return float64(s[l-1].Weight)*m.chanceFall(s[l-1])/itof(mapMeow[猫娘少女].weight) - 0.5
+	return float64(s[l-1].Weight)*m.chanceFall(s[l-1])/i2f(mapMeow[猫娘少女].weight) - 0.5
 }
 
 // 自动吃猫猫

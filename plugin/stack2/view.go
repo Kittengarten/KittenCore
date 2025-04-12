@@ -24,7 +24,7 @@ func (d *data) view(msgr *kitten.Messager, all bool) {
 总重量为 %.1f kg
 ————%s`,
 		len(s),
-		itof(s.totalWeight()),
+		i2f(s.totalWeight()),
 		func() any {
 			if !all {
 				// 查看省略版
@@ -85,18 +85,18 @@ func (d *data) viewImage(msgr *kitten.Messager) message.ID {
 	)
 	values[0] = make([]float64, l) // 初始化二维切片
 	for h, m := range s {
-		values[0][h] = itof(m.Weight)
+		values[0][h] = i2f(m.Weight)
 		str[h] = strings.ReplaceAll(func() string {
 			if globalLocation == cockroach {
 				return fmt.Sprintf(`【%s】翼展 %.1f cm`,
 					l10nReplacer().Replace(m.getType(GlobalMessager).String()),
-					itof(m.Weight),
+					i2f(m.Weight),
 				)
 			}
 			return fmt.Sprintf(`%s（%d）%.1f %s %s`,
 				m.TitleCardOrNickName(GlobalMessager),
 				m.Int(),
-				itof(m.Weight),
+				i2f(m.Weight),
 				l10nReplacer().Replace(`kg`),
 				l10nReplacer().Replace(m.getType(msgr).String()),
 			)

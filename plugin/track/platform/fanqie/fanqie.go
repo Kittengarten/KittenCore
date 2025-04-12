@@ -2,12 +2,14 @@
 package fanqie
 
 import (
+	"cmp"
 	"fmt"
 	"net/url"
 	"path"
 	"strconv"
 	"strings"
 
+	"github.com/Kittengarten/KittenCore/kitten"
 	"github.com/Kittengarten/KittenCore/kitten/core/htmls"
 	"github.com/Kittengarten/KittenCore/kitten/core/shttp"
 	"github.com/Kittengarten/KittenCore/kitten/core/str"
@@ -61,9 +63,10 @@ func (f fq) FindBookID(key search.Keyword) (string, error) {
 func (f fq) ChapterID(cpURL string) string {
 	u, err := url.Parse(cpURL)
 	if err != nil {
+		kitten.Error(err)
 		return ``
 	}
-	return path.Base(u.Path)
+	return cmp.Or(u.Query().Get(ItemID), path.Base(u.Path))
 }
 
 // Init 小说网页信息获取

@@ -95,9 +95,9 @@ func (d *data) rank(msgr *kitten.Messager) {
 抱枕：　　	%d	只
 奶猫：　　	%d	只
 绒布球：　	%d	只`,
-		itof((*d)[r].Weight),
+		i2f((*d)[r].Weight),
 		c, c-r,
-		itof(a),
+		i2f(a),
 		func() string {
 			if !zero.UserOrGrpAdmin(msgr.Ctx) {
 				return ``

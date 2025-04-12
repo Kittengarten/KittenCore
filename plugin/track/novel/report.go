@@ -1,11 +1,14 @@
 package novel
 
 import (
+	"errors"
 	"fmt"
+	"net/url"
 	"time"
 
 	"github.com/Kittengarten/KittenCore/kitten"
 	"github.com/Kittengarten/KittenCore/kitten/core/equal"
+	"github.com/Kittengarten/KittenCore/kitten/core/shttp"
 	"github.com/Kittengarten/KittenCore/kitten/core/times"
 	"github.com/Kittengarten/KittenCore/plugin/track/chapter"
 	"github.com/Kittengarten/KittenCore/plugin/track/status"
@@ -16,12 +19,15 @@ import (
 var (
 	// NewChapter 获取章节
 	NewChapter func(nv *Novel, cpURL string) (*chapter.Chapter, error)
-	// CommentUpdate (nv *Novel, cpID string) string 评论更新
-	CommentUpdate = func(_ *Novel, _ string) string {
+	// CommentUpdate (nv *Novel) (string, error) 评论更新
+	CommentUpdate = func(_ *Novel) (string, error) {
 		// 默认为空实现
-		return ``
+		return ``, nil
 	}
 )
+
+// ErrNoComment 没有评论内容喵！
+var ErrNoComment = errors.New(`没有评论内容喵！`)
 
 // 与上次更新比较
 func (nv *Novel) makeCompare() (err error) {
@@ -53,18 +59,34 @@ func TryCommentUpdate(
 	msgID []message.ID,
 	users []kitten.QQ,
 	nv *Novel,
-	cpID string,
 ) {
 	const tryCount = 5 // 重试最多 5 次
+	t := time.NewTicker(shttp.TimeOutSeconds * time.Second)
+	defer t.Stop()
 	for range tryCount {
-		s := CommentUpdate(nv, cpID)
-		if s == `` {
+		s, err := CommentUpdate(nv)
+		if err == nil {
+			for i, user := range users {
+				msgr.Reply(msgID[i]).Text(s).Send(user)
+			}
+			return
+		}
+		switch as := struct {
+			ErrURL   *url.Error
+			ErrShttp *shttp.Error
+		}{}; {
+		case errors.Is(err, ErrNoComment),
+			errors.As(err, &as.ErrURL),
+			errors.As(err, &as.ErrShttp):
+			// 在以下错误时重试：
+			// 没有评论内容喵！
+			// *url.Error
+			// *shttp.Error
+			kitten.Error(err)
+			<-t.C
 			continue
 		}
-		for i, user := range users {
-			msgr.Reply(msgID[i]).Text(s).Send(user)
-		}
-		return
+		break
 	}
 	kitten.Error(`评论更新失败喵！`)
 }

@@ -109,15 +109,7 @@ func (f fqAPI) FindBookID(key search.Keyword) (string, error) {
 
 // ChapterID 获取章号
 func (f fqAPI) ChapterID(cpURL string) string {
-	if APIHOST == `` {
-		return Platform.ChapterID(cpURL)
-	}
-	u, err := url.Parse(cpURL)
-	if err != nil {
-		kitten.Error(err)
-		return ``
-	}
-	return u.Query().Get(ItemID)
+	return Platform.ChapterID(cpURL)
 }
 
 // Init 小说网页信息获取
@@ -270,11 +262,5 @@ func getChapterURL(id string) (string, error) {
 
 // IsUpdate 书籍更新检测
 func IsUpdate(upd, rec string) bool {
-	return cmp.Or(
-		API.ChapterID(upd),
-		Platform.ChapterID(upd),
-	) == cmp.Or(
-		API.ChapterID(rec),
-		Platform.ChapterID(rec),
-	)
+	return Platform.ChapterID(upd) == Platform.ChapterID(rec)
 }

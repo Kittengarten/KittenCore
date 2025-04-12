@@ -4,7 +4,6 @@ package track
 import (
 	"errors"
 	"fmt"
-	"log"
 	"runtime/debug"
 	"slices"
 	"strconv"
@@ -150,7 +149,8 @@ func updateTest(msgr *kitten.Messager) {
 	}
 	o, err := msgr.Object()
 	if err != nil {
-		kitten.Error(err)
+		msgr.SendWithImageFail(err)
+		return
 	}
 	go novel.TryCommentUpdate(
 		msgr,
@@ -163,7 +163,6 @@ func updateTest(msgr *kitten.Messager) {
 			SendMulti(),
 		[]kitten.QQ{*o},
 		nv,
-		platform.Get(nv.Platform).ChapterID(nv.Chapter.URL),
 	)
 }
 
@@ -234,7 +233,12 @@ func novelInfo(msgr *kitten.Messager, comment bool) {
 		msgr.SendWithImageFail(err)
 		return
 	}
-	if platform.Get(nv.Platform) == fanqie.API {
+	p, err := platform.Get(nv.Platform)
+	if err != nil {
+		msgr.SendWithImageFail(err)
+		return
+	}
+	if p == fanqie.API {
 		// 还原番茄平台名称
 		nv.Platform = fanqie.Platform.String()
 	}
@@ -445,7 +449,7 @@ func track() {
 		}
 	}()
 	// 初始化报更配置文件
-	if err := configPath.Path.InitFile(fio.Empty); err != nil {
+	if err := configPath.InitFile(fio.Empty); err != nil {
 		kitten.Error(`初始化报更配置文件时发生错误喵！`, err)
 		return
 	}
@@ -456,25 +460,19 @@ func track() {
 		kitten.Error(book.ErrLoad, err)
 		return
 	}
-	log.Printf(`======================[%s]======================
-* OneBot + ZeroBot + Go
-一共有 %d 本小说
-=======================================================
-`,
-		kitten.MainConfig().NickName[0],
-		len(data))
+	kitten.Infoln(`当前有`, len(data), `本小说正在报更喵！`)
 	func() {
 		process.GlobalInitMutex.Lock()
 		defer process.GlobalInitMutex.Unlock()
 	}()
 	var (
-		t   = time.NewTicker(shttp.TimeOutSeconds * time.Second) // 定期检测，间隔为超时时间
+		t   = time.NewTicker(cycle)                              // 定期检测，间隔为超时时间
 		st  = time.NewTicker(shttp.TimeOutSeconds * time.Minute) // 专用慢速时钟
 		sid = kitten.Self()
 		bot = kitten.New(zero.GetBot(sid.Int()))
 	)
 	if !bot.Check(kitten.Caller) {
-		kitten.Fatal(`获取 Bot 实例失败喵！`, bot)
+		kitten.Panic(`获取 Bot 实例失败喵！`, bot)
 	}
 	// 报更
 	for {
@@ -482,7 +480,7 @@ func track() {
 		case data = <-cu: // 接收到更新配置则使用
 		case <-t.C: // 接收到时钟信号则释放
 		}
-		data.Report(bot, cu, configPath, cycle, st) // 执行报更
+		data.Report(bot, cu, configPath, cycle, t, st) // 执行报更
 	}
 }
 

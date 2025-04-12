@@ -251,6 +251,8 @@ func Similarity(a, b string) float64 {
 }
 
 // SimilarityChinese 计算两个汉字字符串的相似程度
+//
+// Deprecated: 结果不具备足够的参考意义
 func SimilarityChinese(a, b string) float64 {
 	const avg = `盒` // 汉字平均码点值
 	var (

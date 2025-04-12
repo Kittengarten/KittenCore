@@ -13,8 +13,10 @@ type (
 )
 
 const (
+	// Unknown 未知错误
+	Unknown Status = iota
 	// BookUnreachable 无法访问小说
-	BookUnreachable Status = iota
+	BookUnreachable
 	// NoChapterURL	没有章节链接
 	NoChapterURL
 	// OnlyAChapter 只有一个章节

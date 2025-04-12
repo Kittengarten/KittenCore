@@ -60,16 +60,17 @@ func (c *Books) Report(
 	cu chan Books,
 	path fio.PathRWMutex,
 	cycle time.Duration,
-	st *time.Ticker,
+	t, st *time.Ticker,
 ) {
 	for i, b := range *c {
-		times.RandomDelayRange(cycle, 2*cycle)
+		<-t.C
 		switch b.Platform {
 		case fanqie.Platform.String():
 			res, err := http.Get(fanqie.APIHOST)
 			if err != nil {
 				// API 无法访问，使用网页模式
 				// 接收到专用的慢速定时器信号才释放
+				kitten.Error(err)
 				<-st.C
 				break
 			}
@@ -79,7 +80,12 @@ func (c *Books) Report(
 				b.Platform = fanqie.API.String()
 			}
 		}
-		nv, err := platform.Get(b.Platform).Init(b.BookID)
+		p, err := platform.Get(b.Platform)
+		if err != nil {
+			kitten.Error(err)
+			continue
+		}
+		nv, err := p.Init(b.BookID)
 		if err != nil {
 			kitten.Error(err)
 			continue
@@ -110,7 +116,7 @@ func (c *Books) Report(
 			).Text(nv.Update()).SendMulti(b.Users...),
 			b.Users,
 			nv,
-			platform.Get(nv.Platform).ChapterID(nv.Chapter.URL))
+		)
 		// 写入小说更新数据
 		(*c)[i].BookName = nv.Name
 		(*c)[i].Writer = nv.Writer

@@ -14,7 +14,7 @@ import (
 type (
 	limiterBy   bool                              // 限速器基准
 	limiterType byte                              // 限速器类型
-	Limiter     func(ctx *zero.Ctx) *rate.Limiter // 限速器函数
+	Limiter     func(ctx *zero.Ctx) *rate.Limiter // Limiter 限速器函数
 )
 
 const (
@@ -23,10 +23,11 @@ const (
 )
 
 const (
-	GroupNormal limiterType = iota // 群内限速，每 3 分钟 1 次
-	GroupFast                      // 群内防刷屏限速，每 12 秒 1 次
-	GroupSlow                      // 群内慢限速，每小时 1 次
-	User                           // 个人限速，每 12 分钟 1 次
+	Unknown     limiterType = iota // Unknown 未知限速器类型
+	GroupNormal                    // GroupNormal 群内限速，每 3 分钟 1 次
+	GroupFast                      // GroupFast 群内防刷屏限速，每 12 秒 1 次
+	GroupSlow                      // GroupSlow 群内慢限速，每小时 1 次
+	User                           // User 个人限速，每 12 分钟 1 次
 )
 
 var limiterStore = map[limiterType]Limiter{

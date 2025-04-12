@@ -212,7 +212,7 @@ func stackExe(msgr *kitten.Messager) {
 			`N(0, (e*体重)²)`,
 			fmt.Sprintf(`N(0, (%s)²)`, times.ConvertTimeDuration(
 				time.Duration(
-					float64(stackConfig.RestHoursPerKG)*float64(time.Hour)*math.E*itof(w),
+					float64(stackConfig.RestHoursPerKG)*float64(time.Hour)*math.E*i2f(w),
 				))),
 			`[最大休息时间]`,
 			times.ConvertTimeDuration(stackBuffer.MaxRestTime).String(),
@@ -304,10 +304,10 @@ func doClear(msgr *kitten.Messager, l, n int, w int, m *meow, r *strings.Builder
 	}
 	// 体重变化
 	if m.Weight == w {
-		fmt.Fprintf(r, "你的体重为 %.1f kg 不变。\n", itof(w))
+		fmt.Fprintf(r, "你的体重为 %.1f kg 不变。\n", i2f(w))
 		return
 	}
-	fmt.Fprintf(r, "你的体重由 %.1f kg 变为 %.1f kg。\n", itof(w), itof(m.Weight))
+	fmt.Fprintf(r, "你的体重由 %.1f kg 变为 %.1f kg。\n", i2f(w), i2f(m.Weight))
 }
 
 /*
@@ -363,7 +363,7 @@ func (d *data) doStack(msgr *kitten.Messager, m *meow) error {
 	_ = sendTextf(msgr, `叠猫猫成功，目前处于队列中第 %d 位喵～
 你的当前体重为 %.1f kg。`,
 		l+1,
-		itof(m.Weight))
+		i2f(m.Weight))
 	go setCard(msgr, l+1)
 	return nil
 }
@@ -596,12 +596,12 @@ func exit(msgr *kitten.Messager, m *meow, r result, h int) {
 	// 去除
 	m.Status = false
 	// 计算休息时间（纳秒）
-	rest := float64(time.Hour) * float64(stackConfig.RestHoursPerKG) * normal(itof(m.Weight))
+	rest := float64(time.Hour) * float64(stackConfig.RestHoursPerKG) * normal(i2f(m.Weight))
 	// 体重变化
 	switch r {
 	case flat:
 		// 平地摔，体重变为 e 倍
-		w := ftoi(math.RoundToEven(math.E * itof(m.Weight)))
+		w := f2i(math.RoundToEven(math.E * i2f(m.Weight)))
 		m.Weight = max(w, -(w + 1))
 	case fall:
 		// 摔下去，体重 - 100g × 当前高度
@@ -621,12 +621,19 @@ func exit(msgr *kitten.Messager, m *meow, r result, h int) {
 		// 压坏了猫猫，体重 + 100g × 压坏的猫猫总数
 		// 被压坏，体重 + 100g × 上方的猫猫总数
 		m.Weight = min(m.Weight, math.MaxInt-h) + h
+	case eaten:
+		// 被吃掉，休息时间和体重不变
+	default:
+		// 未知原因，直接返回
+		return
 	}
 	// 被老虎吃掉，体重不变
 	// 进入休息
-	mrh := time.Hour * time.Duration(stackConfig.MinRestHours)
 	m.Time = time.Unix(msgr.Event.Time, 0).
-		Add(min(stackBuffer.MaxRestTime, max(mrh, time.Duration(rest))))
+		Add(min(stackBuffer.MaxRestTime, max(
+			time.Hour*time.Duration(stackConfig.MinRestHours),
+			time.Duration(rest),
+		)))
 }
 
 // 清空猫堆的体重调整
@@ -636,7 +643,7 @@ func hasClear(m *meow) bool {
 		return false
 	}
 	// 以抱枕突破所需体重/当前体重的概率，体重变为 e 倍
-	w := ftoi(math.RoundToEven(math.E * itof(m.Weight)))
+	w := f2i(math.RoundToEven(math.E * i2f(m.Weight)))
 	m.Weight = max(w, -(w + 1))
 	return true
 }
@@ -686,7 +693,7 @@ func (d *data) oc(msgr *kitten.Messager) {
 你剩余的休息时间变为 %s喵！
 你的体重减少至 %.1f kg 喵！`,
 		times.ConvertTimeDuration(after.Time.Sub(time.Unix(msgr.Event.Time, 0))),
-		itof(after.Weight),
+		i2f(after.Weight),
 	)
 }
 

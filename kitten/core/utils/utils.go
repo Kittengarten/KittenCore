@@ -7,6 +7,7 @@ import (
 	"maps"
 	"math"
 	"math/rand/v2"
+	"reflect"
 	"slices"
 )
 
@@ -67,6 +68,18 @@ func RemoveDuplicates[T comparable](slice []T) (result []T) {
 	return result
 }
 
+// RemoveDuplicatesFunc 去除切片中的重复元素
+func RemoveDuplicatesFunc[T any](slice []T, f func(T, T) bool) (result []T) {
+	for _, v := range slice {
+		if !slices.ContainsFunc(result, func(e T) bool {
+			return f(e, v)
+		}) {
+			result = append(result, v)
+		}
+	}
+	return result
+}
+
 // Round 保留小数点后 n 位
 func Round(f float64, n int) float64 {
 	pow10N := math.Pow10(n)
@@ -87,4 +100,16 @@ func BoolToInt(b bool) int {
 		return 1
 	}
 	return 0
+}
+
+// GetTypeName 获取任意类型变量的类型名
+func GetTypeName(value any) string {
+	// 获取 reflect.Type
+	t := reflect.TypeOf(value)
+	// 如果是指针类型，获取其指向的元素类型
+	if t.Kind() == reflect.Ptr {
+		t = t.Elem()
+	}
+	// 返回类型名
+	return t.Name()
 }
