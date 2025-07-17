@@ -55,9 +55,9 @@ func (u *QQ) Send(msgr *Messager) message.ID {
 		return message.ID{}
 	}
 	// 是否需要回复
-	if func() bool {
+	func() {
 		if msgr.ID.ID() == 0 {
-			return false
+			return
 		}
 		for _, e := range msgr.Message {
 			switch e.Type {
@@ -65,40 +65,44 @@ func (u *QQ) Send(msgr *Messager) message.ID {
 				// 消息段兼容回复，不执行操作
 			default:
 				// 消息段不兼容回复，或未经验证，跳过回复程序
-				return false
+				return
 			}
 		}
-		return true
-	}() {
 		msgr.Message = message.ReplyWithMessage(msgr.ID, msgr.Message...)
-	}
-	var id int64
-	switch {
-	case u.IsQQ():
-		id = msgr.SendPrivateMessage(u.Int(), msgr.Message)
-	case u.IsGroup():
-		id = msgr.SendGroupMessage(u.Int(), msgr.Message)
-	default:
-		Error(`无效的发送对象：`, u)
-	}
-	return message.NewMessageIDFromInteger(id)
+	}()
+	return message.NewMessageIDFromInteger(func() int64 {
+		switch {
+		case u.IsQQ():
+			return msgr.SendPrivateMessage(u.Int(), msgr.Message)
+		case u.IsGroup():
+			return msgr.SendGroupMessage(u.Int(), msgr.Message)
+		default:
+			Error(`无效的发送对象：`, u)
+			return 0
+		}
+	}())
 }
+
+const (
+	no = `no.png`
+	ha = `哈.png`
+)
 
 // SendWithImageFail 发送带有失败图片的文字消息
 func (m *Messager) SendWithImageFail(text ...any) message.ID {
-	return m.Reply().AtLf().Image(`no.png`).Text(text...).Send()
+	return m.Quote().AtLf().Image(no).Text(text...).Send()
 }
 
-// SendWithImageFailf 发送带有失败图片的文字消息
+// SendWithImageFailf 发送带有失败图片的格式化文字消息
 func (m *Messager) SendWithImageFailf(format string, a ...any) message.ID {
-	return m.Reply().AtLf().Image(`no.png`).Textf(format, a...).Send()
+	return m.Quote().AtLf().Image(no).Textf(format, a...).Send()
 }
 
 // DoNotKnow 喵喵不知道哦
 func (m *Messager) DoNotKnow() message.ID {
 	handleErr := func(err error) message.ID {
 		Error(err)
-		return m.Reply().AtLf().Image(`哈.png`).Text(botConfig.NickName[0], `不知道哦`).Send()
+		return m.Quote().AtLf().Image(ha).Text(botConfig.NickName[0], `不知道哦`).Send()
 	}
 	o, err := m.Object()
 	if err != nil {
@@ -108,7 +112,7 @@ func (m *Messager) DoNotKnow() message.ID {
 	if err != nil {
 		return handleErr(err)
 	}
-	return m.Reply().AtLf().Image(`哈.png`).Text(n, `不知道哦`).Send()
+	return m.Quote().AtLf().Image(ha).Text(n, `不知道哦`).Send()
 }
 
 // @ 全体成员，带有检查功能
@@ -155,8 +159,8 @@ func (m *Messager) SendEmojiLike(emoji ...string) error {
 
 // Poke 戳一戳
 func (m *Messager) Poke() {
-	if !m.Check(Caller) || !m.Check(Event) {
-		// 没有 APICaller 或 Event ，无法使用
+	if !m.Check(Caller, Event) {
+		// 没有 APICaller 或 Event ，无法发送
 		return
 	}
 	if u, g := NewQQ(m.Event.UserID), NewQQGroup(m.Event.GroupID); u.IsQQ() {
@@ -210,38 +214,32 @@ func (m *Messager) QQ() (*QQ, error) {
 	return nil, fmt.Errorf(`发送者 %s %w`, u, ErrUnsupported)
 }
 
-// Check 检查上下文的某个项目是否有效且不为空
-func (m *Messager) Check(i Item) bool {
+// Check 检查上下文的项目是否均有效且不为空
+func (m *Messager) Check(i ...Item) bool {
 	if m.Ctx == nil {
 		// 没有上下文，无法获取
 		return false
 	}
-	switch i {
-	case Caller:
-		c := reflect.ValueOf(m.Ctx).Elem().FieldByName(`caller`)
-		return c.IsValid() && !c.IsNil()
-	case Event:
-		if m.Event == nil {
-			// 非消息的上下文，直接返回
-			// 不需要 Error 等级，以免污染日志
-			Info(ErrNoEvent)
+	for _, v := range i {
+		switch v {
+		case Caller:
+			c := reflect.ValueOf(m.Ctx).Elem().FieldByName(`caller`)
+			if !c.IsValid() || c.IsNil() {
+				return false
+			}
+		case Event:
+			if m.Event == nil {
+				// 非消息的上下文，直接返回
+				// 不需要 Error 等级，以免污染日志
+				Info(ErrNoEvent)
+				return false
+			}
+		default:
+			// 检查了错误的项目
 			return false
 		}
-	default:
-		// 检查了错误的项目
-		return false
 	}
 	return true
-}
-
-// State 获取上下文中的字段
-func State[T any](msgr *Messager, name string) (t T) {
-	f, ok := msgr.State[name]
-	if !ok {
-		return
-	}
-	t, _ = f.(T)
-	return
 }
 
 // Matched 获取上下文中的匹配项
@@ -292,18 +290,14 @@ func (m *Messager) ImageURL() []string {
 	return State[[]string](m, `image_url`)
 }
 
-// （私有）扫描二维码
-func scanQRCode(imgfile *os.File) (fmt.Stringer, error) {
-	defer imgfile.Close()
-	img, _, err := image.Decode(imgfile)
-	if err != nil {
-		return nil, err
+// State 获取上下文中的字段
+func State[T any](msgr *Messager, name string) (t T) {
+	f, ok := msgr.State[name]
+	if !ok {
+		return
 	}
-	bmp, err := gozxing.NewBinaryBitmapFromImage(img)
-	if err != nil {
-		return bmp, err
-	}
-	return qrcode.NewQRCodeReader().DecodeWithoutHints(bmp)
+	t, _ = f.(T)
+	return
 }
 
 // ScanQRCode 扫描二维码
@@ -326,13 +320,29 @@ func ScanQRCode(name string) (fmt.Stringer, error) {
 
 // ScanQRCodeInQQ 扫描 QQ 消息中的二维码图片
 func (m *Messager) ScanQRCodeInQQ(file string) (fmt.Stringer, error) {
-	f := m.GetImage(file).Get(`file`).String()
-	//nolint:gosec
-	imgfile, err := os.Open(f)
+	imgfile, err := os.Open(m.GetImage(file).Get(`file`).String())
 	if err != nil {
 		return fio.NewPath(file), err
 	}
 	return scanQRCode(imgfile)
+}
+
+// 扫描二维码
+func scanQRCode(imgfile *os.File) (fmt.Stringer, error) {
+	defer func() {
+		if err := imgfile.Close(); err != nil {
+			Error(`关闭二维码文件失败喵！`, err)
+		}
+	}()
+	img, _, err := image.Decode(imgfile)
+	if err != nil {
+		return nil, err
+	}
+	bmp, err := gozxing.NewBinaryBitmapFromImage(img)
+	if err != nil {
+		return bmp, err
+	}
+	return qrcode.NewQRCodeReader().DecodeWithoutHints(bmp)
 }
 
 // 对象
@@ -351,7 +361,7 @@ func (m *Messager) Age(self obj) int64 {
 		return 0
 	}
 	if self {
-		return botConfig.SelfID.Age(m)
+		return botConfig.Age(m)
 	}
 	return NewQQ(m.Event.UserID).Age(m)
 }

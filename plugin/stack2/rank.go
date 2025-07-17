@@ -82,7 +82,7 @@ func (d *data) rank(msgr *kitten.Messager) {
 		wi += i * v
 	}
 	s := (*d)[c-10:] // 叠猫猫排行
-	_ = sendTextf(msgr, `【叠猫猫排行】
+	_ = sendTextf(msgr, true, `【叠猫猫排行】
 你的当前体重为 %.1f kg
 在 %d 只猫猫中排行第 %d 名
 所有猫猫当前的总重量为 %.1f kg%s

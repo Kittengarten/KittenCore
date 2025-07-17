@@ -7,12 +7,12 @@ import (
 	"slices"
 	"strconv"
 
-	"github.com/Kittengarten/KittenCore/kitten/core/fio"
-
 	"golang.org/x/exp/constraints"
+
+	"github.com/Kittengarten/KittenCore/kitten/core/fio"
 )
 
-type name map[QQ]string // 昵称配置
+type name map[string]string // 昵称配置，key 为 QQ，value 为昵称
 
 // 当前昵称文件
 var nameFile = fio.NewPath(`data`, `zbp`, `name.yaml`).WithRWMutex()
@@ -28,7 +28,7 @@ func (u *QQ) Name() (string, error) {
 	if err != nil {
 		return ``, err
 	}
-	return cmp.Or(n[*u], botConfig.NickName[0]), nil
+	return cmp.Or(slices.Concat([]string{n[u.Str()]}, botConfig.NickName)...), nil
 }
 
 // ReplaceCard 替换当前 bot 的群昵称
@@ -55,7 +55,7 @@ func (u *QQ) SetName(nickname string) error {
 	if err != nil {
 		return err
 	}
-	n[*u] = nickname
+	n[u.Str()] = nickname
 	return fio.Save(nameFile.Path, n)
 }
 
@@ -66,7 +66,7 @@ func (m *Messager) SetCardThisGroup(h ...int) {
 		h = []int{-1}
 	}
 	if m.Event.DetailType == Group {
-		m.SetThisGroupCard(botConfig.SelfID.Int(), m.card(h[0]))
+		m.SetThisGroupCard(botConfig.Int(), m.card(h[0]))
 	}
 }
 
@@ -85,7 +85,7 @@ func (m *Messager) SetCard(h int, g ...QQ) {
 		if !v.IsGroup() {
 			continue
 		}
-		m.SetGroupCard(v.Int(), botConfig.SelfID.Int(), m.card(h))
+		m.SetGroupCard(v.Int(), botConfig.Int(), m.card(h))
 	}
 }
 
@@ -104,7 +104,7 @@ func (m *Messager) card(h int, g ...QQ) string {
 		Error(err)
 		return ``
 	}
-	return card(n, botConfig.SelfID.Age(m), h)
+	return card(n, botConfig.Age(m), h)
 }
 
 // 生成群昵称，h 为猫堆高度

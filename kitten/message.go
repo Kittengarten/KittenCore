@@ -1,6 +1,7 @@
 package kitten
 
 import (
+	"cmp"
 	"errors"
 	"fmt"
 	"strings"
@@ -18,16 +19,24 @@ import (
 
 // 待发送的消息
 type Messager struct {
-	*zero.Ctx             // 上下文
-	message.Message       // 消息
-	message.ID            // 回复
-	err             error // 错误
-	record          bool  // 是否有语音
+	error                // 错误
+	*zero.Ctx            // 上下文
+	message.ID           // 引用消息 ID
+	message.Message      // 消息
+	record          bool // 是否有语音
 }
 
 // New 创建待发送的消息
 func New(ctx *zero.Ctx) *Messager {
 	return &Messager{Ctx: ctx}
+}
+
+// Error 实现 error
+func (m *Messager) Error() string {
+	if m.error == nil {
+		return ``
+	}
+	return m.Error()
 }
 
 // 比较含有的两个消息段切片是否相等
@@ -37,7 +46,7 @@ func equalContainedMessage(a, b *Messager) bool {
 
 // 比较待发送的消息是否相等
 func hasSameMessage(m ...*Messager) bool {
-	return equal.IsSameByFunc(equalContainedMessage, m...)
+	return equal.IsSameFunc(equalContainedMessage, m...)
 }
 
 // 设置回复消息 ID
@@ -46,10 +55,19 @@ func (m *Messager) id(id message.ID) *Messager {
 	return m
 }
 
-// Reply 附带回复，id 为回复的消息 ID（仅限一个），如回复对象为空则回复消息的来源
-func (m *Messager) Reply(id ...message.ID) *Messager {
+/*
+Quote 引用消息，id 为引用的消息 ID（仅限一个）
+
+如引用消息为空则引用本消息的触发来源消息
+
+已经设置过引用消息 ID 时，会被参数覆盖，不提供参数时无效
+*/
+func (m *Messager) Quote(id ...message.ID) *Messager {
 	if len(id) > 0 {
 		return m.id(id[0])
+	}
+	if m.ID != (message.ID{}) {
+		return m
 	}
 	switch id := m.Event.MessageID.(type) {
 	case int64:
@@ -58,20 +76,20 @@ func (m *Messager) Reply(id ...message.ID) *Messager {
 		return m.id(message.NewMessageIDFromString(id))
 	default:
 		if m.Event.PostType == `message` {
-			Infof(`附带回复消息 ID 断言不成功：%+v`, m.Event)
+			Infof(`引用消息 ID 断言不成功：%+v`, m.Event)
 		}
 		return m
 	}
 }
 
-// At 附带 @，u 为 @ 对象，如 @ 对象为空则 @ @ 的来源
+// At 附带 @，u 为 @ 对象，如 @ 对象为空则 @ Messager 的来源
 func (m *Messager) At(u ...QQ) *Messager {
 	if m.Event.DetailType == Private {
 		// 私聊中的 @ 无效
 		return m
 	}
 	if len(u) == 0 {
-		// 如果@ 对象为空，则 @ @ 的来源
+		// 如果@ 对象为空，则 @ Messager 的来源
 		return m.Seg(message.At(m.Event.UserID)).Text(` `)
 	}
 	for _, i := range u {
@@ -112,8 +130,8 @@ func (m *Messager) AtLf(qq ...QQ) *Messager {
 }
 
 // AtAllLf 附带 @ 全体成员 并换行
-func (m *Messager) AtAllLf(qq ...QQ) *Messager {
-	if n := *m; !hasSameMessage(m, n.AtAll(qq...)) {
+func (m *Messager) AtAllLf(g ...QQ) *Messager {
+	if n := *m; !hasSameMessage(m, n.AtAll(g...)) {
 		return n.Lf()
 	}
 	return m
@@ -136,10 +154,10 @@ func (m *Messager) Image(name ...fio.Path) *Messager {
 	for _, n := range name {
 		img, err := imagePath.Image(n)
 		if err != nil {
-			m.err = errors.Join(m.err, fmt.Errorf(`附带图片错误：%w`, err))
+			m.error = errors.Join(m.error, fmt.Errorf(`附带图片错误：%w`, err))
 			img, err = imagePath.Image(fio.NewPath(`error.jpg`))
 			if err != nil {
-				m.err = errors.Join(m.err, fmt.Errorf(`附带图片错误：%w`, err))
+				m.error = errors.Join(m.error, fmt.Errorf(`附带图片错误：%w`, err))
 			}
 		}
 		m.Seg(img)
@@ -147,16 +165,17 @@ func (m *Messager) Image(name ...fio.Path) *Messager {
 	return m
 }
 
-// Record 附带语音，支持网络路径
+/*
+Record 附带语音，支持网络路径
+
+只支持附带一条语音
+*/
 func (m *Messager) Record(name ...string) *Messager {
 	if m.record || len(name) == 0 {
+		// 已经有语音，或未附带语音
 		return m
 	}
-	for _, n := range name {
-		if len(n) == 0 {
-			continue
-		}
-		m.record = true
+	if n := cmp.Or(name...); n != `` {
 		return m.Seg(message.Record(n))
 	}
 	return m
@@ -171,16 +190,16 @@ func (m *Messager) Seg(seg ...message.Segment) *Messager {
 // SendMulti 发送多条消息
 func (m *Messager) SendMulti(u ...QQ) (id []message.ID) {
 	defer m.Reset()
-	if nil != m.err {
+	if m.error != nil {
 		// 有错误，将其打包进消息
-		m = m.Text(m.err)
+		m = m.Text("\n", m.error)
 	}
 	if len(m.Message) == 0 {
 		// 没有消息段，无法发送
 		return nil
 	}
 	if len(u) != 0 {
-		// 如果发送对象不为空，则向发送对象发送
+		// 发送对象不为空，向发送对象发送
 		for _, o := range u {
 			switch {
 			case o.IsGroup(), o.IsQQ():
@@ -190,8 +209,9 @@ func (m *Messager) SendMulti(u ...QQ) (id []message.ID) {
 		}
 		return id
 	}
-	if !m.Check(Event) || !m.Check(Caller) {
-		// 没有事件或 APICaller ，无法发送
+	// 发送对象为空，向 Messager 的来源发送
+	if !m.Check(Caller, Event) {
+		// 没有 APICaller 或 Event ，无法发送
 		Warn(m)
 		return nil
 	}
@@ -220,38 +240,23 @@ func (m *Messager) Send(u ...QQ) message.ID {
 	return message.ID{}
 }
 
-// Reset 重置 Messager
+// Reset 重置 Messager，保留上下文
 func (m *Messager) Reset() *Messager {
 	m.Message = nil
 	m.ID = message.ID{}
-	m.err = nil
+	m.error = nil
 	m.record = false
 	return m
 }
 
-// 比较两个消息段是否相等
-func equalSegment(a, b message.Segment) bool {
-	if a.Type != b.Type {
-		// 如果两个消息段类型不同，则不相等
-		return false
-	}
-	switch a.Type {
-	// 按类型的特殊比较路径
-	case seg.Image:
-		if mio.GetImagePath(a) == mio.GetImagePath(b) {
-			// 如果图片文件相同，则相等，继续遍历比较
-			return true
-		}
-	case seg.Record, seg.Video, seg.Anonymous, seg.Share, seg.Contact,
-		seg.Location, seg.Music, seg.Forward, seg.Node, seg.XML, seg.JSON:
-		// 忽略的类型，将导致停止比较，视为不相等
-	default:
-		if equal.IsSameMap(a.Data, b.Data) {
-			// 相等，继续遍历比较
-			return true
-		}
-	}
-	return false
+// 比较多个消息段是否相等
+func IsSameSegment(s ...message.Segment) bool {
+	return equal.IsSameFunc(equalSegment, s...)
+}
+
+// 比较多个消息段切片是否相等
+func IsSameMessage(m ...message.Message) bool {
+	return equal.IsSameFunc(equalMessage, m...)
 }
 
 // 比较两个消息段切片是否相等
@@ -268,28 +273,36 @@ func equalMessage(a, b message.Message) bool {
 	return true
 }
 
-// 比较多个消息段是否相等
-func IsSameSegment(s ...message.Segment) bool {
-	return equal.IsSameByFunc(equalSegment, s...)
-}
-
-// 比较多个消息段切片是否相等
-func IsSameMessage(m ...message.Message) bool {
-	return equal.IsSameByFunc(equalMessage, m...)
+// 比较两个消息段是否相等
+func equalSegment(a, b message.Segment) bool {
+	if a.Type != b.Type {
+		// 如果两个消息段类型不同，则不相等
+		return false
+	}
+	// 按类型的特殊比较路径
+	switch a.Type {
+	case seg.Image:
+		// 图片，比较文件或路径
+		return mio.GetImagePath(a) != `` && mio.GetImagePath(a) == mio.GetImagePath(b) ||
+			mio.GetImageURL(a) != `` && mio.GetImageURL(a) == mio.GetImageURL(b)
+	case seg.Record, seg.Video, seg.Anonymous, seg.Share, seg.Contact,
+		seg.Location, seg.Music, seg.Forward, seg.Node, seg.XML, seg.JSON:
+		// 忽略的类型，视为不相等
+		return false
+	default:
+		// 直接比较数据
+		return equal.IsSameMap(a.Data, b.Data)
+	}
 }
 
 // CallAction 调用 cqhttp API
-func (m *Messager) CallAction(action string, params map[string]any) zero.APIResponse {
+func (m *Messager) CallAction(action string, params zero.H) zero.APIResponse {
 	return m.Ctx.CallAction(action, params)
 }
 
-// 检查接口切片的每个元素中是否为错误，如果有则记录日志
-func checkErr(v []any) {
-	for _, i := range v {
-		if err, ok := i.(error); ok {
-			Error(err)
-		}
-	}
+// Textf 格式化构建 message.Segment 文本，格式同 fmt.Sprintf
+func Textf(format string, a ...any) message.Segment {
+	return Text(fmt.Sprintf(format, a...))
 }
 
 // Text 构建 message.Segment 文本，格式同 fmt.Sprint
@@ -298,9 +311,13 @@ func Text(text ...any) message.Segment {
 	return message.Text(text...)
 }
 
-// Textf 格式化构建 message.Segment 文本，格式同 fmt.Sprintf
-func Textf(format string, a ...any) message.Segment {
-	return Text(fmt.Sprintf(format, a...))
+// 检查切片的每个元素是否为错误，如果为错误则记录日志
+func checkErr(v []any) {
+	for _, i := range v {
+		if err, ok := i.(error); ok && err != nil {
+			Error(err)
+		}
+	}
 }
 
 // Image 将收到的图片文件名 | 绝对路径 | 网络 URL | Base64 编码转换为图片消息

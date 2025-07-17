@@ -2,30 +2,27 @@ package novel
 
 import (
 	"fmt"
+	"slices"
 	"strings"
 	"sync"
 
+	"github.com/Kittengarten/KittenCore/kitten"
 	"github.com/Kittengarten/KittenCore/kitten/core/times"
+	"github.com/Kittengarten/KittenCore/plugin/track/chapter"
+	"github.com/Kittengarten/KittenCore/plugin/track/platform"
 )
 
-var (
-	// Comment (nv fmt.Stringer) string 评论
-	Comment = func(_ fmt.Stringer) string {
-		// 默认为空实现
-		return ``
-	}
-	// ChapterID (nv *Novel) (string, error) 获取小说更新章号
-	ChapterID = func(_ *Novel) (string, error) {
-		// 默认为空实现
-		return ``, nil
-	}
-	// Pool 小说池
-	Pool = sync.Pool{
-		New: func() any {
-			return new(Novel)
-		},
-	}
-)
+// Export 导出点评接口
+var Export struct {
+	Commenter // Commenter 小说点评者
+}
+
+// Pool 小说池
+var Pool = sync.Pool{
+	New: func() any {
+		return new(Novel)
+	},
+}
 
 // 获取小说平台
 func (nv *Novel) platform() string {
@@ -91,12 +88,12 @@ func (nv *Novel) item() string {
 
 // 获取小说标签
 func (nv *Novel) tags() *strings.Builder {
-	var b strings.Builder
-	b.Grow(8 * len(nv.TagList))
+	var s strings.Builder
+	s.Grow(8 * len(nv.TagList))
 	for _, t := range nv.TagList {
-		fmt.Fprint(&b, `[`, t, `]`)
+		fmt.Fprint(&s, `[`, t, `]`)
 	}
-	return &b
+	return &s
 }
 
 // 获取小说收藏
@@ -124,17 +121,22 @@ func (nv *Novel) hitNum() string {
 
 // 获取小说更新时间
 func (nv *Novel) update() string {
-	return `更新：` + nv.Format(times.LayoutHeart)
+	return `更新：` + nv.Chapter.Update.Format(times.LayoutHeart)
 }
 
 // 获取小说简介
 func (nv *Novel) introduce() string {
-	return "简介：\n\n" + nv.Introduce
+	return "简介：\n" + nv.Introduce
 }
 
 // ChapterID 获取小说更新章号
-func (nv *Novel) ChapterID() (string, error) {
-	return ChapterID(nv)
+func (nv *Novel) ChapterID() string {
+	p, err := platform.Get(nv.Platform)
+	if err != nil {
+		kitten.Error(err)
+		return ``
+	}
+	return p.ChapterID(nv.Chapter.URL)
 }
 
 // String 实现 fmt.Stringer
@@ -142,7 +144,7 @@ func (nv *Novel) String() string {
 	if nv.ID == `` {
 		return `获取不到书号喵！`
 	}
-	return strings.Join([]string{
+	return strings.Join(slices.DeleteFunc([]string{
 		nv.platform(),
 		nv.name(),
 		nv.id(),
@@ -156,5 +158,22 @@ func (nv *Novel) String() string {
 		nv.hitNum(),
 		nv.update(),
 		nv.introduce(),
-	}, "\n")
+	}, func(s string) bool { return s == `` }), "\n")
+}
+
+// Init 初始化小说
+func Init(p platform.Platform, nvID string) (*Novel, error) {
+	nva, err := p.Init(nvID)
+	if err != nil {
+		return nil, err
+	}
+	return Assert(nva), nil
+}
+
+// Assert 断言为小说，不是小说时返回空小说
+func Assert(a any) *Novel {
+	if nv, ok := a.(*Novel); ok {
+		return nv
+	}
+	return &Novel{Chapter: &chapter.Chapter{}}
 }

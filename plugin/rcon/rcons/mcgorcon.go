@@ -3,12 +3,10 @@ package rcons
 
 import (
 	"bytes"
-	"cmp"
 	"encoding/binary"
 	"errors"
 	"io"
 	"net"
-	"time"
 
 	"github.com/Kittengarten/KittenCore/kitten/core/shttp"
 )
@@ -48,7 +46,7 @@ var (
 )
 
 func (c *MCConn) Open(addr, password string) error {
-	conn, err := net.DialTimeout(`tcp`, addr, shttp.TimeOutSeconds*time.Second)
+	conn, err := net.DialTimeout(`tcp`, addr, shttp.TimeOut)
 	if err != nil {
 		return err
 	}
@@ -118,7 +116,7 @@ func packetise(t packetType, p []byte) ([]byte, error) {
 	}
 	l32 := int32(l)
 	var buf bytes.Buffer
-	if err := cmp.Or(
+	if err := errors.Join(
 		binary.Write(&buf, binary.LittleEndian, l32+10),
 		binary.Write(&buf, binary.LittleEndian, int32(0)),
 		binary.Write(&buf, binary.LittleEndian, t),

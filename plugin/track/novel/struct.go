@@ -1,6 +1,8 @@
 package novel
 
 import (
+	"fmt"
+
 	"github.com/Kittengarten/KittenCore/plugin/track/chapter"
 )
 
@@ -14,8 +16,8 @@ type (
 		WriterInfo              // WriterInfo 作者信息
 		Data                    // Data 小说数据
 		Info                    // Info 小说信息
-		*chapter.Chapter        // 新章节信息
-		chapter.Compare         // 章节之间比较（报更时才初始化）
+		*chapter.Chapter        // Chapter 新章节信息
+		chapter.Compare         // Compare 章节之间比较（报更时才初始化）
 	}
 
 	// WriterInfo 作者信息
@@ -26,11 +28,11 @@ type (
 
 	// Data 小说数据
 	Data struct {
-		Protagonists []string // Protagonists 主角
-		Right        []string // Right 版权状态
 		Collection   string   // Collection 小说收藏
 		HitNum       string   // HitNum 小说点击
 		TotalWordNum string   // TotalWordNum 小说字数
+		Right        []string // Right 版权状态
+		Protagonists []string // Protagonists 主角
 	}
 
 	// Info 小说信息
@@ -43,4 +45,13 @@ type (
 		Item      []string // Item 小说参加的项目
 		TagList   []string // TagList 标签列表
 	}
+
+	// Commenter 小说点评者
+	Commenter interface {
+		CommentNovel(nv *Novel) string
+		CommentUpdate(nv *Novel) (string, error)
+	}
+
+	// BookCommentBox 小说点评框
+	BookCommentBox func(nv fmt.Stringer) string
 )

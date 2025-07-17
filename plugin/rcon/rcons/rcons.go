@@ -54,11 +54,11 @@ func Command(msgr *kitten.Messager, cp fio.PathRWMutex) message.ID {
 		return msgr.SendWithImageFail(`发送 RCON 命令错误喵！`, err)
 	}
 	if resp == `` {
-		return msgr.Reply().At().Text(`命令响应为空喵！`).Send()
+		return msgr.Quote().At().Text(`命令响应为空喵！`).Send()
 	}
 	resp = strings.ReplaceAll(resp, ` ms`, " ms\n")
 	resp = strings.TrimRight(resp, "\n\r")
-	return msgr.Reply().AtLf().Text(regexp.MustCompile(`§.`).ReplaceAllString(resp, ``)).Send()
+	return msgr.Quote().AtLf().Text(regexp.MustCompile(`§.`).ReplaceAllString(resp, ``)).Send()
 }
 
 // 设置 RCON
@@ -88,7 +88,7 @@ func Set(msgr *kitten.Messager, i item, cp fio.PathRWMutex) message.ID {
 	if err = fio.Save(cp.Path, config); err != nil {
 		return msgr.SendWithImageFail(`保存 RCON 配置文件错误喵！`, err)
 	}
-	return msgr.Reply().At().Text(`RCON `, &i, `设置成功喵！`).Send()
+	return msgr.Quote().At().Text(`RCON `, &i, `设置成功喵！`).Send()
 }
 
 // String 实现 fmt.Stringer

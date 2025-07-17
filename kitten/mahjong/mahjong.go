@@ -51,18 +51,18 @@ var (
 	}
 )
 
+// New 配牌
+func New(dealer bool) (m []rune) {
+	m = NewWall()[:deal[dealer]]
+	slices.Sort(m)
+	return
+}
+
 // NewWall 新的牌山
 func NewWall() (m []rune) {
 	m = slices.Repeat(slices.Collect(maps.Values(mahjong)), 4)
 	rand.Shuffle(len(m), func(i, j int) {
 		m[i], m[j] = m[j], m[i]
 	})
-	return
-}
-
-// New 配牌
-func New(dealer bool) (m []rune) {
-	m = NewWall()[:deal[dealer]]
-	slices.Sort(m)
 	return
 }

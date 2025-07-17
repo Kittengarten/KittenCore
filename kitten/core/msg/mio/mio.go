@@ -22,6 +22,11 @@ func New(p fio.Path) Path {
 	return Path{p}
 }
 
+// NewPath MsgPath 的构造函数
+func NewPath[T ~string](elem ...T) Path {
+	return Path{fio.NewPath(elem...)}
+}
+
 /*
 Image 从图片的相对 | 绝对路径（文件夹），
 
@@ -43,10 +48,7 @@ func (p Path) Image(name fio.Path) (message.Segment, error) {
 	)
 	if filepath.IsAbs(name.String()) {
 		// 传入的是绝对路径
-		if isDir, err := name.IsDir(); err == nil && !isDir {
-			// 传入的是文件
-			return message.Image(pre+name.String(), fn), nil
-		}
+		return New(name).Rand(pre, fn)
 	}
 	if strings.Contains(name.String(), `://`) {
 		// 传入的是网络路径
@@ -66,11 +68,14 @@ func (p Path) Image(name fio.Path) (message.Segment, error) {
 		}
 		if isDir {
 			// 请求的是文件夹
-			return message.Image(pre+fio.NewPath(path, name.String()).String(), fn), nil
+			return NewPath(path, name.String()).Rand(pre, fn)
 		}
 		// 请求的是文件
 		np, err := p.LoadPath()
-		return message.Image(pre+fio.NewPath(np, name).String(), fn), err
+		if err != nil {
+			return message.Segment{}, err
+		}
+		return NewPath(np, name).Rand(pre, fn)
 	}
 	// 请求的是相对路径
 	if isDir, err := p.IsDir(); isDir {
@@ -79,11 +84,35 @@ func (p Path) Image(name fio.Path) (message.Segment, error) {
 		}
 		// 请求的是文件夹，需要转换为绝对路径
 		abs, err := fio.ProcessPath()
-		return message.Image(pre+fio.NewPath(abs, p.Path, name).String(), fn), err
+		if err != nil {
+			return message.Segment{}, err
+		}
+		return NewPath(abs, p.Path, name).Rand(pre, fn)
 	}
 	// 请求的是文件
 	np, err := p.LoadPath()
-	return message.Image(fio.NewPath(np, name).String(), fn), err
+	if err != nil {
+		return message.Segment{}, err
+	}
+	return NewPath(np, name).Rand(pre, fn)
+}
+
+// Rand 从绝对路径中随机抽取一张图片
+func (p Path) Rand(pre, fn string) (message.Segment, error) {
+	isDir, err := p.IsDir()
+	if err != nil {
+		return message.Segment{}, err
+	}
+	if !isDir {
+		// 传入的是文件
+		return message.Image(pre+p.String(), fn), nil
+	}
+	// 传入的是文件夹，从文件夹中随机抽取一张图片
+	img, err := p.Path.Rand()
+	if err != nil {
+		return message.Segment{}, err
+	}
+	return message.Image(pre+img.String(), fn), nil
 }
 
 // GetImagePath 获取图片路径

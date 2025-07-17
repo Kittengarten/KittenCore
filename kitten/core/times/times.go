@@ -10,10 +10,10 @@ import (
 
 // TimeDuration 表示时间间隔的结构体
 type TimeDuration struct {
-	d time.Duration // 天
-	h time.Duration // 小时
-	m time.Duration // 分钟
-	s time.Duration // 秒
+	d int // 天
+	h int // 小时
+	m int // 分钟
+	s int // 秒
 }
 
 const (
@@ -41,23 +41,20 @@ func RandomDelayRange(minDelay, maxDelay time.Duration) {
 // ConvertTimeDuration 转换时间间隔
 func ConvertTimeDuration(d time.Duration) TimeDuration {
 	return TimeDuration{
-		d: d / HoursPerDay / time.Hour,
-		h: d % (HoursPerDay * time.Hour) / time.Hour,
-		m: d % time.Hour / time.Minute,
-		s: d % time.Minute / time.Second,
+		d: int(d / HoursPerDay / time.Hour),
+		h: int(d % (HoursPerDay * time.Hour) / time.Hour),
+		m: int(d % time.Hour / time.Minute),
+		s: int(d % time.Minute / time.Second),
 	}
 }
 
 // String 实现 fmt.Stringer
 func (t TimeDuration) String() string {
 	var (
-		s []string
-		c = func(t time.Duration) string {
-			return strconv.FormatInt(int64(t), 10)
-		}
-		add = func(d time.Duration, e string) {
+		s   []string
+		add = func(d int, e string) {
 			if d != 0 {
-				s = append(s, c(d)+e)
+				s = append(s, strconv.Itoa(d)+e)
 			}
 		}
 	)
@@ -66,4 +63,25 @@ func (t TimeDuration) String() string {
 	add(t.m, ` 分钟`)
 	add(t.s, ` 秒`)
 	return strings.Join(s, ` `)
+}
+
+// DailyDeadline 距离每日截止时刻的剩余时间
+//
+//nolint:predeclared
+func DailyDeadline(hour, min, sec, nsec int) time.Duration {
+	// 获取当前时间
+	var (
+		now = time.Now()
+		// 创建今天的截止时刻
+		target = time.Date(
+			now.Year(), now.Month(), now.Day(),
+			hour, min, sec, nsec,
+			now.Location())
+	)
+	// 如果已经过了今天的截止时刻，就切换到明天的
+	if now.After(target) {
+		target = target.Add(HoursPerDay * time.Hour)
+	}
+	// 计算剩余时间
+	return target.Sub(now)
 }

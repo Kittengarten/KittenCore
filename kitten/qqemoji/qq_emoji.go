@@ -8,8 +8,8 @@ import (
 	"math/rand/v2"
 	"slices"
 
+	"github.com/goccy/go-yaml"
 	"go.uber.org/zap"
-	"gopkg.in/yaml.v3"
 )
 
 var (

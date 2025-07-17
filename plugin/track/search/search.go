@@ -20,5 +20,5 @@ func (key Keyword) NotFound() *NotFoundError {
 
 // Error 实现 error
 func (e *NotFoundError) Error() string {
-	return `没有找到` + string(e.key) + `关键词的小说喵！`
+	return string(e.key) + ` 关键词没有找到小说喵！`
 }

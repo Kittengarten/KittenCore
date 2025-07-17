@@ -19,7 +19,7 @@ import (
 func (d *data) view(msgr *kitten.Messager, all bool) {
 	s := d.getStack() // 获取叠猫猫队列
 	go setCard(msgr, len(s))
-	_ = sendTextf(msgr, `【叠猫猫队列】
+	_ = sendTextf(msgr, true, `【叠猫猫队列】
 现在有 %d 只猫猫
 总重量为 %.1f kg
 ————%s`,
@@ -44,7 +44,7 @@ func (d *data) view(msgr *kitten.Messager, all bool) {
 		times.RandomDelayRange(time.Second, 2*time.Second)
 		// 发送剩余部分的前 50 条
 		sr := s[max(0, len(s)-50):]
-		sendText(msgr, &sr)
+		sendText(msgr, false, &sr)
 		// 剩余部分的剩余部分
 		s = s[:len(s)-len(sr)]
 	}
@@ -80,10 +80,9 @@ func (d *data) viewImage(msgr *kitten.Messager) message.ID {
 		return message.ID{}
 	}
 	var (
-		values = make([][]float64, 1) // 叠猫猫图示数据
-		str    = make([]string, l)    // 叠猫猫图示文字
+		values = [][]float64{make([]float64, l)} // 叠猫猫图示数据
+		str    = make([]string, l)               // 叠猫猫图示文字
 	)
-	values[0] = make([]float64, l) // 初始化二维切片
 	for h, m := range s {
 		values[0][h] = i2f(m.Weight)
 		str[h] = strings.ReplaceAll(func() string {

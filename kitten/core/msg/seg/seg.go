@@ -32,8 +32,8 @@ const (
 	Location = `location`
 	// Music 音乐分享
 	Music = `music`
-	// Reply 回复
-	Reply = `reply`
+	// Quote 回复（引用消息）
+	Quote = `reply`
 	// Forward 合并转发
 	Forward = `forward`
 	// Node 合并转发节点

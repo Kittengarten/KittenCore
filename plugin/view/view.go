@@ -28,31 +28,33 @@ const (
 	logFile          = `C:\Program Files (x86)\MSI Afterburner\HardwareMonitoring.hml`
 )
 
+// 注册插件
+var engine = control.AutoRegister(&ctrl.Options[*zero.Ctx]{
+	DisableOnDefault: false,
+	Brief:            brief,
+	Help: func() string {
+		var s strings.Builder // 字符串构建器
+		s.Grow(32 * len(kitten.MainConfig().NickName))
+		for _, n := range kitten.MainConfig().NickName {
+			fmt.Fprintln(&s, kitten.MainConfig().CommandPrefix+cView, n, `// 可获取服务器运行状况`)
+		}
+		fmt.Fprint(&s, `戳一戳`, kitten.MainConfig().NickName[0], ` // 可得到响应`)
+		return s.String()
+	}(),
+}).ApplySingle(ctxext.DefaultSingle)
+
 var (
-	// 注册插件
-	engine = control.AutoRegister(&ctrl.Options[*zero.Ctx]{
-		DisableOnDefault: false,
-		Brief:            brief,
-		Help: func() string {
-			var s strings.Builder // 字符串构建器
-			s.Grow(32 * len(kitten.MainConfig().NickName))
-			for _, n := range kitten.MainConfig().NickName {
-				fmt.Fprintln(&s, kitten.MainConfig().CommandPrefix+cView, n, `// 可获取服务器运行状况`)
-			}
-			fmt.Fprint(&s, `戳一戳`, kitten.MainConfig().NickName[0], ` // 可得到响应`)
-			return s.String()
-		}(),
-	}).ApplySingle(ctxext.DefaultSingle)
-	// bot 自身 ID
-	sid = kitten.Self()
 	// 日志文件
 	logPath = fio.NewPath(engine.DataFolder(), `logPath.txt`)
 	// 日志文件路径
 	logFilePath fio.Path
 )
 
+// bot 自身 ID
+var sid = kitten.Self()
+
 func init() {
-	if err := logPath.InitFile(logFile); err != nil {
+	if err := logPath.InitFileText(logFile); err != nil {
 		kitten.Error(err)
 	}
 	logFilePath = logPath.Get(logFile)
@@ -94,9 +96,8 @@ func init() {
 		SetBlock(true).
 		Handle(func(ctx *zero.Ctx) {
 			img.Scan(kitten.New(ctx),
-				zero.SuperUserPermission(ctx),
-				zero.HasPicture(ctx),
-				func() bool { return zero.MustProvidePicture(ctx) },
+				zero.SuperUserPermission,
+				zero.MustProvidePicture,
 			)
 		})
 }

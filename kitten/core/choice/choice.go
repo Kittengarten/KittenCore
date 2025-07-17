@@ -1,6 +1,8 @@
 package choice
 
 import (
+	"errors"
+
 	"github.com/Kittengarten/KittenCore/internal/wr"
 	"github.com/Kittengarten/KittenCore/kitten/core/utils"
 )
@@ -26,8 +28,14 @@ type (
 	ChoicersW []ChoicerW
 )
 
+// ErrNoChoice 没有可用选项喵！
+var ErrNoChoice = errors.New(`没有可用选项喵！`)
+
 // Choose 按权重抽取一个项目的标识符
 func (c ChoicersW) Choose() (any, error) {
+	if len(c) == 0 {
+		return nil, ErrNoChoice
+	}
 	chooser, err := wr.NewChooser(
 		utils.ConvertSlice(
 			c,
@@ -37,7 +45,7 @@ func (c ChoicersW) Choose() (any, error) {
 		)...,
 	)
 	if err != nil {
-		return -1, err
+		return nil, err
 	}
 	return chooser.Pick(), nil
 }
@@ -46,10 +54,12 @@ func (c ChoicersW) Choose() (any, error) {
 func (c ChoicersW) MaxWeightProportion() float64 {
 	var maxWeight, sumWeight int
 	for _, ch := range c {
-		sumWeight += ch.Weight()
-		if ch.Weight() > maxWeight {
-			maxWeight = ch.Weight()
-		}
+		w := ch.Weight()
+		sumWeight += w
+		maxWeight = max(maxWeight, w)
+	}
+	if sumWeight == 0 {
+		return 0
 	}
 	return float64(maxWeight) / float64(sumWeight)
 }

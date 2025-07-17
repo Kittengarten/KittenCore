@@ -19,7 +19,7 @@ func eatExe(msgr *kitten.Messager) {
 	if !setGlobalLocation(msgr.Args()) {
 		// 设置全局地区标记位，如当前活动未开放则返回
 		if err := msgr.SendEmojiLike(`辣眼睛`); err != nil {
-			kitten.Error(err)
+			kitten.Warn(err)
 		}
 		msgr.SendWithImageFail(`当前活动未开放喵！`)
 		return
@@ -32,10 +32,7 @@ func eatExe(msgr *kitten.Messager) {
 	}
 	stackBuffer.refresh(msgr, &d)
 	_ = d.eat(msgr)
-	if !selfEat(msgr, d) {
-		times.RandomDelayRange(time.Second, 2*time.Second)
-		selfIn(msgr, d)
-	}
+	self(msgr, d)
 }
 
 // 吃猫猫
@@ -59,13 +56,13 @@ func (d *data) eat(msgr *kitten.Messager) message.ID {
 	// 延迟恢复数据状态
 	defer restore()
 	if err != nil {
-		// 如果初始化错误（需要休息或已经加入），不能吃猫猫，依靠延迟函数恢复数据状态
+		// 初始化错误（需要休息或已经加入），不能吃猫猫，依靠延迟函数恢复数据状态
 		return message.ID{}
 	}
 	if m.getTypeID(msgr) < 小老虎 {
-		// 如果不是老虎，不能吃猫猫，依靠延迟函数恢复数据状态
+		// 不是老虎，不能吃猫猫，依靠延迟函数恢复数据状态
 		if err := msgr.SendEmojiLike(`NO`); err != nil {
-			kitten.Error(err)
+			kitten.Warn(err)
 		}
 		return sendWithImageFail(msgr, `老虎以上才可以吃猫猫——`)
 	}
@@ -95,9 +92,9 @@ func (d *data) doEat(msgr *kitten.Messager, m *meow) bool {
 		l  = len(dr)          // 叠猫猫队列高度
 	)
 	if l == 0 {
-		// 如果没有猫猫
+		// 没有猫猫
 		if err := msgr.SendEmojiLike(`哦`); err != nil {
-			kitten.Error(err)
+			kitten.Warn(err)
 		}
 		sendWithImageFail(msgr, `猫堆中没有猫猫可以吃——`)
 		return false
@@ -105,9 +102,17 @@ func (d *data) doEat(msgr *kitten.Messager, m *meow) bool {
 	if t := (*d)[l-1].getTypeID(msgr); t >= 小老虎 {
 		// 老虎以上无法被吃
 		if err := msgr.SendEmojiLike(`😁 呲牙`); err != nil {
-			kitten.Error(err)
+			kitten.Warn(err)
 		}
 		sendWithImageFail(msgr, `不可以吃`, &t, `——`)
+		return false
+	}
+	if t := (*d)[0].getTypeID(msgr); t >= 猫猫巴士 {
+		// 底座是猫猫巴士以上无法被吃
+		if err := msgr.SendEmojiLike(`✨ 闪光`); err != nil {
+			kitten.Warn(err)
+		}
+		sendWithImageFail(msgr, `不可以吃`, &t, `载的猫猫——`)
 		return false
 	}
 	var (
@@ -132,30 +137,32 @@ func (d *data) doEat(msgr *kitten.Messager, m *meow) bool {
 	go setCard(msgr, l-c)
 	// 老虎进入休息
 	exit(msgr, m, eat, w)
-	var r strings.Builder
+	var s strings.Builder
 	if w == 0 {
+		// 吃猫猫失败
 		if err := msgr.SendEmojiLike(`调皮`); err != nil {
-			kitten.Error(err)
+			kitten.Warn(err)
 		}
-		fmt.Fprintf(&r, `吃猫猫失败，杂鱼～杂鱼❤需要休息 %s。`,
+		fmt.Fprintf(&s, `吃猫猫失败，杂鱼～杂鱼❤需要休息 %s。`,
 			times.ConvertTimeDuration(m.Time.Sub(time.Unix(msgr.Event.Time, 0))))
-		doClear(msgr, l, c, m.Weight, m, &r)
-		r.WriteRune('🐅')
-		sendWithZako(msgr, &r)
+		doClear(msgr, l, c, m.Weight, m, &s)
+		s.WriteRune('🐅')
+		sendWithZako(msgr, &s)
 		return true
 	}
+	// 吃猫猫成功
 	if err := msgr.SendEmojiLike(`😰 紧张`); err != nil {
-		kitten.Error(err)
+		kitten.Warn(err)
 	}
-	fmt.Fprintf(&r, `吃猫猫成功，你吃掉了 %d 只猫猫！需要休息 %s。`,
+	fmt.Fprintf(&s, `吃猫猫成功，你吃掉了 %d 只猫猫！需要休息 %s。`,
 		c, times.ConvertTimeDuration(m.Time.Sub(time.Unix(msgr.Event.Time, 0))))
-	doClear(msgr, l, c, m.Weight-w, m, &r)
-	r.WriteRune('🐯')
+	doClear(msgr, l, c, m.Weight-w, m, &s)
+	s.WriteRune('🐯')
 	for range c {
-		r.WriteRune('😿')
+		s.WriteRune('😿')
 	}
 	e := dr[l-c:]
-	sendText(msgr, &r, &e)
+	sendText(msgr, true, &s, &e)
 	return true
 }
 

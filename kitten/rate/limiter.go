@@ -53,8 +53,14 @@ func Get(o limiterType) Limiter {
 
 // New 创建限速器，b 为限速器基准，interval 为限速器间隔，burst 为限速器容量
 func New(b limiterBy, interval time.Duration, burst int) Limiter {
-	if b == ByUser {
-		return ctxext.NewLimiterManager(interval, burst).LimitByUser
+	m := ctxext.NewLimiterManager(interval, burst)
+	switch b {
+	case ByUser:
+		return m.LimitByUser
+	case ByGroup:
+		return m.LimitByGroup
+	default:
+		// 死码，为了防止编译器报 missing return 而保留
+		return m.LimitByUser
 	}
-	return ctxext.NewLimiterManager(interval, burst).LimitByGroup
 }

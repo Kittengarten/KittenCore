@@ -17,17 +17,18 @@ type (
 	needRestError struct {
 		time.Duration     // 剩余的休息时间
 		w             int // 叠入猫猫的体重
-		i             int // 叠入猫猫的下标
+		i             int // 叠入猫猫的索引
+		bool              // 日常任务是否完成
 	}
 
 	// 叠猫猫失败
 	stackError struct {
-		*kitten.Messager        // 上下文
-		m                *meow  // 失败的猫猫
-		l                int    // 叠猫猫队列高度
-		n                int    // 造成别的猫猫退出的数量
-		r                result // 退出原因
-		strings.Builder         // 错误内容
+		*kitten.Messager
+		m *meow
+		strings.Builder
+		l int
+		n int
+		r result
 	}
 )
 
@@ -44,17 +45,25 @@ func alreadyJoined() *alreadyJoinedError {
 // Error 实现 error
 func (e *needRestError) Error() string {
 	return fmt.Sprintf(`还需要休息 %s才能活动喵！
-你的当前体重为 %.1f kg。`,
+你的当前体重为 %.1f kg。
+日常任务%s完成。`,
 		times.ConvertTimeDuration(e.Duration),
-		i2f(e.w))
+		i2f(e.w),
+		func() string {
+			if e.bool {
+				return `已`
+			}
+			return `未`
+		}())
 }
 
 // *needRest 的构造函数，需要休息
-func needRest(t time.Duration, w, i int) *needRestError {
+func needRest(t time.Duration, w, i int, b bool) *needRestError {
 	return &needRestError{
 		Duration: t,
 		w:        w,
 		i:        i,
+		bool:     b,
 	}
 }
 

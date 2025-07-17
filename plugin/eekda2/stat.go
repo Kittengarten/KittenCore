@@ -23,7 +23,7 @@ func getStat(ctx *zero.Ctx) {
 		msgr.SendWithImageFail(err)
 	}
 	i := slices.IndexFunc(s, func(f food) bool {
-		return ctx.Event.UserID == f.ID.Int()
+		return ctx.Event.UserID == f.Int()
 	})
 	if i == -1 {
 		msgr.DoNotKnow()
@@ -47,7 +47,7 @@ func getStat(ctx *zero.Ctx) {
 		msgr.DoNotKnow()
 		return
 	}
-	msgr.Reply().AtLf().Text(&s[i]).Send()
+	msgr.Quote().AtLf().Text(&s[i]).Send()
 }
 
 // 统计被吃次数
@@ -60,7 +60,7 @@ func doStat(msgr *kitten.Messager, td today) {
 	// 查询 QQ
 	for k, v := range s {
 		// 用餐类型
-		m := slices.Index(td.Meal[:], v.ID)
+		m := slices.Index(td.Meal[:], v.QQ)
 		if m >= 0 {
 			// 用餐类型有效
 			a := s[k].Stat[td.ID]
@@ -77,7 +77,7 @@ func doStat(msgr *kitten.Messager, td today) {
 		var a [mealsPerDay]int
 		a[m] = 1
 		s = append(s, food{
-			ID: td.Meal[m],
+			QQ: td.Meal[m],
 			Stat: map[string][mealsPerDay]int{
 				td.ID: a,
 			},

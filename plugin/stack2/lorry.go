@@ -1,0 +1,150 @@
+package stack2
+
+import (
+	"fmt"
+	"math/rand/v2"
+	"slices"
+	"strings"
+	"time"
+
+	"github.com/Kittengarten/KittenCore/kitten"
+	"github.com/Kittengarten/KittenCore/kitten/core/fio"
+	"github.com/Kittengarten/KittenCore/kitten/core/times"
+
+	"github.com/wdvxdr1123/ZeroBot/message"
+)
+
+const lorryImage = `lorry`
+
+// 撞大运执行逻辑
+func lorryExe(msgr *kitten.Messager) {
+	if !setGlobalLocation(msgr.Args()) {
+		// 设置全局地区标记位，如当前活动未开放则返回
+		if err := msgr.SendEmojiLike(`辣眼睛`); err != nil {
+			kitten.Warn(err)
+		}
+		msgr.SendWithImageFail(`当前活动未开放喵！`)
+		return
+	}
+	GlobalMessager = msgr
+	d, err := fio.Load[data](dataPath, fio.Empty)
+	if err != nil {
+		sendWithImageFail(msgr, `加载叠猫猫数据文件时发生错误喵！`, err)
+		return
+	}
+	stackBuffer.refresh(msgr, &d)
+	_ = d.lorry(msgr)
+	self(msgr, d)
+}
+
+// 撞大运
+func (d *data) lorry(msgr *kitten.Messager) message.ID {
+	var (
+		// 初始化自身
+		m, err = d.pre(msgr)
+		// 未在叠猫猫的队列
+		dn data
+		// 取消恢复数据状态
+		cancel bool
+		// 恢复数据状态
+		restore = func() {
+			if cancel {
+				return
+			}
+			// 如果没有取消，则下次进行取消
+			*d, cancel = slices.Concat(dn, *d, data{m}), true
+		}
+	)
+	// 延迟恢复数据状态
+	defer restore()
+	if err != nil {
+		// 初始化错误（需要休息或已经加入）
+		return message.ID{}
+	}
+	if m.getTypeID(msgr) < 猫车 {
+		// 不是猫车，不能撞大运
+		if err := msgr.SendEmojiLike(`NO`); err != nil {
+			kitten.Warn(err)
+		}
+		return sendWithImageFail(msgr, `猫车以上才可以撞大运——`)
+	}
+	// 未在叠猫猫的队列
+	dn = d.getNoStack()
+	// 执行撞大运
+	if !d.doLorry(msgr, &m) {
+		// 如果不能撞大运，依靠延迟函数恢复数据状态
+		return message.ID{}
+	}
+	// 合并当前未叠猫猫与叠猫猫的队列，将大运追加入切片中
+	restore()
+	// 清理过期玩家
+	d.clear(msgr, false)
+	// 存储叠猫猫数据
+	if err := fio.Save(dataPath, d); err != nil {
+		return sendWithImageFail(msgr, `存储叠猫猫数据时发生错误喵！`, err)
+	}
+	return message.ID{}
+}
+
+// 执行撞大运
+func (d *data) doLorry(msgr *kitten.Messager, m *meow) bool {
+	*d = d.getStack() // 正在叠猫猫的队列
+	var (
+		dr = slices.Clone(*d) // 叠猫猫队列的克隆
+		l  = len(dr)          // 叠猫猫队列高度
+	)
+	if l == 0 {
+		// 没有猫猫
+		if err := msgr.SendEmojiLike(`哦`); err != nil {
+			kitten.Warn(err)
+		}
+		sendWithImageFail(msgr, `猫堆中没有猫猫可以撞——`)
+		return false
+	}
+	var s strings.Builder
+	if !d.checkLorry(*m) {
+		// 撞大运失败
+		// 猫车进入休息
+		exit(msgr, m, lorry, 0)
+		if err := msgr.SendEmojiLike(`调皮`); err != nil {
+			kitten.Warn(err)
+		}
+		fmt.Fprintf(&s, `撞大运失败，杂鱼～杂鱼❤需要休息 %s。`,
+			times.ConvertTimeDuration(m.Time.Sub(time.Unix(msgr.Event.Time, 0))))
+		doClear(msgr, l, 0, m.Weight, m, &s)
+		s.WriteRune('🚚')
+		sendWithZako(msgr, &s)
+		return true
+	}
+	// 撞大运成功
+	for i := range *d {
+		// 去除被撞飞的猫猫
+		exit(msgr, &(*d)[i], fly, l)
+	}
+	p := m.Weight
+	// 猫车增加体重、进入休息
+	exit(msgr, m, lorry, l)
+	if err := msgr.SendEmojiLike(`😰 紧张`); err != nil {
+		kitten.Warn(err)
+	}
+	fmt.Fprintf(&s, `撞大运成功，你撞飞了 %d 只猫猫！需要休息 %s。`,
+		l, times.ConvertTimeDuration(m.Time.Sub(time.Unix(msgr.Event.Time, 0))))
+	doClear(msgr, l, l, p, m, &s)
+	s.WriteRune('🚛')
+	for range l {
+		s.WriteRune('😿')
+	}
+	sendWithImageLorry(msgr, &s, &dr)
+	return true
+}
+
+// 检查撞大运是否成功
+func (d *data) checkLorry(m meow) bool {
+	//nolint:gosec
+	return rand.Float64() >= d.chanceLorry(m)
+}
+
+// 获取撞大运成功的概率
+func (d *data) chanceLorry(m meow) float64 {
+	return float64(m.Weight) / float64(d.totalWeight()+m.Weight)
+}

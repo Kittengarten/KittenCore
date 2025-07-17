@@ -22,17 +22,16 @@ const (
 设置 RCON 密码 [密码]`
 )
 
-var (
-	// 注册插件
-	engine = control.AutoRegister(&ctrl.Options[*zero.Ctx]{
-		DisableOnDefault:  false,
-		Brief:             brief,
-		Help:              help,
-		PrivateDataFolder: replyServiceName,
-	}).ApplySingle(ctxext.DefaultSingle)
-	// 配置文件路径
-	configPath = fio.NewPath(engine.DataFolder(), configFile).WithRWMutex()
-)
+// 注册插件
+var engine = control.AutoRegister(&ctrl.Options[*zero.Ctx]{
+	DisableOnDefault:  false,
+	Brief:             brief,
+	Help:              help,
+	PrivateDataFolder: replyServiceName,
+}).ApplySingle(ctxext.DefaultSingle)
+
+// 配置文件路径
+var configPath = fio.NewPath(engine.DataFolder(), configFile).WithRWMutex()
 
 func init() {
 	// RCON

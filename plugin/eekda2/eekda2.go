@@ -39,13 +39,14 @@ const (
 查询被吃次数 // 查询本人被吃次数`
 )
 
+// 注册插件
+var engine = control.AutoRegister(&ctrl.Options[*zero.Ctx]{
+	Brief:             xx + cEEKDA,
+	Help:              help,
+	PrivateDataFolder: replyServiceName,
+}).ApplySingle(ctxext.DefaultSingle)
+
 var (
-	// 注册插件
-	engine = control.AutoRegister(&ctrl.Options[*zero.Ctx]{
-		Brief:             xx + cEEKDA,
-		Help:              help,
-		PrivateDataFolder: replyServiceName,
-	}).ApplySingle(ctxext.DefaultSingle)
 	// 今日文件路径
 	todayPath = fio.NewPath(engine.DataFolder(), todayFile).WithMutex()
 	// 统计文件路径
@@ -114,7 +115,7 @@ func todayMeal(ctx *zero.Ctx) {
 			msgr.SendWithImageFail(err)
 			return
 		}
-		msgr.Reply().AtLf().Text(name, registerSuccess).Send()
+		msgr.Quote().AtLf().Text(name, registerSuccess).Send()
 		return
 	}
 	// 该角色存在
@@ -138,7 +139,7 @@ func todayMeal(ctx *zero.Ctx) {
 			msgr.SendWithImageFail(err)
 			return
 		}
-		msgr.Reply().AtLf().Text(name, registerSuccess).Send()
+		msgr.Quote().AtLf().Text(name, registerSuccess).Send()
 		return
 	}
 	// 该角色已在本群注册
@@ -168,13 +169,13 @@ func todayMeal(ctx *zero.Ctx) {
 			msgr.SendWithImageFail(err)
 			return
 		}
-		msgr.Reply().AtLf().Text(name, unregisterSuccess).Send()
+		msgr.Quote().AtLf().Text(name, unregisterSuccess).Send()
 	default:
 		// 执行通常指令，写入上下文
 		c[ci].Messager = msgr
-		if equal.IsSameDate(c[ci].Time, time.Unix(msgr.Event.Time, 0)) {
+		if equal.IsSameDate4AM(c[ci].Time, time.Unix(msgr.Event.Time, 0)) {
 			// 今天已经生成了，直接播报
-			msgr.Reply().AtLf().Text(&c[ci]).Send()
+			msgr.Quote().AtLf().Text(&c[ci]).Send()
 			return
 		}
 		// 今天没有生成，执行生成
@@ -190,10 +191,10 @@ func todayMeal(ctx *zero.Ctx) {
 		t.Stop()
 		// 只保留昨天一天的群员
 		list = slices.DeleteFunc(list, func(v gjson.Result) bool {
-			return !equal.IsSameDate(time.Unix(v.Get(`last_sent_time`).Int(), 0),
+			return !equal.IsSameDate4AM(time.Unix(v.Get(`last_sent_time`).Int(), 0),
 				time.Unix(msgr.Event.Time, 0).AddDate(0, 0, -1))
 		})
-		// 在其中取足够人的下标
+		// 在其中取足够人的索引
 		nums, err := utils.GenerateRandomNumber(0, len(list), mealsPerDay)
 		if err != nil {
 			msgr.SendWithImageFail(`没有足够的食物喵！`, err)
@@ -211,7 +212,7 @@ func todayMeal(ctx *zero.Ctx) {
 			return
 		}
 		// 播报今天吃什么
-		msgr.Reply().AtLf().Text(&c[ci]).Send()
+		msgr.Quote().AtLf().Text(&c[ci]).Send()
 		// 统计
 		doStat(msgr, c[ci])
 	}
@@ -219,5 +220,5 @@ func todayMeal(ctx *zero.Ctx) {
 
 // 生成每一餐的内容
 func line(td *today, u kitten.QQ) string {
-	return u.TitleCardOrNickName(td.Messager) + `   ❤       ` + u.String()
+	return u.TitleCardOrNickName(td.Messager) + `	❤	` + u.String()
 }

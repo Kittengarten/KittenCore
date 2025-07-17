@@ -18,17 +18,17 @@ func Ping(msgr *kitten.Messager) message.ID {
 	pingURL := msgr.Args()
 	pg, err := probing.NewPinger(pingURL)
 	if err != nil {
-		return msgr.Reply().AtLf().Image(`哈.png`).Text(err).Send()
+		return msgr.Quote().AtLf().Image(`哈.png`).Text(err).Send()
 	}
-	pg.Count = 4                                                              // 检测 4 次
-	pg.Timeout = time.Duration(pg.Count) * shttp.TimeOutSeconds * time.Second // 超时时间设置
+	pg.Count = 4                                         // 检测 4 次
+	pg.Timeout = time.Duration(pg.Count) * shttp.TimeOut // 超时时间设置
 	var nbytes int
 	pg.OnSend = func(pkt *probing.Packet) {
 		nbytes = pkt.Nbytes
 	}
-	var pm strings.Builder
+	var s strings.Builder
 	pg.OnRecv = func(pkt *probing.Packet) {
-		fmt.Fprintf(&pm, `来自 %s 的回复：字节=%d 时间=%dms TTL=%d
+		fmt.Fprintf(&s, `来自 %s 的回复：字节=%d 时间=%dms TTL=%d
 `, pkt.IPAddr, pkt.Nbytes, pkt.Rtt.Milliseconds(), pkt.TTL)
 	}
 	var r strings.Builder
@@ -40,7 +40,7 @@ func Ping(msgr *kitten.Messager) message.ID {
 数据包：已发送 = %d，已接收 = %d，丢失 = %d（%.0f%% 丢失），
 `,
 			pingURL, st.IPAddr, nbytes,
-			&pm,
+			&s,
 			st.IPAddr,
 			st.PacketsSent, st.PacketsRecv, st.PacketsSent-st.PacketsRecv, st.PacketLoss)
 		if st.PacketLoss < 100 {
@@ -52,5 +52,5 @@ func Ping(msgr *kitten.Messager) message.ID {
 	if err := pg.Run(); err != nil {
 		return msgr.SendWithImageFail(err)
 	}
-	return msgr.Reply().AtLf().Text(&r).Send()
+	return msgr.Quote().AtLf().Text(&r).Send()
 }

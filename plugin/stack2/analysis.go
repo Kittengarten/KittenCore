@@ -38,7 +38,7 @@ type (
 		Normal       []string `yaml:"普通"`
 		Rare         []string `yaml:"稀有"`
 		Kittengarten []string `yaml:"幼喵园"`
-		Custom       []string `yaml:"自定义"` // 任何条件下都加入到列表中
+		Custom       []string `yaml:"自定义"` // 任何情况下都可能触发
 	}
 )
 
@@ -86,7 +86,7 @@ func (d *data) generateAnalysis(msgr *kitten.Messager) (c chance, flat, img bool
 		flat = true
 		c.f = chanceFlat(m) // 平地摔概率
 		c.s = 1 - c.f       // 成功概率
-		_ = sendTextf(msgr, `【叠猫猫分析】
+		_ = sendTextf(msgr, true, `【叠猫猫分析】
 当前体重：　	%.1f kg
 平地摔概率：	%.2f%%
 成功概率：　	%.2f%%
@@ -103,15 +103,19 @@ func (d *data) generateAnalysis(msgr *kitten.Messager) (c chance, flat, img bool
 	sn = append(sn, m)           // 用于压坏判定的队列
 	c.p = sn.chancePressed(msgr) // 压坏概率
 	gp := func() float64 {
-		if m.getTypeID(msgr) <= 抱枕 || s[l-1].getTypeID(msgr) >= 幼年猫娘 {
-			// 抱枕及以下的猫猫不会导致猫猫摔下去，直接在猫娘身上叠猫猫不会摔下去
+		if m.getTypeID(msgr) <= 抱枕 ||
+			s[l-1].getTypeID(msgr) >= 幼年猫娘 ||
+			s[0].getTypeID(msgr) >= 猫车 {
+			// 抱枕及以下的猫猫不会导致猫猫摔下去
+			// 直接在猫娘以上级别的身上叠猫猫不会摔下去
+			// 底座为猫车以上时，不会摔下去
 			return 0
 		}
 		return m.chanceFall(s[l-1])
 	}() // 不压坏的情况下，摔下去的概率
 	c.f = (1 - c.p) * gp // 摔下概率
 	c.s = 1 - c.p - c.f  // 成功概率
-	_ = sendTextf(msgr, `【叠猫猫分析】
+	_ = sendTextf(msgr, true, `【叠猫猫分析】
 猫堆高度：	%d
 当前体重：	%.1f kg
 %s%s%s%s%s`,
@@ -152,8 +156,12 @@ func chanceClear(msgr *kitten.Messager, s data, m meow) float64 {
 	}
 	var (
 		cf = func() float64 {
-			if m.getTypeID(msgr) <= 抱枕 || s[l-1].getTypeID(msgr) >= 幼年猫娘 {
-				// 抱枕及以下的猫猫不会导致猫猫摔下去，直接在猫娘以上级别的身上叠猫猫不会摔下去
+			if m.getTypeID(msgr) <= 抱枕 ||
+				s[l-1].getTypeID(msgr) >= 幼年猫娘 ||
+				s[0].getTypeID(msgr) >= 猫车 {
+				// 抱枕及以下的猫猫不会导致猫猫摔下去
+				// 直接在猫娘以上级别的身上叠猫猫不会摔下去
+				// 底座为猫车以上时，不会摔下去
 				return 0
 			}
 			return m.chanceFall(s[l-1])
@@ -171,11 +179,11 @@ func chanceClear(msgr *kitten.Messager, s data, m meow) float64 {
 		}
 		p *= sn.chancePressed(msgr) // 每次的压坏概率
 		if sn[0].getTypeID(msgr) >= 猫娘萝莉 && len(sn) > 2 {
-			// 如果底座是猫娘萝莉以上，则不会继续压坏
-			// 如果此时剩余的猫堆高度大于 1，则无法清空
+			// 底座是猫娘萝莉以上，则不会继续压坏
+			// 此时剩余的猫堆高度大于 1，则无法清空
 			p = 0
 			break
-			// 如果此时剩余的猫堆高度等于 1，则刚好清空
+			// 此时剩余的猫堆高度等于 1，则刚好清空
 		}
 		sn = sn[1:] // 去除压坏的猫猫
 	}
@@ -213,7 +221,7 @@ func tipFlat() string {
 	}
 	if l := len(tipSlice.Flat); l != 0 {
 		//nolint:gosec
-		return tipSlice.Flat[rand.N(l)]
+		return strings.TrimSpace(tipSlice.Flat[rand.N(l)])
 	}
 	return ``
 }
@@ -256,7 +264,7 @@ func tip(w int, c chance) string {
 	return strings.NewReplacer(
 		`{player}`,
 		kitten.NewQQ(GlobalMessager.Event.UserID).CallName(GlobalMessager),
-	).Replace(t[rand.N(len(t))])
+	).Replace(strings.TrimSpace(t[rand.N(len(t))]))
 }
 
 // 叠猫猫分析图片

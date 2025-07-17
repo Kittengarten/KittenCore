@@ -24,14 +24,14 @@ type (
 
 	// QQ 信息
 	qqInfo struct {
-		gjson.Result // 信息
 		time.Time    // 上次更新时间
+		gjson.Result // 信息
 	}
 
 	// 群成员列表
 	groupList struct {
-		List      []gjson.Result // 每个群员的信息
 		time.Time                // 上次更新时间
+		List      []gjson.Result // 每个群员的信息
 	}
 )
 
@@ -48,7 +48,7 @@ var ErrBirthMissing = errors.New(`生日信息缺失喵！`)
 
 // Self 获取 bot 的 ID
 func Self() QQ {
-	return botConfig.SelfID
+	return botConfig.QQ
 }
 
 // NewQQ QQ 的构造函数
@@ -81,7 +81,14 @@ func (u *QQ) Int() int64 {
 	}
 }
 
-// Int 获取 QQ 的 string 类型表示
+// String 获取 QQ 的十进制 string 类型原始表示
+//
+// 群号为负值，可用于 key
+func (u *QQ) Str() string {
+	return strconv.FormatInt(int64(*u), 10)
+}
+
+// String 获取 QQ 的十进制 string 类型表示
 func (u *QQ) String() string {
 	return strconv.FormatInt(u.Int(), 10)
 }
@@ -106,81 +113,10 @@ func (u *QQ) IsTarget() func(ctx *zero.Ctx) bool {
 	}
 }
 
-// （私有）获取陌生人信息
-func (u *QQ) info(msgr *Messager) qqInfo {
-	if !msgr.Check(Caller) || !u.IsQQ() {
-		// 没有 APICaller 或不是 QQ，无法获取
-		return qqInfo{}
-	}
-	// 从缓存获取该 QQ 的信息
-	si, ok := strangerInfo.Load(*u)
-	if !ok {
-		// 如果获取不到，同步更新
-		u.updateInfo(msgr)
-		si, _ = strangerInfo.Load(*u)
-	}
-	// 如果缓存已经过期，异步更新缓存的陌生人信息
-	if time.Since(si.Time) > expire {
-		go u.updateInfo(msgr)
-	}
-	return si
-}
-
-// （私有）更新陌生人信息
-func (u *QQ) updateInfo(msgr *Messager) {
-	strangerInfo.Store(*u,
-		qqInfo{
-			Result: msgr.GetStrangerInfo(u.Int(), true),
-			Time:   time.Now(),
-		},
-	)
-}
-
-// （私有）获取群成员信息
-func (u *QQ) memberInfo(msgr *Messager) qqInfo {
-	g := NewQQGroup(msgr.Event.GroupID)
-	if !g.IsGroup() {
-		// 如果不是群，退化至陌生人
-		return u.info(msgr)
-	}
-	list := g.MemberList(msgr)
-	if len(list.List) == 0 {
-		// 如果本群成员列表为空，退化至陌生人
-		return u.info(msgr)
-	}
-	// 从本群成员列表中查找
-	i := slices.IndexFunc(list.List, func(i gjson.Result) bool {
-		return i.Get(`user_id`).Int() == u.Int()
-	})
-	if i == -1 {
-		// 如果本群成员列表中找不到，退化至陌生人
-		return u.info(msgr)
-	}
-	return qqInfo{
-		Result: list.List[i],
-		Time:   list.Time,
-	}
-}
-
-// IsQQ 是 QQ
-func (u *QQ) IsQQ() bool {
-	return *u > 10000
-}
-
-// IsGroup 是群
-func (u *QQ) IsGroup() bool {
-	return *u < -100000
-}
-
-// Age 获取年龄
-func (u *QQ) Age(msgr *Messager) int64 {
-	return u.info(msgr).Get(`age`).Int()
-}
-
 // Birthday 获取生日
 func (u *QQ) Birthday(msgr *Messager) (time.Time, error) {
 	if !u.IsQQ() {
-		return time.Time{}, fmt.Errorf(`%s 不是QQ，%w`, u, ErrBirthMissing)
+		return time.Time{}, fmt.Errorf(`%s 不是 QQ，%w`, u, ErrBirthMissing)
 	}
 	// 群成员信息中没有生日，直接退化至陌生人
 	var (
@@ -195,27 +131,22 @@ func (u *QQ) Birthday(msgr *Messager) (time.Time, error) {
 	if y == `` || y == `0` {
 		y = `0001`
 	}
-	return time.Parse(`2006-1-2`, strings.Join([]string{y, m, d}, `-`))
+	return time.Parse(`2006.1.2`, strings.Join([]string{y, m, d}, `.`))
 }
 
-// IsAdult 是成年人
-func (u *QQ) IsAdult(msgr *Messager) bool {
-	return 18 <= u.Age(msgr)
-}
-
-// IsFemale 是女性
-func (u *QQ) IsFemale(msgr *Messager) bool {
-	return u.info(msgr).Get(`sex`).String() == `female`
-}
-
-// IsLoli 是萝莉
-func (u *QQ) IsLoli(msgr *Messager) bool {
-	return u.IsFemale(msgr) && 0 < u.Age(msgr) && 18 > u.Age(msgr)
-}
-
-// Title 从 QQ 获取头衔（必须是群）
-func (u *QQ) Title(msgr *Messager) string {
-	return u.memberInfo(msgr).Get(`title`).Str
+// CallName 从 QQ 获取用于称呼的简单昵称（经过修剪）
+func (u *QQ) CallName(msgr *Messager) (n string) {
+	overLen := func(name string) bool {
+		return len(name) > 16 && utf8.RuneCountInString(name) > 8
+	}
+	n = str.FirstText(str.CleanAll(u.Card(msgr), false))
+	if n == `` || overLen(n) {
+		n = str.FirstText(str.CleanAll(u.NickName(msgr), false))
+	}
+	if n == `` || overLen(n) {
+		n = str.FirstText(str.CleanAll(u.Title(msgr), false))
+	}
+	return
 }
 
 // Card 从 QQ 获取群昵称（必须是群）
@@ -243,19 +174,35 @@ func (u *QQ) TitleCardOrNickName(msgr *Messager) string {
 	return title + str.CleanAll(ctxCardOrNickName(msgr.Ctx, u.Int()), false)
 }
 
-// CallName 从 QQ 获取用于称呼的简单昵称（经过修剪）
-func (u *QQ) CallName(msgr *Messager) (n string) {
-	overLen := func(name string) bool {
-		return len(name) > 1<<4 && utf8.RuneCountInString(name) > 1<<3
+// Title 从 QQ 获取头衔（必须是群）
+func (u *QQ) Title(msgr *Messager) string {
+	return u.memberInfo(msgr).Get(`title`).Str
+}
+
+// 获取群成员信息
+func (u *QQ) memberInfo(msgr *Messager) qqInfo {
+	g := NewQQGroup(msgr.Event.GroupID)
+	if !g.IsGroup() {
+		// 如果不是群，退化至陌生人
+		return u.info(msgr)
 	}
-	n = str.FirstText(str.CleanAll(u.Card(msgr), false))
-	if n == `` || overLen(n) {
-		n = str.FirstText(str.CleanAll(u.NickName(msgr), false))
+	list := g.MemberList(msgr)
+	if len(list.List) == 0 {
+		// 如果本群成员列表为空，退化至陌生人
+		return u.info(msgr)
 	}
-	if n == `` || overLen(n) {
-		n = str.FirstText(str.CleanAll(u.Title(msgr), false))
+	// 从本群成员列表中查找
+	i := slices.IndexFunc(list.List, func(i gjson.Result) bool {
+		return i.Get(`user_id`).Int() == u.Int()
+	})
+	if i == -1 {
+		// 如果本群成员列表中找不到，退化至陌生人
+		return u.info(msgr)
 	}
-	return
+	return qqInfo{
+		Result: list.List[i],
+		Time:   list.Time,
+	}
 }
 
 // MemberList 获取特定群的成员列表
@@ -278,12 +225,72 @@ func (u *QQ) MemberList(msgr *Messager) groupList {
 	return gmi
 }
 
-// （私有）更新特定群的成员列表
+// 更新特定群的成员列表
 func (u *QQ) updateMemberList(msgr *Messager) {
 	groupMemberList.Store(*u,
 		groupList{
 			List: msgr.GetGroupMemberListNoCache(u.Int()).Array(),
 			Time: time.Now(),
+		},
+	)
+}
+
+// IsQQ 是 QQ
+func (u *QQ) IsQQ() bool {
+	return *u > 10000
+}
+
+// IsGroup 是群
+func (u *QQ) IsGroup() bool {
+	return *u < -100000
+}
+
+// IsAdult 是成年人
+func (u *QQ) IsAdult(msgr *Messager) bool {
+	return 18 <= u.Age(msgr)
+}
+
+// IsLoli 是萝莉
+func (u *QQ) IsLoli(msgr *Messager) bool {
+	return u.IsFemale(msgr) && 0 < u.Age(msgr) && 18 > u.Age(msgr)
+}
+
+// IsFemale 是女性
+func (u *QQ) IsFemale(msgr *Messager) bool {
+	return u.info(msgr).Get(`sex`).String() == `female`
+}
+
+// Age 获取年龄
+func (u *QQ) Age(msgr *Messager) int64 {
+	return u.info(msgr).Get(`age`).Int()
+}
+
+// 获取陌生人信息
+func (u *QQ) info(msgr *Messager) qqInfo {
+	if !msgr.Check(Caller) || !u.IsQQ() {
+		// 没有 APICaller 或不是 QQ，无法获取
+		return qqInfo{}
+	}
+	// 从缓存获取该 QQ 的信息
+	si, ok := strangerInfo.Load(*u)
+	if !ok {
+		// 如果获取不到，同步更新
+		u.UpdateInfo(msgr)
+		si, _ = strangerInfo.Load(*u)
+	}
+	// 如果缓存已经过期，异步更新缓存的陌生人信息
+	if time.Since(si.Time) > expire {
+		go u.UpdateInfo(msgr)
+	}
+	return si
+}
+
+// UpdateInfo 更新陌生人信息
+func (u *QQ) UpdateInfo(msgr *Messager) {
+	strangerInfo.Store(*u,
+		qqInfo{
+			Result: msgr.GetStrangerInfo(u.Int(), true),
+			Time:   time.Now(),
 		},
 	)
 }

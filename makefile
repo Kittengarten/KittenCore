@@ -8,8 +8,8 @@ build:
 clean:
 	-rm KittenCore
 	-go clean -i .
+	-rm data/ai/user.yaml
 	-rm data/zbp/banwords.yaml
-	-rm data/zbp/user.yaml
 	-rm data/Stack2/tips.yaml
 
 help:

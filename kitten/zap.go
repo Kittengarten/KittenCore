@@ -38,7 +38,7 @@ var encoderConfig = zapcore.EncoderConfig{
 
 // zap 日志配置初始化
 func zapInit() {
-	if err := fio.NewPath(botConfig.Log.Path).InitFile(``); err != nil {
+	if err := fio.NewPath(botConfig.Log.Path).InitFile(); err != nil {
 		zap.Error(err)
 	}
 	// 日志记录器配置
@@ -67,7 +67,7 @@ func zapInit() {
 }
 
 // 获取 zap 日志等级
-func level(lc LogConfig) zapcore.Level {
+func level(lc Log) zapcore.Level {
 	level, err := zap.ParseAtomicLevel(lc.Level)
 	if err != nil {
 		zap.Error(err)

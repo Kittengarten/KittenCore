@@ -15,6 +15,8 @@ const (
 	pressed                // 被压坏
 	eat                    // 吃猫猫
 	eaten                  // 被吃
+	lorry                  // 撞大运
+	fly                    // 被撞飞
 )
 
 const (
@@ -65,15 +67,15 @@ type (
 
 	// 猫猫类型
 	meowType struct {
+		str    string // 类型名称
 		weight int    // 达到下一个等级的重量
-		str    string // 字符串表示
 	}
 
 	// 叠猫猫配置
 	config struct {
-		RestHoursPerKG int // 每千克体重的休息小时数
-		MinRestHours   int // 最小休息小时数
-		OCMinRestHours int // 加速的最小休息小时数
+		RestHoursPerKG int `comment:"每千克体重的休息小时数" yaml:"rest_hours_per_kg"` // 每千克体重的休息小时数
+		MinRestHours   int `comment:"最小休息小时数"     yaml:"min_rest_hours"`    // 最小休息小时数
+		OCMinRestHours int `comment:"加速的最小休息小时数"  yaml:"oc_min_rest_hours"` // 加速的最小休息小时数
 	}
 
 	// 叠猫猫缓存
@@ -86,48 +88,11 @@ type (
 
 	// 猫猫数据值
 	meow struct {
-		kitten.QQ `yaml:"id"` // QQ
+		Time      time.Time   `yaml:",omitempty"` // 如果在叠猫猫中，叠入的时间；如果未在叠猫猫中，休息结束的时间
+		Daily     time.Time   `yaml:",omitempty"`
 		Name      string      `yaml:",omitempty"` // 群名片或昵称
+		kitten.QQ `yaml:"id"` // QQ
 		Weight    int         // 体重（0.1 kg 数）
 		Status    bool        // 是否在叠猫猫中
-		Time      time.Time   // 如果在叠猫猫中，叠入的时间；如果未在叠猫猫中，休息结束的时间
-		// Stat             // 统计信息
-	}
-
-	// Stat 统计信息
-	Stat struct {
-		In        In        // 加入次数
-		Exit      Exit      // 退出次数
-		Time      time.Time // 总时长
-		Max       int       // 曾经达到的最大高度
-		MaxWeight int       // 曾经达到的最大重量
-	}
-
-	// In 加入统计信息
-	In struct {
-		Success int  // 成功
-		Fall    Fail // 摔下去
-		Press   Fail // 压坏
-		Flat    int  // 平地摔次数
-	}
-
-	// Fail 失败统计信息
-	Fail struct {
-		Count int    // 失败次数
-		Max   Record // 单次导致退出猫猫的最大值
-		Total Record // 导致退出的猫猫总和
-	}
-
-	// Record 纪录
-	Record struct {
-		Count  int // 最大数量
-		Weight int // 最大重量（0.1 kg 数）
-	}
-
-	// Exit 退出统计信息
-	Exit struct {
-		Fall    int // 摔下去次数
-		Pressed int // 被压坏次数
-		// Active  int // 主动退出次数
 	}
 )

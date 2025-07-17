@@ -17,16 +17,6 @@ const (
 	Reverse proxy = false // 反向代理
 )
 
-// 获取 WebSocket 驱动
-func wsDriver(p proxy, ws kitten.WebSocketConfig) zero.Driver {
-	if p {
-		// OneBot 正向 WS 默认使用 6700 端口
-		return driver.NewWebSocketClient(ws.URL, ws.AccessToken)
-	}
-	// OneBot 反向 WS 默认使用 5140 端口
-	return driver.NewWebSocketServer(16, ws.URL, ws.AccessToken)
-}
-
 // Runbot 启动机器人
 func RunBot(p proxy) {
 	config := kitten.MainConfig()
@@ -41,4 +31,14 @@ func RunBot(p proxy) {
 			wsDriver(p, config.WebSocket),
 		},
 	}, process.GlobalInitMutex.Unlock)
+}
+
+// 获取 WebSocket 驱动
+func wsDriver(p proxy, ws kitten.WebSocket) zero.Driver {
+	if p {
+		// OneBot 正向 WS 默认使用 6700 端口
+		return driver.NewWebSocketClient(ws.URL, ws.AccessToken)
+	}
+	// OneBot 反向 WS 默认使用 5140 端口
+	return driver.NewWebSocketServer(16, ws.URL, ws.AccessToken)
 }

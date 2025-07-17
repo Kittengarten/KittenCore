@@ -9,6 +9,8 @@ import (
 	"strconv"
 	"strings"
 
+	"golang.org/x/net/html"
+
 	"github.com/Kittengarten/KittenCore/kitten"
 	"github.com/Kittengarten/KittenCore/kitten/core/htmls"
 	"github.com/Kittengarten/KittenCore/kitten/core/shttp"
@@ -22,11 +24,10 @@ import (
 
 	"github.com/antchfx/htmlquery"
 	"github.com/tidwall/gjson"
-	"golang.org/x/net/html"
 )
 
-// 番茄小说网
-type fq struct{}
+// FQ 番茄小说网
+type FQ struct{}
 
 const (
 	// Host 网站
@@ -38,29 +39,29 @@ const (
 )
 
 // Platform  番茄小说网
-var Platform = fq{}
+var Platform = FQ{}
 
 func init() {
-	platform.Platforms = append(platform.Platforms, Platform)
+	platform.Register(Platform)
 }
 
 // String 实现 fmt.Stringer，返回小说平台名称
-func (f fq) String() string {
+func (FQ) String() string {
 	return `番茄小说网`
 }
 
 // Layout 返回时间格式
-func (f fq) Layout() string {
+func (FQ) Layout() string {
 	return `2006-01-02T15:04:05`
 }
 
 // FindBookID 番茄网页暂不支持用关键词搜索书号
-func (f fq) FindBookID(key search.Keyword) (string, error) {
-	return ``, platform.NotSupported(f)
+func (FQ) FindBookID(key search.Keyword) (string, error) {
+	return ``, platform.NotSupported(Platform.String())
 }
 
 // ChapterID 获取章号
-func (f fq) ChapterID(cpURL string) string {
+func (FQ) ChapterID(cpURL string) string {
 	u, err := url.Parse(cpURL)
 	if err != nil {
 		kitten.Error(err)
@@ -70,13 +71,14 @@ func (f fq) ChapterID(cpURL string) string {
 }
 
 // Init 小说网页信息获取
-func (f fq) Init(bookID string) (nv *novel.Novel, err error) {
+func (f FQ) Init(cpID string) (any, error) {
 	// 初始化小说
-	nv = novel.Pool.Get().(*novel.Novel)
+	nv := novel.Pool.Get().(*novel.Novel)
+	*nv = novel.Novel{}
 	// 初始化小说平台
 	nv.Platform = f.String()
 	// 向小说传入书号
-	nv.ID = bookID
+	nv.ID = cpID
 	// 生成链接
 	nv.URL = URL + nv.ID
 	// 获取小说网页，失败则返回
@@ -124,12 +126,6 @@ func (f fq) Init(bookID string) (nv *novel.Novel, err error) {
 	ncp := htmls.InnerText(doc, `//div[@class="info-last"]/a[@class="chapter-item-title"]/@href`)
 	// 获取上架状态（番茄均为免费）
 	nv.Right = []string{`免费`}
-	// 不支持的字段
-	nv.Theme = ``
-	nv.Item = nil
-	nv.Collection = ``
-	nv.HitNum = ``
-	nv.Preview = ``
 	ncpURL := HOST + ncp
 	// 防止章节炸了导致获取章节跳转引发 panic
 	if ncpURL+`/` == nv.URL {
@@ -137,14 +133,15 @@ func (f fq) Init(bookID string) (nv *novel.Novel, err error) {
 		return nv, err
 	}
 	// 加载新章节
-	nv.Chapter, err = f.NewChapter(ncpURL)
+	nv.Chapter, err = chapter.New(f, ncpURL)
 	return nv, err
 }
 
 // NewChapter 章节信息获取
-func (f fq) NewChapter(cpURL string) (cp *chapter.Chapter, err error) {
+func (f FQ) NewChapter(cpURL string) (any, error) {
 	// 初始化章节
-	cp = chapter.Pool.Get().(*chapter.Chapter)
+	cp := chapter.Pool.Get().(*chapter.Chapter)
+	*cp = chapter.Chapter{}
 	// 向章节传入链接
 	cp.URL = cpURL
 	// 获取章节网页，失败则返回
@@ -179,7 +176,7 @@ func (f fq) NewChapter(cpURL string) (cp *chapter.Chapter, err error) {
 		return ``
 	}()
 	// 获取更新时间
-	cp.Time, err = platform.ParseTime(f, gjson.Get(htmls.InnerText(doc,
+	cp.Update, err = platform.ParseTime(f, gjson.Get(htmls.InnerText(doc,
 		`//script[@type="application/ld+json"]`), `dateModified`).String())
 	if err != nil {
 		return cp, err

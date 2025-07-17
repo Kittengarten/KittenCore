@@ -20,21 +20,23 @@ func cpuTemperature(l fio.Path) string {
 	if err != nil {
 		return err.Error()
 	}
-	defer file.Close()
 	fileScanner := bufio.NewScanner(file)
+	if err := file.Close(); err != nil {
+		return err.Error()
+	}
 	fileScanner.Split(bufio.ScanLines)
 	for index := 0; fileScanner.Scan(); {
 		const offset = 2
-		switch s := fileScanner.Text(); {
-		case strings.HasPrefix(s, `02`):
-			for i, v := range strings.Split(s, `,`) {
+		switch line := fileScanner.Text(); {
+		case strings.HasPrefix(line, `02`):
+			for i, v := range strings.Split(line, `,`) {
 				if strings.TrimSpace(v) == `CPU temperature` {
 					index = i - offset
 					break
 				}
 			}
-		case strings.HasPrefix(s, `80`):
-			return strings.TrimSpace(strings.Split(s, `,`)[index+offset])
+		case strings.HasPrefix(line, `80`):
+			return strings.TrimSpace(strings.Split(line, `,`)[index+offset])
 		}
 	}
 	return defaultTemperature

@@ -2,7 +2,6 @@
 package track
 
 import (
-	"errors"
 	"fmt"
 	"runtime/debug"
 	"slices"
@@ -43,7 +42,7 @@ const (
 	cCancelUpdate    = `取消报更`
 	cQueryUpdate     = `查询报更`
 	cSetProtagonists = `设置主角`
-	cycle            = shttp.TimeOutSeconds * time.Second // 最小循环间隔（最大可翻倍）
+	cycle            = shttp.TimeOut // 最小循环间隔（最大可翻倍）
 )
 
 var (
@@ -76,13 +75,9 @@ var (
 	cu = make(chan book.Books, 1)
 )
 
-// ErrArgumentCount 参数数量错误喵！
-var ErrArgumentCount = errors.New(`参数数量错误喵`)
-
 func init() {
 	go track()
 
-	// 更新测试
 	engine.OnCommandGroup([]string{
 		cUpdateTest,
 		cSetProtagonists,
@@ -90,8 +85,10 @@ func init() {
 		Handle(func(ctx *zero.Ctx) {
 			switch msgr := kitten.New(ctx); msgr.Command() {
 			case cUpdateTest:
+				// 更新测试
 				updateTest(kitten.New(ctx))
 			case cSetProtagonists:
+				// 设置主角
 				setProtagonists(kitten.New(ctx))
 			}
 		})
@@ -147,14 +144,16 @@ func updateTest(msgr *kitten.Messager) {
 		msgr.SendWithImageFail(err)
 		return
 	}
+	defer novel.Pool.Put(nv)
 	o, err := msgr.Object()
 	if err != nil {
 		msgr.SendWithImageFail(err)
 		return
 	}
+	done := make(chan struct{}, 1)
 	go novel.TryCommentUpdate(
 		msgr,
-		msgr.Reply().AtLf().
+		msgr.Quote().AtLf().
 			Image(
 				fio.NewPath(nv.CoverURL),
 				fio.NewPath(nv.HeadURL),
@@ -163,7 +162,9 @@ func updateTest(msgr *kitten.Messager) {
 			SendMulti(),
 		[]kitten.QQ{*o},
 		nv,
+		done,
 	)
+	<-done
 }
 
 // 设置主角
@@ -182,11 +183,11 @@ func setProtagonists(msgr *kitten.Messager) {
 	if _, err := strconv.Atoi(bookID); err != nil {
 		// 参数字符串无法转换为书号，尝试作为搜索关键词
 		if bookID, err = p.FindBookID(search.Keyword(bookID)); err != nil {
-			msgr.SendWithImageFail(`关键词“`, bookID, `”搜索时发生错误：`, err)
+			msgr.SendWithImageFail(`关键词“`, bookID, "”搜索时发生错误：\n", err)
 			return
 		}
 	}
-	msgr.Reply().AtLf().Text(`平台：`, p, "\n书号：", bookID).Send()
+	msgr.Quote().AtLf().Text(`平台：`, p, "\n书号：", bookID).Send()
 	configPath.Lock()
 	defer configPath.Unlock()
 	c, err := fio.Load[book.Books](configPath.Path, fio.Empty) // 报更配置
@@ -194,7 +195,7 @@ func setProtagonists(msgr *kitten.Messager) {
 		msgr.SendWithImageFail(book.ErrLoad, err)
 		return
 	}
-	// 本书下标
+	// 本书索引
 	i := slices.IndexFunc(c, func(b book.Book) bool {
 		return p.String() == b.Platform && bookID == b.BookID
 	})
@@ -207,7 +208,7 @@ func setProtagonists(msgr *kitten.Messager) {
 		msgr.SendWithImageFail(`设置`, strings.Join(args[2:], `、`), `为主角时`, book.ErrSave, err)
 		return
 	}
-	msgr.Reply().AtLf().Text(`设置`, strings.Join(args[2:], `、`), `为主角成功喵！`).Send()
+	msgr.Quote().AtLf().Text(`设置`, strings.Join(args[2:], `、`), `为主角成功喵！`).Send()
 }
 
 // 更新预览
@@ -217,8 +218,9 @@ func updatePreview(msgr *kitten.Messager) {
 		msgr.SendWithImageFail(err)
 		return
 	}
+	defer novel.Pool.Put(nv)
 	if r := nv.Preview; r != `` {
-		msgr.Reply().AtLf().Text(`《`, nv.Name, `》
+		msgr.Quote().AtLf().Text(`《`, nv.Name, `》
 `, &nv.Chapter, `
 `, r).Send()
 		return
@@ -233,6 +235,7 @@ func novelInfo(msgr *kitten.Messager, comment bool) {
 		msgr.SendWithImageFail(err)
 		return
 	}
+	defer novel.Pool.Put(nv)
 	p, err := platform.Get(nv.Platform)
 	if err != nil {
 		msgr.SendWithImageFail(err)
@@ -242,11 +245,11 @@ func novelInfo(msgr *kitten.Messager, comment bool) {
 		// 还原番茄平台名称
 		nv.Platform = fanqie.Platform.String()
 	}
-	msgr = msgr.Reply().AtLf().
+	msgr = msgr.Quote().AtLf().
 		Image(fio.NewPath(nv.CoverURL)).
 		Text(nv)
-	if comment {
-		msgr.Text(novel.Comment(nv))
+	if comment && novel.Export.Commenter != nil {
+		msgr.Text(novel.Export.CommentNovel(nv))
 	}
 	msgr.Send()
 }
@@ -270,11 +273,12 @@ func add(msgr *kitten.Messager) {
 		msgr.SendWithImageFail(err)
 		return
 	}
-	// 本书下标
+	defer novel.Pool.Put(nv)
+	// 本书索引
 	if i := slices.IndexFunc(c, func(b book.Book) bool {
 		return equal(nv, b)
 	}); i == -1 {
-		// 没有该小说，新建并添加
+		// 没有该小说，进行添加
 		c = append(c, book.Book{
 			Platform: func() string {
 				if nv.Platform != fanqie.API.String() {
@@ -299,10 +303,10 @@ func add(msgr *kitten.Messager) {
 		slices.Sort(c[i].Users)
 	}
 	if err := c.SaveConfig(cu, configPath.Path); err != nil {
-		msgr.SendWithImageFail(`添加《`, nv.Name, `》时`, book.ErrSave, err)
+		msgr.SendWithImageFail(`《`, nv.Name, `》添加报更时`, book.ErrSave, err)
 		return
 	}
-	msgr.Reply().AtLf().Text(`添加《`, nv.Name, `》报更成功喵！`).Send()
+	msgr.Quote().AtLf().Text(`《`, nv.Name, `》添加报更成功喵！`).Send()
 }
 
 // 取消报更
@@ -320,7 +324,7 @@ func cancel(msgr *kitten.Messager) {
 		return
 	}
 	if len(c) == 0 {
-		msgr.Reply().AtLf().Text(book.Without).Send()
+		msgr.SendWithImageFail(book.ErrNotConfig)
 		return
 	}
 	nv, err := getNovel(msgr) // 小说实例
@@ -328,18 +332,19 @@ func cancel(msgr *kitten.Messager) {
 		msgr.SendWithImageFail(err)
 		return
 	}
-	// 本书下标
+	defer novel.Pool.Put(nv)
+	// 本书索引
 	i := slices.IndexFunc(c, func(b book.Book) bool {
 		return equal(nv, b)
 	})
 	if i == -1 {
-		msgr.SendWithImageFail(`未在追更《`, nv.Name, `》喵！`)
+		msgr.SendWithImageFail(`《`, nv.Name, `》未在追更喵！`)
 		return
 	}
-	// 用户下标
+	// 用户索引
 	uid := slices.Index(c[i].Users, *o)
 	if uid == -1 {
-		msgr.SendWithImageFail(`未在追更《`, nv.Name, `》喵！`)
+		msgr.SendWithImageFail(`《`, nv.Name, `》未在追更喵！`)
 		return
 	}
 	// 移除在当前发送对象的报更
@@ -348,10 +353,10 @@ func cancel(msgr *kitten.Messager) {
 		c = slices.Delete(c, i, i+1)
 	}
 	if err := c.SaveConfig(cu, configPath.Path); err != nil {
-		msgr.SendWithImageFail(`取消《`, nv.Name, `》时`, book.ErrSave, err)
+		msgr.SendWithImageFail(`《`, nv.Name, `》取消报更时`, book.ErrSave, err)
 		return
 	}
-	msgr.Reply().AtLf().Text(`取消《`, nv.Name, `》报更成功喵！`).Send()
+	msgr.Quote().AtLf().Text(`《`, nv.Name, `》取消报更成功喵！`).Send()
 }
 
 // 查询报更
@@ -369,22 +374,58 @@ func query(msgr *kitten.Messager) {
 		return
 	}
 	if len(c) == 0 {
-		msgr.Reply().AtLf().Text(book.Without).Send()
+		msgr.SendWithImageFail(book.ErrNotConfig)
 		return
 	}
 	const h = `【报更列表】`
-	var r strings.Builder
-	r.Grow(64 * len(c))
-	r.WriteString(h)
+	var s strings.Builder
+	s.Grow(64 * len(c))
+	s.WriteString(h)
 	for _, b := range c {
 		if !slices.Contains(b.Users, *o) {
 			// 如果本书不在这里报更，则直接遍历至下一本书
 			continue
 		}
-		r.WriteByte('\n')
-		fmt.Fprint(&r, b)
+		s.WriteByte('\n')
+		fmt.Fprint(&s, b)
 	}
-	msgr.Reply().AtLf().Text(&r).Send()
+	msgr.Quote().AtLf().Text(&s).Send()
+}
+
+/*
+获取小说
+
+如果传入值不为书号，则先获取书号
+*/
+func getNovel(msgr *kitten.Messager) (*novel.Novel, error) {
+	var (
+		args = msgr.Args()
+		pkey string // 平台关键词
+		bkey string // 书名关键词
+	)
+	n, err := fmt.Sscanln(args, &pkey, &bkey)
+	if err != nil {
+		return nil, fmt.Errorf(`%s %s
+参数错误（识别到 %d 个）：
+%w`,
+			pf, ag,
+			n,
+			err,
+		)
+	}
+	p, err := getPlatform(pkey)
+	if err != nil {
+		return nil, err
+	}
+	if _, err := strconv.Atoi(bkey); err == nil {
+		return novel.Init(p, bkey)
+	}
+	// 获取小说时，参数字符串无法转换为书号，尝试作为搜索关键词
+	nvID, err := p.FindBookID(search.Keyword(bkey))
+	if err != nil {
+		return nil, fmt.Errorf("关键词“%s”搜索时发生错误：\n%w", bkey, err)
+	}
+	return novel.Init(p, nvID)
 }
 
 // 平台匹配器
@@ -405,39 +446,8 @@ func getPlatform(keyword string) (platform.Platform, error) {
 		}
 		return fanqie.API, nil
 	default:
-		return nil, platform.NotSupported(nil)
+		return nil, platform.NotSupported(keyword)
 	}
-}
-
-/*
-获取小说
-
-如果传入值不为书号，则先获取书号
-*/
-func getNovel(msgr *kitten.Messager) (*novel.Novel, error) {
-	args := msgr.ArgsSlice()
-	if len(args) != 2 {
-		return nil, fmt.Errorf(`本命令参数数量：2
-%s %s
-传入的参数数量：%d
-%w`,
-			pf, ag,
-			len(args),
-			ErrArgumentCount,
-		)
-	}
-	p, err := getPlatform(args[0])
-	if err != nil {
-		return nil, err
-	}
-	bookID := args[1]
-	if _, err := strconv.Atoi(bookID); err != nil {
-		// 获取小说时，参数字符串无法转换为书号，尝试作为搜索关键词
-		if bookID, err = p.FindBookID(search.Keyword(bookID)); err != nil {
-			return nil, fmt.Errorf(`关键词“%s”搜索时发生错误：%w`, bookID, err)
-		}
-	}
-	return p.Init(bookID)
 }
 
 // 报更
@@ -445,14 +455,10 @@ func track() {
 	// 处理 panic，防止程序崩溃
 	defer func() {
 		if err := recover(); err != nil {
-			kitten.Errorln(replyServiceName, `协程出现错误喵！`, err, string(debug.Stack()))
+			kitten.Errorf("%s协程出现错误喵！\n%v\n%s", replyServiceName, err, debug.Stack())
 		}
 	}()
-	// 初始化报更配置文件
-	if err := configPath.InitFile(fio.Empty); err != nil {
-		kitten.Error(`初始化报更配置文件时发生错误喵！`, err)
-		return
-	}
+	// 加载报更配置文件
 	configPath.RLock()
 	data, err := fio.Load[book.Books](configPath.Path, fio.Empty)
 	configPath.RUnlock()

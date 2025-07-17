@@ -22,8 +22,8 @@ import (
 	"golang.org/x/net/html"
 )
 
-// 刺猬猫阅读
-type cwm struct{}
+// CWM 刺猬猫阅读
+type CWM struct{}
 
 const (
 	// Host 网站
@@ -33,24 +33,24 @@ const (
 )
 
 // Platform 刺猬猫阅读
-var Platform = cwm{}
+var Platform = CWM{}
 
 func init() {
-	platform.Platforms = append(platform.Platforms, Platform)
+	platform.Register(Platform)
 }
 
 // String 实现 fmt.Stringer，返回小说平台名称
-func (c cwm) String() string {
+func (c CWM) String() string {
 	return `刺猬猫阅读`
 }
 
 // Layout 返回时间格式
-func (c cwm) Layout() string {
+func (c CWM) Layout() string {
 	return time.DateTime
 }
 
 // FindBookID 用关键词搜索书号
-func (c cwm) FindBookID(key search.Keyword) (string, error) {
+func (c CWM) FindBookID(key search.Keyword) (string, error) {
 	doc, err := htmlquery.LoadURL(
 		fmt.Sprint(Host, `/get-search-book-list/0-0-0-0-0-0/全部/`, key, `/1`),
 	)
@@ -65,7 +65,7 @@ func (c cwm) FindBookID(key search.Keyword) (string, error) {
 }
 
 // ChapterID 获取章号
-func (c cwm) ChapterID(cpURL string) string {
+func (c CWM) ChapterID(cpURL string) string {
 	u, err := url.Parse(cpURL)
 	if err != nil {
 		return ``
@@ -74,13 +74,14 @@ func (c cwm) ChapterID(cpURL string) string {
 }
 
 // Init 小说网页信息获取
-func (c cwm) Init(bookID string) (nv *novel.Novel, err error) {
+func (c CWM) Init(cpID string) (any, error) {
 	// 初始化小说
-	nv = novel.Pool.Get().(*novel.Novel)
+	nv := novel.Pool.Get().(*novel.Novel)
+	*nv = novel.Novel{}
 	// 初始化小说平台
 	nv.Platform = c.String()
 	// 向小说传入书号
-	nv.ID = bookID
+	nv.ID = cpID
 	// 生成链接
 	nv.URL = URL + nv.ID
 	// 获取小说网页，失败则返回
@@ -143,8 +144,6 @@ func (c cwm) Init(bookID string) (nv *novel.Novel, err error) {
 	nv.HeadURL = htmls.InnerText(doc, `//div[@class="author-info"]//img/@data-original`)
 	// 获取封面
 	nv.CoverURL = htmls.InnerText(doc, `//a[@class="cover"]//img/@data-original`)
-	// 不支持的字段
-	nv.Preview = ``
 	// 获取新章节链接
 	ncp := htmlquery.FindOne(doc, `//h3[@class="tit"]/a[@target]/@href[1]`)
 	if ncp == nil {
@@ -158,14 +157,15 @@ func (c cwm) Init(bookID string) (nv *novel.Novel, err error) {
 		return nv, err
 	}
 	// 加载新章节
-	nv.Chapter, err = c.NewChapter(ncpURL)
+	nv.Chapter, err = chapter.New(c, ncpURL)
 	return nv, err
 }
 
 // NewChapter 章节信息获取
-func (c cwm) NewChapter(cpURL string) (cp *chapter.Chapter, err error) {
+func (c CWM) NewChapter(cpURL string) (any, error) {
 	// 初始化章节
-	cp = chapter.Pool.Get().(*chapter.Chapter)
+	cp := chapter.Pool.Get().(*chapter.Chapter)
+	*cp = chapter.Chapter{}
 	// 向章节传入链接
 	cp.URL = cpURL
 	// 获取章节网页，失败则返回
@@ -180,7 +180,7 @@ func (c cwm) NewChapter(cpURL string) (cp *chapter.Chapter, err error) {
 	// 获取章节标题
 	cp.Title = htmls.InnerText(doc, `//div[@class="read-hd"]/h1[@class="chapter"]`)
 	// 获取更新时间
-	cp.Time, err = platform.ParseTime(c, strings.TrimPrefix(
+	cp.Update, err = platform.ParseTime(c, strings.TrimPrefix(
 		htmls.InnerText(doc, `//div[@class="read-hd"]/p/span[3]`), `更新时间：`))
 	if err != nil {
 		return cp, err

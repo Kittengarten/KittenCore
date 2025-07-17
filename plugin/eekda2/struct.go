@@ -16,13 +16,12 @@ const (
 	supper                    // 夜宵
 )
 
-type (
-	// 用餐类型
-	mealType byte
+// 用餐类型
+type mealType byte
 
+type (
 	// 配置文件
 	config []today
-
 	// 今天吃什么
 	today struct {
 		*kitten.Messager `yaml:"-"`             // 待发送的消息
@@ -30,15 +29,6 @@ type (
 		ID               string                 // 角色名
 		Group            []kitten.QQ            // 该角色对应的群号
 		Meal             [mealsPerDay]kitten.QQ // 今天的每一餐
-	}
-
-	// 统计数据切片
-	stat []food
-
-	// 食物数据
-	food struct {
-		ID   kitten.QQ                   // QQ
-		Stat map[string][mealsPerDay]int // 每个角色的个人统计数据
 	}
 )
 
@@ -52,24 +42,34 @@ func (td *today) String() string {
 夜宵：　	` + line(td, td.Meal[supper])
 }
 
+type (
+	// 统计数据切片
+	stat []food
+	// 食物数据
+	food struct {
+		Stat      map[string][mealsPerDay]int // 每个角色的个人统计数据
+		kitten.QQ `yaml:"id"`                 // QQ
+	}
+)
+
 // String 实现 fmt.Stringer，播报今天吃什么
 func (fd *food) String() string {
 	var (
-		r  strings.Builder
+		s  strings.Builder
 		lf bool
 	)
 	for id, v := range fd.Stat {
 		if lf {
-			r.WriteByte('\n')
+			s.WriteByte('\n')
 		} else {
 			lf = true
 		}
-		fmt.Fprint(&r, `【`, id, "】\n")
-		fmt.Fprintf(&r, "早餐：　	%d 次\n", v[breakfast])
-		fmt.Fprintf(&r, "午餐：　	%d 次\n", v[lunch])
-		fmt.Fprintf(&r, "下午茶：	%d 次\n", v[lowtea])
-		fmt.Fprintf(&r, "晚餐：　	%d 次\n", v[dinner])
-		fmt.Fprintf(&r, `夜宵：　	%d 次`, v[supper])
+		fmt.Fprint(&s, `【`, id, "】\n")
+		fmt.Fprintf(&s, "早餐：　	%d 次\n", v[breakfast])
+		fmt.Fprintf(&s, "午餐：　	%d 次\n", v[lunch])
+		fmt.Fprintf(&s, "下午茶：	%d 次\n", v[lowtea])
+		fmt.Fprintf(&s, "晚餐：　	%d 次\n", v[dinner])
+		fmt.Fprintf(&s, `夜宵：　	%d 次`, v[supper])
 	}
-	return r.String()
+	return s.String()
 }

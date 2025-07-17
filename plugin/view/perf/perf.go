@@ -6,7 +6,6 @@ import (
 	"slices"
 	"strconv"
 	"strings"
-	"time"
 
 	"github.com/Kittengarten/KittenCore/kitten"
 	"github.com/Kittengarten/KittenCore/kitten/core/fio"
@@ -33,10 +32,28 @@ var perfBelowBound = [...]float64{
 	5: 0.3,
 }
 
-// Check (name, info string) string 检查
-var Check = func(_, _ string) string {
-	// 默认为空实现
-	return ``
+// Level 返回状态等级
+func Level(logFile fio.Path) int {
+	return level(cpuPercent(), percent(getMem()), cpuTemperature(logFile))
+}
+
+// 获取状态等级
+func level(cpu float64, mem float64, ts string) int {
+	ti, err := strconv.ParseFloat(ts, 64)
+	if err != nil {
+		kitten.Warn(err)
+		return 5
+	}
+	if ti <= 0 || 100 <= ti {
+		return 5
+	}
+	perf := 0.00005 * (cpu + mem) * ti
+	for p, b := range slices.Backward(perfBelowBound[:]) {
+		if perf > b {
+			return p
+		}
+	}
+	return 0
 }
 
 // ViewString 返回查看字符串
@@ -62,7 +79,12 @@ CPU：   	%.2f%%  （%s）
 			t, text.Weight(),
 			text.GetWTA(msgr))
 	)
-	return s + Check(name, s)
+	return s + func() string {
+		if text.Export.Checker == nil {
+			return ``
+		}
+		return text.Export.Check(name, s)
+	}()
 }
 
 // 系统信息
@@ -104,7 +126,7 @@ func cpuInfo() string {
 
 // CPU 使用率 %
 func cpuPercent() float64 {
-	p, err := cpu.Percent(shttp.TimeOutSeconds*time.Second, false)
+	p, err := cpu.Percent(shttp.TimeOut, false)
 	if err != nil {
 		kitten.Warnln(`获取 CPU 使用率失败了喵！`, err)
 		return 0
@@ -136,6 +158,16 @@ func use(m *mem.VirtualMemoryStat) string {
 	return human.IBytes(m.Total-m.Free) + ` / ` + human.IBytes(m.Total)
 }
 
+// 全部磁盘使用情况
+func diskUsedAll() string {
+	var s strings.Builder
+	for i, u := range getDisk() {
+		fmt.Fprintf(&s, "磁盘 %d：	%.1f%%	（%s / %s，%s）\n",
+			i, u.UsedPercent, human.IBytes(u.Used), human.IBytes(u.Total), u.Fstype)
+	}
+	return s.String()[:s.Len()-1]
+}
+
 // 磁盘使用调用
 func getDisk() (d []*disk.UsageStat) {
 	p, err := disk.Partitions(false)
@@ -153,41 +185,4 @@ func getDisk() (d []*disk.UsageStat) {
 		d = append(d, u)
 	}
 	return
-}
-
-// 全部磁盘使用情况
-func diskUsedAll() string {
-	var (
-		b strings.Builder
-		d = getDisk()
-	)
-	for i, s := range d {
-		fmt.Fprintf(&b, "磁盘 %d：	%.1f%%	（%s / %s，%s）\n",
-			i, s.UsedPercent, human.IBytes(s.Used), human.IBytes(s.Total), s.Fstype)
-	}
-	return b.String()[:b.Len()-1]
-}
-
-// 获取状态等级
-func level(cpu float64, mem float64, ts string) int {
-	ti, err := strconv.ParseFloat(ts, 64)
-	if err != nil {
-		kitten.Warn(err)
-		return 5
-	}
-	if ti <= 0 || 100 <= ti {
-		return 5
-	}
-	perf := 0.00005 * (cpu + mem) * ti
-	for p, b := range slices.Backward(perfBelowBound[:]) {
-		if perf > b {
-			return p
-		}
-	}
-	return 0
-}
-
-// Level 返回状态等级
-func Level(logFile fio.Path) int {
-	return level(cpuPercent(), percent(getMem()), cpuTemperature(logFile))
 }

@@ -31,12 +31,9 @@ func View(msgr *kitten.Messager, service string, logFilePath fio.Path) message.I
 		return
 	}(); who {
 	case kitten.MainConfig().NickName[0]:
-		return msgr.
-			Reply().
-			AtLf().
+		return msgr.Quote().AtLf().
 			Image(fio.NewPath(service, strconv.Itoa(perf.Level(logFilePath))+`.png`)).
-			Text(perf.ViewString(msgr, name, logFilePath)).
-			Send()
+			Text(perf.ViewString(msgr, name, logFilePath)).Send()
 	case `鸡汤`:
 		return text.SendJiTang(msgr)
 	case `情话`:
@@ -57,6 +54,6 @@ func View(msgr *kitten.Messager, service string, logFilePath fio.Path) message.I
 		return text.SendMahjong(msgr, false)
 	default:
 		// 花语
-		return text.SendFlower(msgr)
+		return text.Export.SendFlower(msgr)
 	}
 }

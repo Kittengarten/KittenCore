@@ -13,8 +13,16 @@ import (
 	"github.com/sergi/go-diff/diffmatchpatch"
 )
 
-// 表示字符串的接口
-type str interface {
+// TrimTooLong 截断过长内容
+func TrimTooLong(content string, maxLen int) string {
+	if utf8.RuneCountInString(content) <= maxLen {
+		return content
+	}
+	return string([]rune(content)[:maxLen-1]) + `…`
+}
+
+// Str 表示字符串的泛型约束
+type Str interface {
 	~string | ~[]rune | ~[]byte
 }
 
@@ -23,7 +31,7 @@ CleanAll 清理字符串中全部不必要内容
 
 lf 控制是否换行
 */
-func CleanAll[T str](s T, lf bool) T {
+func CleanAll[T Str](s T, lf bool) T {
 	return T(
 		strings.TrimSpace(
 			strings.Map(func(r rune) rune {
@@ -48,7 +56,7 @@ func CleanAll[T str](s T, lf bool) T {
 }
 
 // ClearRuneBytes 移除特定长度的 UTF-8 码点
-func ClearRuneBytes[T str](s T, n ...int) T {
+func ClearRuneBytes[T Str](s T, n ...int) T {
 	return T(strings.Map(func(r rune) rune {
 		if slices.Contains(n, utf8.RuneLen(r)) {
 			return -1
@@ -59,9 +67,7 @@ func ClearRuneBytes[T str](s T, n ...int) T {
 
 // Compose 排版
 func Compose(b *strings.Builder, s string) string {
-	if b == nil {
-		b = new(strings.Builder)
-	}
+	b = cmp.Or(b, new(strings.Builder))
 	for line := range strings.Lines(strings.TrimSpace(s)) {
 		if line == `` {
 			continue
@@ -72,27 +78,17 @@ func Compose(b *strings.Builder, s string) string {
 	return b.String()
 }
 
-// First 获取第一段满足条件的码点组成的字符串
-func First[T str](s T, f ...func(r rune) bool) T {
-	var (
-		pre, n int
-		ok     bool
-	)
-ru:
-	for _, r := range string(s) {
-		for _, v := range f {
-			if v(r) {
-				ok = true
-				n++
-				continue ru
-			}
-		}
-		if ok {
-			return T(string([]rune(string(s))[pre : pre+n]))
-		}
-		pre++
-	}
-	return T(string([]rune(string(s))[pre : pre+n]))
+// FirstHan 获取第一段中文字符码点组成的字符串
+func FirstHan[T Str](s T) T {
+	return First(s, isChinese)
+}
+
+// FirstText 获取第一段常用文字（不包括标点）组成的字符串
+func FirstText[T Str](s T) T {
+	return First(s,
+		isChinese, isJapanese, isKorean,
+		isRussian, isFrench, isArabic, isGreek,
+		isN, unicode.IsLetter)
 }
 
 // 是中文
@@ -138,17 +134,27 @@ func isN(r rune) bool {
 		unicode.IsNumber(r)
 }
 
-// FirstHan 获取第一段中文字符码点组成的字符串
-func FirstHan[T str](s T) T {
-	return First(s, isChinese)
-}
-
-// FirstText 获取第一段常用文字（不包括标点）组成的字符串
-func FirstText[T str](s T) T {
-	return First(s,
-		isChinese, isJapanese, isKorean,
-		isRussian, isFrench, isArabic, isGreek,
-		isN, unicode.IsLetter)
+// First 获取第一段满足条件的码点组成的字符串
+func First[T Str](s T, f ...func(r rune) bool) T {
+	var (
+		pre, n int
+		ok     bool
+	)
+ru:
+	for _, r := range string(s) {
+		for _, v := range f {
+			if v(r) {
+				ok = true
+				n++
+				continue ru
+			}
+		}
+		if ok {
+			return T(string([]rune(string(s))[pre : pre+n]))
+		}
+		pre++
+	}
+	return T(string([]rune(string(s))[pre : pre+n]))
 }
 
 /*
@@ -160,13 +166,20 @@ func Mid(pre, suf, str string) string {
 	return mid(pre, suf, str, false)
 }
 
+// 找不到的字符串
+const canNotFound = "\x00"
+
 /*
-MidMin 获取中间最短字符串，前缀后缀找不到则忽略（建议使用 "\u0000"）
+MidMin 获取中间最短字符串，前缀后缀为空或找不到则忽略
 
 pre 为前缀（不包含），suf 为后缀（不包含），str 为整个字符串
 */
 func MidMin(pre, suf, str string) string {
-	return mid(pre, suf, str, true)
+	return mid(
+		cmp.Or(pre, canNotFound),
+		cmp.Or(suf, canNotFound),
+		str, true,
+	)
 }
 
 /*
@@ -208,8 +221,25 @@ func mid(pre, suf, str string, isMin bool) string {
 	return str[low:up]
 }
 
+// Similarity 计算两个字符串的相似程度
+func Similarity(a, b string) float64 {
+	return (Equal(a, b) + Common(a, b)) / 2
+}
+
+// Equal 计算两个字符串的未更改字符占比
+func Equal(a, b string) float64 {
+	return float64(equalN(diffmatchpatch.New().DiffMain(a, b, false))) /
+		float64(max(utf8.RuneCountInString(a), utf8.RuneCountInString(b)))
+}
+
+// Common 计算两个字符串的公共字符占比
+func Common(a, b string) float64 {
+	return float64(commonN(a, b)) /
+		float64(utf8.RuneCountInString(a)+utf8.RuneCountInString(b))
+}
+
 // 计算两个字符串中未更改字符的个数
-func countEqual(diffs []diffmatchpatch.Diff) (n int) {
+func equalN(diffs []diffmatchpatch.Diff) (n int) {
 	for _, d := range diffs {
 		if d.Type == diffmatchpatch.DiffEqual {
 			n += utf8.RuneCountInString(d.Text)
@@ -218,14 +248,8 @@ func countEqual(diffs []diffmatchpatch.Diff) (n int) {
 	return
 }
 
-// Equal 计算两个字符串的未更改字符占比
-func Equal(a, b string) float64 {
-	return float64(countEqual(diffmatchpatch.New().DiffMain(a, b, false))) /
-		float64(max(utf8.RuneCountInString(a), utf8.RuneCountInString(b)))
-}
-
 // 计算两个字符串中公共字符的个数
-func countCommon(a, b string) (n int) {
+func commonN(a, b string) (n int) {
 	for _, r := range a {
 		if strings.ContainsRune(b, r) {
 			n++
@@ -237,17 +261,6 @@ func countCommon(a, b string) (n int) {
 		}
 	}
 	return
-}
-
-// Common 计算两个字符串的公共字符占比
-func Common(a, b string) float64 {
-	return float64(countCommon(a, b)) /
-		float64(utf8.RuneCountInString(a)+utf8.RuneCountInString(b))
-}
-
-// Similarity 计算两个字符串的相似程度
-func Similarity(a, b string) float64 {
-	return (Equal(a, b) + Common(a, b)) / 2
 }
 
 // SimilarityChinese 计算两个汉字字符串的相似程度

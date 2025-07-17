@@ -13,8 +13,8 @@ import (
 
 const (
 	alipayvoiceURL = "https://mm.cqu.cc/share/zhifubaodaozhang/mp3/%v.mp3" // 支付宝到账语音
-	maxMoney       = 100_000_000                                           // 最大金额
-	minMoney       = 0.01                                                  // 最小金额
+	maxMoney       = 1e8                                                   // 最大金额
+	minMoney       = 1e-2                                                  // 最小金额
 )
 
 // SendAlipayVoice 发送支付宝到账语音

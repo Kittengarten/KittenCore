@@ -45,10 +45,10 @@ func init() {
 		log.Println(`没有配置昵称，使用默认昵称喵！`)
 		botConfig.NickName = []string{`喵喵`}
 	}
-	if _, err = url.Parse(botConfig.WebSocket.URL); err != nil {
-		log.Fatalln(err, `请正确配置 `, configFile, ` 中的 websocket.url 喵！`)
+	if _, err = url.Parse(botConfig.URL); err != nil {
+		log.Fatalln(err, `请正确配置`, configFile, `中的 websocket.url 喵！`)
 	}
-	if _, err = url.Parse(`http://` + botConfig.WebUI.Host); err != nil {
+	if _, err = url.Parse(`http://` + botConfig.Host); err != nil {
 		log.Fatalln(err, `请正确配置`, configFile, `中的 webui.url 喵！`)
 	}
 	// 重定向崩溃日志
@@ -59,15 +59,15 @@ func init() {
 		log.Println(err, `请正确配置`, configFile, `中的 path 喵！`)
 	}
 	// 图片路径
-	imagePath = mio.New(fio.NewPath(botConfig.Path, imageFolder))
+	imagePath = mio.NewPath(botConfig.Path, imageFolder)
 	log.Println(`图片路径：`, imagePath)
 }
 
 // 重定向崩溃日志
 func crashLog() {
-	crash, err := os.Open(botConfig.Log.Crash)
+	crash, err := os.Open(botConfig.Crash)
 	if err != nil {
-		crash, err = os.Create(botConfig.Log.Crash)
+		crash, err = os.Create(botConfig.Crash)
 		if err != nil {
 			log.Println(err, `请配置`, configFile, `中的 log.crash 喵！`)
 			return
@@ -80,7 +80,7 @@ func crashLog() {
 
 // 初始化资源文件
 func initResource() error {
-	if botConfig.Path.Exists() {
+	if botConfig.Exists() {
 		return nil
 	}
 	log.Println(`没有找到资源文件，正在初始化喵！目标：`, botConfig.Path)

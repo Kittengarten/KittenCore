@@ -6,8 +6,8 @@ import (
 	"slices"
 	"strings"
 
+	"github.com/goccy/go-yaml"
 	"github.com/sirupsen/logrus"
-	"gopkg.in/yaml.v3"
 
 	ctrl "github.com/FloatTech/zbpctrl"
 	zero "github.com/wdvxdr1123/ZeroBot"

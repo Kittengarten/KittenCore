@@ -15,10 +15,13 @@ type (
 	Model struct{ *gorm.Model }
 )
 
+// ErrNotSupported 不支持的数据库类型喵！
+var ErrNotSupported = errors.New(`不支持的数据库类型喵！`)
+
 // Open initialize a new db connection, need to import driver first
 func Open[T string | fio.Path](dialect string, path T) (db *DB, err error) {
 	if !strings.Contains(dialect, `sqlite`) {
-		return nil, errors.New(`不支持的数据库类型喵！`)
+		return nil, ErrNotSupported
 	}
 	db = &DB{DB: new(gorm.DB)}
 	db.DB, err = gorm.Open(&sqlite.Dialector{
@@ -72,6 +75,22 @@ func (s *DB) Update(attrs ...any) *DB {
 	return &DB{DB: s.DB.Updates(toSearchableMap(attrs...))}
 }
 
+func toSearchableMap(attrs ...any) (result any) {
+	if len(attrs) > 1 {
+		if str, ok := attrs[0].(string); ok {
+			return map[string]any{str: attrs[1]}
+		}
+		return
+	}
+	if len(attrs) == 1 {
+		if attr, ok := attrs[0].(map[string]any); ok {
+			return attr
+		}
+		return attrs[0]
+	}
+	return
+}
+
 // Updates update attributes with callbacks, refer: https://jinzhu.github.io/gorm/crud.html#update
 func (s *DB) Updates(values any, _ ...bool) *DB {
 	return &DB{DB: s.DB.Updates(values)}
@@ -83,8 +102,7 @@ func (s *DB) Close() error {
 	if err != nil {
 		return err
 	}
-	db.Close()
-	return nil
+	return db.Close()
 }
 
 // Table specify the table you would like to run db operations
@@ -142,20 +160,4 @@ func (s *DB) Count(value any) *DB {
 		*v = float64(vn)
 	}
 	return db
-}
-
-func toSearchableMap(attrs ...any) (result any) {
-	if len(attrs) > 1 {
-		if str, ok := attrs[0].(string); ok {
-			return map[string]any{str: attrs[1]}
-		}
-		return
-	}
-	if len(attrs) == 1 {
-		if attr, ok := attrs[0].(map[string]any); ok {
-			return attr
-		}
-		return attrs[0]
-	}
-	return
 }

@@ -35,6 +35,14 @@ const (
 	VIPChapterException
 )
 
+// ErrStatus *statusErr 的构造函数，状态错误
+func ErrStatus(url string, stat Status) *Error {
+	return &Error{
+		url:    url,
+		Status: stat,
+	}
+}
+
 // Error 实现 error
 func (e *Error) Error() string {
 	if statusErrs := map[Status]string{
@@ -50,13 +58,5 @@ func (e *Error) Error() string {
 	}; statusErrs[e.Status] != `` {
 		return statusErrs[e.Status]
 	}
-	return `状态错误`
-}
-
-// ErrStatus *statusErr 的构造函数，状态错误
-func ErrStatus(url string, stat Status) *Error {
-	return &Error{
-		url:    url,
-		Status: stat,
-	}
+	return `状态错误喵！`
 }

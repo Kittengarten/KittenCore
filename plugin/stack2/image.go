@@ -21,5 +21,5 @@ func sendImage(msgr *kitten.Messager, p *charts.Painter) message.ID {
 		WriteBytes(buf); err != nil {
 		return sendWithImageFail(msgr, err)
 	}
-	return msgr.Reply().Image(path).Send()
+	return msgr.Quote().Image(path).Send()
 }
