@@ -19,24 +19,16 @@ import (
 
 // 待发送的消息
 type Messager struct {
-	error                // 错误
-	*zero.Ctx            // 上下文
-	message.ID           // 引用消息 ID
-	message.Message      // 消息
-	record          bool // 是否有语音
+	err             error // 错误（不使用内嵌，避免 Messager 实现 error）
+	*zero.Ctx             // 上下文
+	message.ID            // 引用消息 ID
+	message.Message       // 消息
+	record          bool  // 是否有语音
 }
 
 // New 创建待发送的消息
 func New(ctx *zero.Ctx) *Messager {
 	return &Messager{Ctx: ctx}
-}
-
-// Error 实现 error
-func (m *Messager) Error() string {
-	if m.error == nil {
-		return ``
-	}
-	return m.Error()
 }
 
 // 比较含有的两个消息段切片是否相等
@@ -154,10 +146,10 @@ func (m *Messager) Image(name ...fio.Path) *Messager {
 	for _, n := range name {
 		img, err := imagePath.Image(n)
 		if err != nil {
-			m.error = errors.Join(m.error, fmt.Errorf(`附带图片错误：%w`, err))
+			m.err = errors.Join(m.err, fmt.Errorf(`附带图片错误：%w`, err))
 			img, err = imagePath.Image(fio.NewPath(`error.jpg`))
 			if err != nil {
-				m.error = errors.Join(m.error, fmt.Errorf(`附带图片错误：%w`, err))
+				m.err = errors.Join(m.err, fmt.Errorf(`附带图片错误：%w`, err))
 			}
 		}
 		m.Seg(img)
@@ -190,9 +182,9 @@ func (m *Messager) Seg(seg ...message.Segment) *Messager {
 // SendMulti 发送多条消息
 func (m *Messager) SendMulti(u ...QQ) (id []message.ID) {
 	defer m.Reset()
-	if m.error != nil {
+	if m.err != nil {
 		// 有错误，将其打包进消息
-		m = m.Text("\n", m.error)
+		m = m.Text("\n", m.err)
 	}
 	if len(m.Message) == 0 {
 		// 没有消息段，无法发送
@@ -244,7 +236,7 @@ func (m *Messager) Send(u ...QQ) message.ID {
 func (m *Messager) Reset() *Messager {
 	m.Message = nil
 	m.ID = message.ID{}
-	m.error = nil
+	m.err = nil
 	m.record = false
 	return m
 }
@@ -311,7 +303,7 @@ func Text(text ...any) message.Segment {
 	return message.Text(text...)
 }
 
-// 检查切片的每个元素是否为错误，如果为错误则记录日志
+// 检查切片的每个元素是否为错误，如果为非空错误则记录日志
 func checkErr(v []any) {
 	for _, i := range v {
 		if err, ok := i.(error); ok && err != nil {
