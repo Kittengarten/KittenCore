@@ -45,7 +45,7 @@ var (
 // TryCommentUpdate 尝试评论更新
 func TryCommentUpdate(
 	msgr *kitten.Messager,
-	msgID []message.ID,
+	ids []message.ID,
 	users []kitten.QQ,
 	nv *Novel,
 	done chan struct{},
@@ -64,7 +64,7 @@ func TryCommentUpdate(
 		s, err := Export.CommentUpdate(nv)
 		if err == nil {
 			for i, user := range users {
-				msgr.Quote(msgID[i]).Text(s).Send(user)
+				msgr.Quote(ids[i]).Text(s).Send(user)
 			}
 			return
 		}

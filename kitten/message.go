@@ -227,6 +227,7 @@ func (m *Messager) SendMulti(u ...QQ) (id []message.ID) {
 // Send 发送消息，u 为可选的发送对象，如 u 为空则发送给上下文的来源
 func (m *Messager) Send(u ...QQ) message.ID {
 	if ids := m.SendMulti(u...); len(ids) != 0 {
+		// 返回第一个 ID
 		return ids[0]
 	}
 	return message.ID{}
