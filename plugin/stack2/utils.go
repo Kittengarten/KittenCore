@@ -111,8 +111,7 @@ func sendTextf(msgr *kitten.Messager, lf bool, format string, a ...any) message.
 
 // 发送带有撞大运图片的本地化文字消息
 func sendWithImageLorry(msgr *kitten.Messager, text ...any) message.ID {
-	return msgr.Quote().AtLf().Image(
-		fio.NewPath(replyServiceName, lorryImage)).
+	return msgr.Quote().AtLf().Image(fio.NewPath(lorryImage)).
 		Text(rangeAssertion(text)...).Send()
 }
 
