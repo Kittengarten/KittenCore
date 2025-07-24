@@ -139,12 +139,12 @@ func (u *QQ) CallName(msgr *Messager) (n string) {
 	overLen := func(name string) bool {
 		return len(name) > 16 && utf8.RuneCountInString(name) > 8
 	}
-	n = str.FirstText(str.CleanAll(u.Card(msgr), false))
+	n = str.FirstText(str.Clean(u.Card(msgr), false))
 	if n == `` || overLen(n) {
-		n = str.FirstText(str.CleanAll(u.NickName(msgr), false))
+		n = str.FirstText(str.Clean(u.NickName(msgr), false))
 	}
 	if n == `` || overLen(n) {
-		n = str.FirstText(str.CleanAll(u.Title(msgr), false))
+		n = str.FirstText(str.Clean(u.Title(msgr), false))
 	}
 	return
 }
@@ -171,7 +171,7 @@ func (u *QQ) TitleCardOrNickName(msgr *Messager) string {
 		}
 	}
 	// 返回【头衔】群昵称 | 昵称
-	return title + str.CleanAll(ctxCardOrNickName(msgr.Ctx, u.Int()), false)
+	return title + str.Clean(ctxCardOrNickName(msgr.Ctx, u.Int()), false)
 }
 
 // Title 从 QQ 获取头衔（必须是群）

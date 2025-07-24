@@ -135,13 +135,13 @@ func (s SF) Init(cpID string) (any, error) {
 	nv.TagList = utils.ConvertSlice(
 		htmlquery.Find(doc, `//li[starts-with(@class,"tag")]/a/span[@class="text"]`),
 		func(n *html.Node) string {
-			return str.CleanAll(htmlquery.InnerText(n), false)
+			return str.Clean(htmlquery.InnerText(n), false)
 		},
 	)
 	// 获取封面链接
 	nv.CoverURL = htmls.InnerText(doc, `//div[@class="figure"]//img/@src`)
 	// 获取预览
-	nv.Preview = strings.TrimPrefix(str.CleanAll(strings.ReplaceAll(htmls.InnerText(
+	nv.Preview = strings.TrimPrefix(str.Clean(strings.ReplaceAll(htmls.InnerText(
 		doc, `//div[@class="chapter-info"]/p`), `　　`, "\n"), true), "\n")
 	// 获取新章节链接
 	ncp := htmlquery.FindOne(doc, `//div[@class="chapter-info"]/h3/a/@href`)

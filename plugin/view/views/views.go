@@ -21,7 +21,7 @@ var pokeLimiter = rate.New(rate.ByGroup, 5*time.Minute, 9) // 戳一戳限速
 // View 查看
 func View(msgr *kitten.Messager, service string, logFilePath fio.Path) message.ID {
 	switch name, who := func() (name, who string) {
-		name = str.CleanAll(msgr.Args(), false)
+		name = str.Clean(msgr.Args(), false)
 		who = name
 		for _, n := range kitten.MainConfig().NickName {
 			if name == n {

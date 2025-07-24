@@ -15,7 +15,7 @@ func cpuTemperature(l fio.Path) string {
 		kitten.Error(err)
 		return err.Error()
 	}
-	<-time.NewTimer(time.Second).C
+	time.Sleep(time.Second)
 	file, err := l.Load(false)
 	if err != nil {
 		return err.Error()

@@ -82,11 +82,11 @@ func (m *Messager) At(u ...QQ) *Messager {
 	}
 	if len(u) == 0 {
 		// 如果@ 对象为空，则 @ Messager 的来源
-		return m.Seg(message.At(m.Event.UserID)).Text(` `)
+		return m.Seg(message.At(m.Event.UserID))
 	}
 	for _, i := range u {
 		// @ 对象
-		m.Seg(i.At()).Text(` `)
+		m.Seg(i.At())
 	}
 	return m
 }
@@ -94,7 +94,7 @@ func (m *Messager) At(u ...QQ) *Messager {
 // AtAll 附带 @ 全体成员
 func (m *Messager) AtAll(g ...QQ) *Messager {
 	if seg := atAll(m, g...); seg.Type != `` {
-		return m.Seg(seg).Text(` `)
+		return m.Seg(seg)
 	}
 	return m
 }

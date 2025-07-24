@@ -165,15 +165,10 @@ func (m *Messager) Poke() {
 	}
 	if u, g := NewQQ(m.Event.UserID), NewQQGroup(m.Event.GroupID); u.IsQQ() {
 		if g.IsGroup() {
-			m.CallAction("group_poke", zero.H{
-				"group_id": g.Int(),
-				"user_id":  u.Int(),
-			})
+			m.GroupPoke(g.Int(), u.Int())
 			return
 		}
-		m.CallAction("friend_poke", zero.H{
-			"user_id": u.Int(),
-		})
+		m.FriendPoke(u.Int())
 	}
 }
 

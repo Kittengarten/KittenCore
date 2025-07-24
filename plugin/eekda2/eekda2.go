@@ -74,7 +74,7 @@ func todayMeal(ctx *zero.Ctx) {
 	if err != nil {
 		msgr.SendWithImageFail(err)
 	}
-	name := str.Mid(``, cEEKDA, str.CleanAll(msgr.Event.RawMessage, false))
+	name := str.Mid(``, cEEKDA, str.Clean(msgr.Event.RawMessage, false))
 	name, needRegister := strings.CutPrefix(name, cRegister)
 	name, needUnegister := strings.CutPrefix(name, cUnregister)
 	if name == `` {

@@ -27,6 +27,7 @@ func RunBot(p proxy) {
 			config.SuperUsers,
 			func(v kitten.QQ) int64 { return v.Int() },
 		),
+		AddSpaceAfterAt: true,
 		Driver: []zero.Driver{
 			wsDriver(p, config.WebSocket),
 		},

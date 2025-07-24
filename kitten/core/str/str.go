@@ -27,11 +27,11 @@ type Str interface {
 }
 
 /*
-CleanAll 清理字符串中全部不必要内容
+Clean 清理字符串中全部不必要内容
 
 lf 控制是否换行
 */
-func CleanAll[T Str](s T, lf bool) T {
+func Clean[T Str](s T, lf bool) T {
 	return T(
 		strings.TrimSpace(
 			strings.Map(func(r rune) rune {

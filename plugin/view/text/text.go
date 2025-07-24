@@ -117,7 +117,7 @@ func SendHTML(msgr *kitten.Messager, url string, lf bool) message.ID {
 	if _, err := io.Copy(&s, b); err != nil {
 		return msgr.SendWithImageFail(err)
 	}
-	return msgr.Quote().AtLf().Text(str.CleanAll(s.String(), lf)).Send()
+	return msgr.Quote().AtLf().Text(str.Clean(s.String(), lf)).Send()
 }
 
 // SendMahjong 发送麻将配牌
@@ -131,7 +131,7 @@ func GetWTA(msgr *kitten.Messager) string {
 	if err != nil {
 		return err.Error()
 	}
-	n := str.CleanAll(msgr.Args(), false)
+	n := str.Clean(msgr.Args(), false)
 	if err = o.SetName(n); err != nil {
 		return err.Error()
 	}

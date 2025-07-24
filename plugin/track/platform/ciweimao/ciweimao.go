@@ -104,7 +104,7 @@ func (c CWM) Init(cpID string) (any, error) {
 		nv.TagList = utils.ConvertSlice(
 			htmlquery.Find(bookInfo, `/p/span[starts-with(@class,"label")]/a`),
 			func(n *html.Node) string {
-				return str.CleanAll(htmlquery.InnerText(n), false)
+				return str.Clean(htmlquery.InnerText(n), false)
 			},
 		)
 		// 获取小说状态
@@ -127,7 +127,7 @@ func (c CWM) Init(cpID string) (any, error) {
 	// 获取简述
 	var s strings.Builder
 	for _, i := range htmlquery.Find(doc, `//div[starts-with(@class,"book-desc")]/text()`) {
-		s.WriteString(str.CleanAll(htmlquery.InnerText(i), false))
+		s.WriteString(str.Clean(htmlquery.InnerText(i), false))
 	}
 	nv.Introduce = s.String()
 	// 获取小说数据

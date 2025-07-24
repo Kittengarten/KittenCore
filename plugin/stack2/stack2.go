@@ -510,8 +510,15 @@ func (d *data) pressResult(msgr *kitten.Messager, m meow) int {
 	for i := range *d {
 		n := &(*d)[i]
 		if a := s[i:]; a.checkPress(msgr) {
-			// 如果没有被压坏，则直接返回
+			// 没有被压坏，则直接返回
 			return i
+		}
+		if i == 0 && n.getTypeID(msgr) >= 猫车 {
+			// 猫车为底座且被压坏，清空整个猫堆（载猫猫被动）
+			for j := range *d {
+				exit(msgr, &(*d)[j], pressed, l-j)
+			}
+			return l
 		}
 		// 去除压坏的猫猫
 		exit(msgr, n, pressed, l-i)

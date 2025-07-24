@@ -34,7 +34,7 @@ func RandomDelayRange(minDelay, maxDelay time.Duration) {
 	}
 	//nolint:gosec
 	if t := minDelay + rand.N(maxDelay-minDelay); t > 0 {
-		<-time.NewTimer(t).C
+		time.Sleep(t)
 	}
 }
 
