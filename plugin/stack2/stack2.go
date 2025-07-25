@@ -628,11 +628,10 @@ func exit(msgr *kitten.Messager, m *meow, r result, h int) {
 	switch r {
 	case flat:
 		// 平地摔，体重变为 e 倍
-		w := f2i(math.RoundToEven(math.E * i2f(m.Weight)))
+		w := int(math.RoundToEven(math.E * float64(m.Weight)))
 		m.Weight = max(w, -(w + 1))
 	case fall:
 		// 摔下去，体重 - 100g × 当前高度
-		// m.Weight = max(1, m.Weight-h)
 		m.Weight -= h
 		if m.Weight < 1 {
 			// 如果体重应归零或为负，休息时间增加至补偿量（0.1 kg 数）的 e^e 倍
@@ -678,7 +677,7 @@ func hasClear(m *meow) bool {
 		return false
 	}
 	// 以抱枕突破所需体重/当前体重的概率，体重变为 e 倍
-	w := f2i(math.RoundToEven(math.E * i2f(m.Weight)))
+	w := int(math.RoundToEven(math.E * float64(m.Weight)))
 	m.Weight = max(w, -(w + 1))
 	return true
 }

@@ -125,9 +125,15 @@ func (c CWM) Init(cpID string) (any, error) {
 		nv.Item = append(nv.Item, str.Mid(`【`, `】`, htmlquery.InnerText(item)))
 	}
 	// 获取简述
-	var s strings.Builder
-	for _, i := range htmlquery.Find(doc, `//div[starts-with(@class,"book-desc")]/text()`) {
+	var (
+		s    strings.Builder
+		desc = htmlquery.Find(doc, `//div[starts-with(@class,"book-desc")]/text()`)
+	)
+	for n, i := range desc {
 		s.WriteString(str.Clean(htmlquery.InnerText(i), false))
+		if n < len(desc)-1 {
+			s.WriteByte('\n')
+		}
 	}
 	nv.Introduce = s.String()
 	// 获取小说数据
@@ -143,7 +149,7 @@ func (c CWM) Init(cpID string) (any, error) {
 	// 获取头像链接
 	nv.HeadURL = htmls.InnerText(doc, `//div[@class="author-info"]//img/@data-original`)
 	// 获取封面
-	nv.CoverURL = htmls.InnerText(doc, `//a[@class="cover"]//img/@data-original`)
+	nv.CoverURL = htmls.InnerText(doc, `//div[starts-with(@class,"cover")]//img/@src`)
 	// 获取新章节链接
 	ncp := htmlquery.FindOne(doc, `//h3[@class="tit"]/a[@target]/@href[1]`)
 	if ncp == nil {

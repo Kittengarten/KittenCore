@@ -238,13 +238,19 @@ func (d *data) evaluateIn(msgr *kitten.Messager) float64 {
 		// 摔下概率达到 50% 以上，不叠入
 		return 0
 	}
+	if s[0].Weight < mapMeow[大老虎].weight &&
+		m.Weight >= mapMeow[大老虎].weight {
+		// 底座不是猫车以上，自己是猫车以上
+		return 0.5 - cf
+	}
 	if s[0].Weight >= mapMeow[幼年猫娘].weight && cp > 0 {
 		// 底座是猫娘萝莉以上，只要可能压坏，就不叠入
 		return 0
 	}
 	if cp >= 0.5 {
 		// 压猫猫！
-		// 压坏概率达到 50% 以上，只要队列中没有猫娘萝莉以上，就按照（压坏概率 - 摔下概率）× 自身体重与平均体重 e 倍的比值叠入
+		// 压坏概率达到 50% 以上，队列中没有猫娘萝莉以上
+		// 按照（压坏概率 - 摔下概率）× 自身体重与平均体重 e 倍的比值叠入
 		for _, m := range s {
 			if mapMeow[幼年猫娘].weight <= m.Weight {
 				// 有猫娘萝莉以上，快跑！

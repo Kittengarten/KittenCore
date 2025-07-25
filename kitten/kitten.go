@@ -8,9 +8,11 @@ import (
 	"net/url"
 	"os"
 	"runtime/debug"
+	"strings"
 
 	"github.com/Kittengarten/KittenCore/kitten/core/fio"
 	"github.com/Kittengarten/KittenCore/kitten/core/msg/mio"
+	"golang.org/x/exp/slog"
 )
 
 const (
@@ -30,7 +32,20 @@ var (
 // Weight 自身叠猫猫体重（0.1 kg 数）
 var Weight int
 
+// 是否为测试模式
+var isTest bool
+
 func init() {
+	for _, arg := range os.Args {
+		if strings.HasPrefix(arg, `-test.`) {
+			isTest = true
+			break
+		}
+	}
+	if isTest {
+		slog.Info(`测试中，不初始化资源`)
+		return
+	}
 	var err error
 	// 配置文件初始化
 	if botConfig, err = fio.Load[config](fio.NewPath(configFile), defaultConfig); err != nil {
@@ -102,4 +117,9 @@ func MainConfig() config {
 // ImagePath 获取图片路径
 func ImagePath() mio.Path {
 	return imagePath
+}
+
+// TestMode 是否为测试模式
+func TestMode() bool {
+	return isTest
 }

@@ -1,6 +1,7 @@
 package stack2
 
 import (
+	"cmp"
 	"fmt"
 	"math"
 	"math/rand/v2"
@@ -148,9 +149,9 @@ func (m meow) String() string {
 	}
 	return fmt.Sprintf(
 		l10nReplacer().Replace(`%s	❤	%d	❤	%.1f kg	%s`),
-		m.TitleCardOrNickName(
+		cmp.Or(m.TitleCardOrNickName(
 			GlobalMessager,
-		),
+		), m.Name),
 		m.Int(),
 		i2f(m.Weight),
 		m.getType(GlobalMessager),
