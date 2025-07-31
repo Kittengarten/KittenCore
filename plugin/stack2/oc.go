@@ -3,6 +3,7 @@ package stack2
 import (
 	"errors"
 	"math"
+	"slices"
 	"time"
 
 	"github.com/Kittengarten/KittenCore/kitten"
@@ -13,16 +14,18 @@ import (
 // 加速叠猫猫，会修改原数据
 func (d *data) oc(msgr *kitten.Messager) {
 	var (
-		_, err = d.pre(msgr)              // 初始化自身
+		m, err = d.pre(msgr)              // 初始化自身
 		nre    = needRest(0, 0, 0, false) // 默认错误：需要休息
 	)
+	// 构造错误，如果没有错误，则初始化成功，需要恢复
 	if !errors.As(err, &nre) {
-		// 当前不在休息，不需要加速，直接返回
+		// 当前不在休息，不需要加速，恢复后返回
+		*d = slices.Concat(*d, data{m})
 		sendWithImageFail(msgr, `当前不在休息，不能进行锻炼喵！`)
 		return
 	}
 	if (*d)[nre.i].getTypeID(msgr) < 大老虎 {
-		// 不是大老虎以上，不能加速
+		// 不是大老虎以上，不能加速，直接返回
 		sendWithImageFail(msgr, `大老虎以上才可以锻炼——`)
 		return
 	}
@@ -30,12 +33,12 @@ func (d *data) oc(msgr *kitten.Messager) {
 		float64(nre.Duration-time.Hour*time.Duration(stackConfig.OCMinRestHours)) /
 			float64(time.Hour))) // 加速的小时数
 	if hours <= 0 {
-		// 加速的小时数不大于 0，则不能加速
+		// 加速的小时数不大于 0，则不能加速，直接返回
 		sendWithImageFail(msgr, `剩余休息时间过短，不能锻炼喵！`)
 		return
 	}
 	if (*d)[nre.i].Weight-hours < 1 {
-		// 体重不足，则不能加速
+		// 体重不足，则不能加速，直接返回
 		sendWithImageFail(msgr, `猫猫体重不足，锻炼失败喵！`)
 		return
 	}

@@ -23,23 +23,23 @@ import (
 )
 
 const (
-	replyServiceName                  = `stack2` // 插件名
-	brief                             = `一起来玩叠猫猫 v2`
-	dataFile                          = `data.yaml`   // 叠猫猫数据文件
-	bufferFile                        = `buffer.yaml` // 叠猫猫缓存文件
-	tipsFile                          = `tips.yaml`   // 叠猫猫小贴士文件
-	cStack, cStackT0, cStackT1        = `叠`, `曡`, `疊`
-	cMeow                             = `猫猫`
-	cIn                               = `加入`
-	cView                             = `查看`
-	cAnalysis                         = `分析`
-	cRank                             = `排行`
-	cOC, cOCFox, cOCGPU, cOCCockroach = `锻炼`, `化功`, `加速`, `起飞`
-	cDaily, cDaily1                   = `日常`, `每日`
-	cLorry                            = `大运`
-	cEat                              = `吃`
-	cEatGPU                           = `抢`
-	zako                              = `zako`
+	replyServiceName                     = `stack2` // 插件名
+	brief                                = `一起来玩叠猫猫 v2`
+	dataFile                             = `data.yaml`   // 叠猫猫数据文件
+	bufferFile                           = `buffer.yaml` // 叠猫猫缓存文件
+	tipsFile                             = `tips.yaml`   // 叠猫猫小贴士文件
+	cStack, cStackT0, cStackT1, cStackT2 = `叠`, `曡`, `疊`, `堆`
+	cMeow                                = `猫猫`
+	cIn                                  = `加入`
+	cView                                = `查看`
+	cAnalysis                            = `分析`
+	cRank                                = `排行`
+	cOC, cOCFox, cOCGPU, cOCCockroach    = `锻炼`, `化功`, `加速`, `起飞`
+	cDaily, cDaily1                      = `日常`, `每日`
+	cLorry                               = `大运`
+	cEat                                 = `吃`
+	cEatGPU                              = `抢`
+	zako                                 = `zako`
 )
 
 // GlobalMessager 全局上下文，仅用于获取猫猫信息
@@ -67,7 +67,7 @@ func init() {
 
 	// 叠猫猫、吃猫猫
 	engine.OnCommandGroup([]string{
-		cStack, cStackT0, cStackT1,
+		cStack, cStackT0, cStackT1, cStackT2,
 		cEat, cEatGPU,
 	}).SetBlock(true).
 		Limit(rate.Get(rate.User)).

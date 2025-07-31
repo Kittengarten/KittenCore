@@ -2,6 +2,7 @@ package stack2
 
 import (
 	"errors"
+	"slices"
 	"time"
 
 	"github.com/Kittengarten/KittenCore/kitten"
@@ -15,12 +16,14 @@ const dailyRatio = 1000 // 猫堆高度与加速的比例的比值
 // 叠猫猫日常任务，会修改原数据
 func (d *data) daily(msgr *kitten.Messager) {
 	var (
-		_, err = d.pre(msgr)              // 初始化自身
+		m, err = d.pre(msgr)              // 初始化自身
 		nre    = needRest(0, 0, 0, false) // 默认错误：需要休息
 	)
 	times.RandomDelayRange(time.Second, 2*time.Second)
+	// 构造错误，如果没有错误，则初始化成功，需要恢复
 	if !errors.As(err, &nre) {
-		// 当前不在休息，不能进行日常任务，直接返回
+		// 当前不在休息，不能进行日常任务，恢复后返回
+		*d = slices.Concat(*d, data{m})
 		sendWithImageFail(msgr, `当前不在休息，不能进行日常任务喵！`)
 		return
 	}
