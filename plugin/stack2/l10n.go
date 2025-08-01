@@ -97,24 +97,23 @@ var (
 	}
 	// 地区标记位
 	globalLocation loc
-)
-
-// 字符替换器
-func l10nReplacer() *strings.Replacer {
-	if globalLocation == cat {
-		// 叠猫猫无需替换
-		return strings.NewReplacer()
-	}
-	s := make([]string, 0, 2*len(l10nStr))
-	for _, v := range l10nStr {
-		newStr, ok := v[globalLocation]
-		if !ok {
-			continue
+	// 字符替换器
+	l10n = func() *strings.Replacer {
+		if globalLocation == cat {
+			// 叠猫猫无需替换
+			return strings.NewReplacer()
 		}
-		s = append(s, v[cat], newStr)
-	}
-	return strings.NewReplacer(s...)
-}
+		s := make([]string, 0, 2*len(l10nStr))
+		for _, v := range l10nStr {
+			newStr, ok := v[globalLocation]
+			if !ok {
+				continue
+			}
+			s = append(s, v[cat], newStr)
+		}
+		return strings.NewReplacer(s...)
+	}()
+)
 
 // 叠蟑螂活动日期判断，在愚人节的前三天或后七天范围内返回 true
 func checkCockroachDate() bool {

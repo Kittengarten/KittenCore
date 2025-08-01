@@ -144,7 +144,7 @@ func setRankChart(v []float64) (*charts.Painter, error) {
 	return charts.PieRender(
 		v,
 		charts.TitleOptionFunc(charts.TitleOption{
-			Text:    l10nReplacer().Replace(`叠猫猫排行`),
+			Text:    l10n.Replace(`叠猫猫排行`),
 			Subtext: `数量`,
 			Left:    charts.PositionCenter,
 		}),
@@ -157,14 +157,14 @@ func setRankChart(v []float64) (*charts.Painter, error) {
 		charts.LegendOptionFunc(charts.LegendOption{
 			Orient: charts.OrientVertical,
 			Data: []string{
-				l10nReplacer().Replace(`绒布球`),
-				l10nReplacer().Replace(`奶猫`),
-				l10nReplacer().Replace(`抱枕`),
-				l10nReplacer().Replace(`小可爱`),
-				l10nReplacer().Replace(`大可爱`),
-				l10nReplacer().Replace(`猫娘`),
-				l10nReplacer().Replace(`老虎`),
-				l10nReplacer().Replace(`猫车以上`),
+				l10n.Replace(`绒布球`),
+				l10n.Replace(`奶猫`),
+				l10n.Replace(`抱枕`),
+				l10n.Replace(`小可爱`),
+				l10n.Replace(`大可爱`),
+				l10n.Replace(`猫娘`),
+				l10n.Replace(`老虎`),
+				l10n.Replace(`猫车以上`),
 			},
 			Left: charts.PositionLeft,
 		}),

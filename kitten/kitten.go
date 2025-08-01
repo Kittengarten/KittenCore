@@ -5,6 +5,7 @@ import (
 	"embed"
 	"io/fs"
 	"log"
+	"log/slog"
 	"net/url"
 	"os"
 	"runtime/debug"
@@ -12,7 +13,6 @@ import (
 
 	"github.com/Kittengarten/KittenCore/kitten/core/fio"
 	"github.com/Kittengarten/KittenCore/kitten/core/msg/mio"
-	"golang.org/x/exp/slog"
 )
 
 const (

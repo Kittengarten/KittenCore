@@ -291,7 +291,7 @@ func setAnalysisChart(v []float64, flat bool) (*charts.Painter, error) {
 	return charts.PieRender(
 		v,
 		charts.TitleOptionFunc(charts.TitleOption{
-			Text:    l10nReplacer().Replace(`叠猫猫分析`),
+			Text:    l10n.Replace(`叠猫猫分析`),
 			Subtext: `概率`,
 			Left:    charts.PositionCenter,
 		}),
@@ -306,13 +306,13 @@ func setAnalysisChart(v []float64, flat bool) (*charts.Painter, error) {
 			Data: func() []string {
 				if flat {
 					return []string{
-						l10nReplacer().Replace(`平地摔`),
+						l10n.Replace(`平地摔`),
 						`成功`,
 					}
 				}
 				return []string{
-					l10nReplacer().Replace(`压坏`),
-					l10nReplacer().Replace(`摔下`),
+					l10n.Replace(`压坏`),
+					l10n.Replace(`摔下`),
 					`成功`,
 				}
 			}(),

@@ -88,7 +88,7 @@ func (d *data) viewImage(msgr *kitten.Messager) message.ID {
 		str[h] = strings.ReplaceAll(func() string {
 			if globalLocation == cockroach {
 				return fmt.Sprintf(`【%s】翼展 %.1f cm`,
-					l10nReplacer().Replace(m.getType(GlobalMessager).String()),
+					l10n.Replace(m.getType(GlobalMessager).String()),
 					i2f(m.Weight),
 				)
 			}
@@ -96,8 +96,8 @@ func (d *data) viewImage(msgr *kitten.Messager) message.ID {
 				m.TitleCardOrNickName(GlobalMessager),
 				m.Int(),
 				i2f(m.Weight),
-				l10nReplacer().Replace(`kg`),
-				l10nReplacer().Replace(m.getType(msgr).String()),
+				l10n.Replace(`kg`),
+				l10n.Replace(m.getType(msgr).String()),
 			)
 		}(), `	`, ``)
 	}
@@ -114,14 +114,14 @@ func setViewChart(v [][]float64, s []string, l int) (*charts.Painter, error) {
 	charts.SetDefaultHeight(max(min(2160, 90*l), 270))
 	return charts.HorizontalBarRender(
 		v,
-		charts.TitleTextOptionFunc(l10nReplacer().Replace(`叠猫猫队列`)),
+		charts.TitleTextOptionFunc(l10n.Replace(`叠猫猫队列`)),
 		charts.PaddingOptionFunc(charts.Box{
 			Top:    20,
 			Right:  40,
 			Bottom: 20,
 			Left:   40,
 		}),
-		charts.LegendLabelsOptionFunc([]string{l10nReplacer().Replace(`体重（kg）`)}),
+		charts.LegendLabelsOptionFunc([]string{l10n.Replace(`体重（kg）`)}),
 		charts.YAxisDataOptionFunc(s),
 	)
 }

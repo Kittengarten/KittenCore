@@ -100,12 +100,12 @@ func sendText(msgr *kitten.Messager, lf bool, text ...any) message.ID {
 func sendTextf(msgr *kitten.Messager, lf bool, format string, a ...any) message.ID {
 	if lf {
 		return msgr.Quote().AtLf().Textf(
-			l10nReplacer().Replace(format),
+			l10n.Replace(format),
 			rangeAssertion(a)...,
 		).Send()
 	}
 	return msgr.Quote().At().Textf(
-		l10nReplacer().Replace(format),
+		l10n.Replace(format),
 		rangeAssertion(a)...,
 	).Send()
 }
@@ -132,11 +132,11 @@ func rangeAssertion(a []any) []any {
 	for k, v := range a {
 		switch v := v.(type) {
 		case error:
-			a[k] = l10nReplacer().Replace(v.Error())
+			a[k] = l10n.Replace(v.Error())
 		case fmt.Stringer:
-			a[k] = l10nReplacer().Replace(v.String())
+			a[k] = l10n.Replace(v.String())
 		case string:
-			a[k] = l10nReplacer().Replace(v)
+			a[k] = l10n.Replace(v)
 		}
 	}
 	return a
@@ -148,7 +148,7 @@ func (m meow) String() string {
 		return fmt.Sprintf(`【%s】	翼展 %.1f cm`, m.getType(GlobalMessager), i2f(m.Weight))
 	}
 	return fmt.Sprintf(
-		l10nReplacer().Replace(`%s	❤	%d	❤	%.1f kg	%s`),
+		l10n.Replace(`%s	❤	%d	❤	%.1f kg	%s`),
 		cmp.Or(m.TitleCardOrNickName(
 			GlobalMessager,
 		), m.Name),

@@ -33,6 +33,8 @@ var setItem = map[item]string{
 	Password: `密码`,
 }
 
+var sec = regexp.MustCompile(`§.`)
+
 // RCON
 func Command(msgr *kitten.Messager, cp fio.PathRWMutex) message.ID {
 	cp.RLock()
@@ -56,9 +58,15 @@ func Command(msgr *kitten.Messager, cp fio.PathRWMutex) message.ID {
 	if resp == `` {
 		return msgr.Quote().At().Text(`命令响应为空喵！`).Send()
 	}
-	resp = strings.ReplaceAll(resp, ` ms`, " ms\n")
-	resp = strings.TrimRight(resp, "\n\r")
-	return msgr.Quote().AtLf().Text(regexp.MustCompile(`§.`).ReplaceAllString(resp, ``)).Send()
+	return msgr.Quote().AtLf().Text(
+		sec.ReplaceAllString(
+			strings.TrimRight(
+				strings.ReplaceAll(resp, ` ms`, " ms\n"),
+				"\n\r",
+			),
+			``,
+		),
+	).Send()
 }
 
 // 设置 RCON
