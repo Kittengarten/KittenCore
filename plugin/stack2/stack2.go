@@ -350,7 +350,7 @@ func (d *data) doStack(msgr *kitten.Messager, m *meow) error {
 		if err := msgr.SendEmojiLike(`晕`); err != nil {
 			kitten.Warn(err)
 		}
-		sendWithZako(msgr, err, &e)
+		sendWithPressed(msgr, err, &e)
 		return err
 	}
 	// 如果没有猫猫被压坏，叠猫猫初步成功

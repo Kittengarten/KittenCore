@@ -127,6 +127,12 @@ func sendWithZako(msgr *kitten.Messager, text ...any) message.ID {
 		Text(rangeAssertion(text)...).Send()
 }
 
+// 发送带有压扁图片的本地化文字消息
+func sendWithPressed(msgr *kitten.Messager, text ...any) message.ID {
+	return msgr.Quote().AtLf().Image(fio.NewPath(`压扁.gif`)).
+		Text(rangeAssertion(text)...).Send()
+}
+
 // 遍历断言
 func rangeAssertion(a []any) []any {
 	for k, v := range a {
