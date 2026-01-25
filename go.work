@@ -1,9 +1,8 @@
-go 1.24
+go 1.26rc2
 
 use (
 	.
 	./internal/gorm
+	./internal/sqlite
 	./internal/zap
-	./internal/zbputils
-	./terasu
 )

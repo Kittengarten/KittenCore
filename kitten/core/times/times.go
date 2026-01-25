@@ -17,32 +17,37 @@ type TimeDuration struct {
 }
 
 const (
-	Layout      = `2006.1.2 15:04:05`   // Layout 日期时间格式
-	LayoutHeart = `2006.1.2	❤	15:04:05` // LayoutHeart 带❤的日期时间格式
-	HoursPerDay = 24                    // HoursPerDay 每天小时数
+	Layout      = `2006.1.2 15:04:05`     // Layout 日期时间格式
+	LayoutHeart = `2006.1.2	❤	15:04:05`   // LayoutHeart 带❤的日期时间格式
+	HoursPerDay = 24                      // HoursPerDay 每天小时数
+	Day         = HoursPerDay * time.Hour // Day 天
+	Week        = 7 * Day                 // Week 周
 )
 
-// RandomDelay 随机阻塞等待
-func RandomDelay(t time.Duration) {
-	RandomDelayRange(0, t)
+// RandDelay 随机阻塞等待
+func RandDelay(t time.Duration) <-chan time.Time {
+	return RandDelayRange(0, t)
 }
 
-// RandomDelayRange 带上下限的阻塞等待
-func RandomDelayRange(minDelay, maxDelay time.Duration) {
+// RandDelayRange 带上下限的阻塞等待
+func RandDelayRange(minDelay, maxDelay time.Duration) <-chan time.Time {
+	return time.After(RandDurationRange(minDelay, maxDelay))
+}
+
+// RandDurationRange 随机时间间隔
+func RandDurationRange(minDelay, maxDelay time.Duration) time.Duration {
 	if minDelay > maxDelay {
 		minDelay, maxDelay = maxDelay, minDelay
 	}
 	//nolint:gosec
-	if t := minDelay + rand.N(maxDelay-minDelay); t > 0 {
-		time.Sleep(t)
-	}
+	return minDelay + rand.N(maxDelay-minDelay)
 }
 
 // ConvertTimeDuration 转换时间间隔
 func ConvertTimeDuration(d time.Duration) TimeDuration {
 	return TimeDuration{
-		d: int(d / HoursPerDay / time.Hour),
-		h: int(d % (HoursPerDay * time.Hour) / time.Hour),
+		d: int(d / Day),
+		h: int(d % Day / time.Hour),
 		m: int(d % time.Hour / time.Minute),
 		s: int(d % time.Minute / time.Second),
 	}
@@ -80,7 +85,7 @@ func DailyDeadline(hour, min, sec, nsec int) time.Duration {
 	)
 	// 如果已经过了今天的截止时刻，就切换到明天的
 	if now.After(target) {
-		target = target.Add(HoursPerDay * time.Hour)
+		target = target.Add(Day)
 	}
 	// 计算剩余时间
 	return target.Sub(now)

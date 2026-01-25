@@ -13,9 +13,7 @@ type (
 
 // NotFound *notFoundErr 的构造函数，没有找到小说
 func (key Keyword) NotFound() *NotFoundError {
-	return &NotFoundError{
-		key: key,
-	}
+	return &NotFoundError{key: key}
 }
 
 // Error 实现 error

@@ -1,6 +1,7 @@
 package novel
 
 import (
+	"context"
 	"fmt"
 
 	"github.com/Kittengarten/KittenCore/plugin/track/chapter"
@@ -48,8 +49,8 @@ type (
 
 	// Commenter 小说点评者
 	Commenter interface {
-		CommentNovel(nv *Novel) string
-		CommentUpdate(nv *Novel) (string, error)
+		CommentNovel(ctx context.Context, nv *Novel) string
+		CommentUpdate(ctx context.Context, nv *Novel) (string, error)
 	}
 
 	// BookCommentBox 小说点评框

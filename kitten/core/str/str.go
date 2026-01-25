@@ -18,7 +18,22 @@ func TrimTooLong(content string, maxLen int) string {
 	if utf8.RuneCountInString(content) <= maxLen {
 		return content
 	}
-	return string([]rune(content)[:maxLen-1]) + `…`
+	return substr(content, maxLen-1) + `…`
+}
+
+// substr 截取字符串前 n 个字符
+func substr(s string, n int) string {
+	if n <= 0 {
+		return ``
+	}
+	var i int
+	for pos := range s {
+		if i == n {
+			return s[:pos]
+		}
+		i++
+	}
+	return s
 }
 
 // Str 表示字符串的泛型约束
@@ -26,33 +41,32 @@ type Str interface {
 	~string | ~[]rune | ~[]byte
 }
 
-/*
-Clean 清理字符串中全部不必要内容
-
-lf 控制是否换行
-*/
+// Clean 清理字符串中全部不必要内容
+//
+//	lf 控制是否换行
 func Clean[T Str](s T, lf bool) T {
-	return T(
-		strings.TrimSpace(
-			strings.Map(func(r rune) rune {
-				if remove := unicode.IsControl(r) || unicode.IsSpace(r);
-				// 如果不换行，移除包括换行符在内的控制字符和空白字符
-				(!lf && remove) ||
-					// 如果换行，移除换行符以外的控制字符和空白字符
-					(lf && remove && !strings.ContainsRune("\n\r", r)) ||
-					// 移除可能引发排版和显示错误的字符
-					strings.ContainsRune(
-						"\u061c\u200e\u200f\u202a\u202b\u202c\u202d\u202e\u2066\u2067\u2068\u2069\ufffd",
-						r,
-					) {
-					return -1
-				}
+	return T(strings.TrimSpace(strings.Map(func(r rune) rune {
+		switch r {
+		case '\n', '\r':
+			if lf {
 				return r
-			},
-				string(s),
-			),
-		),
-	)
+			}
+			// 移除换行符
+			return -1
+		}
+		if unicode.IsControl(r) || unicode.IsSpace(r) {
+			// 移除换行符之外的控制字符和空白字符
+			return -1
+		}
+		switch r {
+		case '\u061c', '\u200e', '\u200f', '\u202a', '\u202b',
+			'\u202c', '\u202d', '\u202e', '\u2066', '\u2067',
+			'\u2068', '\u2069', '\ufffd':
+			// 移除可能引发排版和显示错误的字符
+			return -1
+		}
+		return r
+	}, string(s))))
 }
 
 // ClearRuneBytes 移除特定长度的 UTF-8 码点
@@ -65,17 +79,27 @@ func ClearRuneBytes[T Str](s T, n ...int) T {
 	}, string(s)))
 }
 
+// ComposeAuto 不需要提供 strings.Builder 的排版
+func ComposeAuto[T Str](s T) T {
+	b := new(strings.Builder)
+	b.Grow(len(s))
+	return Compose(b, s)
+}
+
 // Compose 排版
-func Compose(b *strings.Builder, s string) string {
-	b = cmp.Or(b, new(strings.Builder))
-	for line := range strings.Lines(strings.TrimSpace(s)) {
-		if line == `` {
+//
+//	必须提供 strings.Builder，否则无效。应当进行预增长。
+func Compose[T Str](b *strings.Builder, s T) T {
+	if b == nil {
+		return s
+	}
+	for line := range strings.SplitSeq(strings.TrimSpace(string(s)), "\n") {
+		if line = strings.TrimSpace(line); line == `` {
 			continue
 		}
-		b.WriteString(`　　`)
-		fmt.Fprintln(b, strings.TrimSpace(line))
+		fmt.Fprintf(b, "　　%s\n", line)
 	}
-	return b.String()
+	return T(b.String())
 }
 
 // FirstHan 获取第一段中文字符码点组成的字符串
@@ -157,11 +181,9 @@ ru:
 	return T(string([]rune(string(s))[pre : pre+n]))
 }
 
-/*
-Mid 获取中间最长字符串，前缀后缀为空则忽略
-
-pre 为前缀（不包含），suf 为后缀（不包含），str 为整个字符串
-*/
+// Mid 获取中间最长字符串，前缀后缀为空则忽略
+//
+//	pre 为前缀（不包含），suf 为后缀（不包含），str 为整个字符串
 func Mid(pre, suf, str string) string {
 	return mid(pre, suf, str, false)
 }
@@ -169,11 +191,9 @@ func Mid(pre, suf, str string) string {
 // 找不到的字符串
 const canNotFound = "\x00"
 
-/*
-MidMin 获取中间最短字符串，前缀后缀为空或找不到则忽略
-
-pre 为前缀（不包含），suf 为后缀（不包含），str 为整个字符串
-*/
+// MidMin 获取中间最短字符串，前缀后缀为空或找不到则忽略
+//
+//	pre 为前缀（不包含），suf 为后缀（不包含），str 为整个字符串
 func MidMin(pre, suf, str string) string {
 	return mid(
 		cmp.Or(pre, canNotFound),
@@ -182,11 +202,9 @@ func MidMin(pre, suf, str string) string {
 	)
 }
 
-/*
-获取中间字符串
-
-pre 为前缀（不包含），suf 为后缀（不包含），str 为整个字符串
-*/
+// 获取中间字符串
+//
+//	pre 为前缀（不包含），suf 为后缀（不包含），str 为整个字符串
 func mid(pre, suf, str string, isMin bool) string {
 	var (
 		low = func() int {
@@ -265,7 +283,7 @@ func commonN(a, b string) (n int) {
 
 // SimilarityChinese 计算两个汉字字符串的相似程度
 //
-// Deprecated: 结果不具备足够的参考意义
+//	Deprecated: 结果不具备足够的参考意义
 func SimilarityChinese(a, b string) float64 {
 	const avg = `盒` // 汉字平均码点值
 	var (
@@ -320,4 +338,23 @@ func Levenshtein(a, b string) int {
 		}
 	}
 	return dp[lenA][lenB]
+}
+
+// AddNumSpace 在数字前后添加空格
+func AddNumSpace(s string) string {
+	b := new(strings.Builder)
+	b.Grow(len(s) + 4)
+	n := len(s)
+	for i := range n {
+		c := s[i]
+		isDigit := c >= '0' && c <= '9'
+		if isDigit && (i == 0 || s[i-1] < '0' || s[i-1] > '9') && i > 0 {
+			b.WriteByte(' ')
+		}
+		b.WriteByte(c)
+		if isDigit && (i+1 >= n || s[i+1] < '0' || s[i+1] > '9') && i+1 < n {
+			b.WriteByte(' ')
+		}
+	}
+	return b.String()
 }

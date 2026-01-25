@@ -1,18 +1,23 @@
 package novel
 
 import (
+	"context"
 	"errors"
 	"fmt"
-	"net/url"
 	"time"
 
-	"github.com/Kittengarten/KittenCore/kitten"
 	"github.com/Kittengarten/KittenCore/kitten/core/equal"
-	"github.com/Kittengarten/KittenCore/kitten/core/shttp"
+	"github.com/Kittengarten/KittenCore/kitten/core/log"
 	"github.com/Kittengarten/KittenCore/kitten/core/times"
+	"github.com/Kittengarten/KittenCore/kitten/core/times/repeat"
+	"github.com/Kittengarten/KittenCore/kitten/core/times/retry"
+	"github.com/Kittengarten/KittenCore/kitten/core/utils"
+	"github.com/Kittengarten/KittenCore/kitten/msg"
+	"github.com/Kittengarten/KittenCore/kitten/usr"
 	"github.com/Kittengarten/KittenCore/plugin/track/chapter"
 	"github.com/Kittengarten/KittenCore/plugin/track/platform"
 	"github.com/Kittengarten/KittenCore/plugin/track/status"
+
 	"github.com/wdvxdr1123/ZeroBot/message"
 )
 
@@ -39,58 +44,49 @@ var (
 	// ErrorNotImplemented 未实现喵！
 	ErrorNotImplemented = errors.New(`未实现喵！`)
 	// ErrNoComment 没有评论内容喵！
-	ErrNoComment = errors.New(`没有评论内容喵！`)
+	ErrNoComment = retry.NewError(errors.New(`没有评论内容喵！`), true)
 )
 
 // TryCommentUpdate 尝试评论更新
 func TryCommentUpdate(
-	msgr *kitten.Messager,
+	handler *msg.Handler,
 	ids []message.ID,
-	users []kitten.QQ,
+	users []usr.QQ,
 	nv *Novel,
-	done chan struct{},
 ) {
 	if Export.Commenter == nil {
-		msgr.SendWithImageFail(`更新点评`, ErrorNotImplemented)
+		log.Error(`更新点评`, ErrorNotImplemented)
 		return
 	}
-	defer func() {
-		done <- struct{}{}
-		close(done)
-	}()
-	t := time.NewTicker(shttp.TimeOut)
-	defer t.Stop()
-	for range 5 { // 重试最多 5 次
-		s, err := Export.CommentUpdate(nv)
-		if err == nil {
-			for i, user := range users {
-				msgr.Quote(ids[i]).Text(s).Send(user)
-			}
+	utils.Go(`异步评论更新`, func() {
+		var s string
+		retry.Do(
+			handler,
+			retry.Default(),
+			func() (err error) {
+				s, err = Export.CommentUpdate(handler, nv)
+				return err
+			},
+		)
+		if s == `` {
 			return
 		}
-		switch as := struct {
-			ErrURL   *url.Error
-			ErrShttp *shttp.Error
-		}{}; {
-		case errors.Is(err, ErrNoComment),
-			errors.As(err, &as.ErrURL),
-			errors.As(err, &as.ErrShttp):
-			// 在以下错误时重试：
-			// 没有评论内容喵！
-			// *url.Error
-			// *shttp.Error
-			kitten.Error(err)
-			<-t.C
-			continue
+		if err := repeat.IterS(
+			handler,
+			repeat.New(0, time.Second, 2*time.Second),
+			users,
+			func(i int, u usr.QQ) error {
+				_ = handler.Quote(ids[i]).Text(s).Send(u)
+				return nil
+			},
+		); err != nil {
+			log.Error(err)
 		}
-		kitten.Error(err)
-		break
-	}
-	kitten.Error(`评论更新失败喵！`)
+	})
 }
 
 // Update 更新信息
-func (nv *Novel) Update() string {
+func (nv *Novel) Update(ctx context.Context) string {
 	defer GlobalRestorer.RestorePlatform(nv)
 	return fmt.Sprintf(`《%s》更新了喵～
 %s%s
@@ -98,16 +94,14 @@ func (nv *Novel) Update() string {
 		nv.Name,
 		nv.Title,
 		GlobalRestorer.RestoreURL(nv),
-		nv.WordNum, func(v bool) string {
-			if v {
-				return `付费`
-			}
-			return `免费`
-		}(nv.IsVIP),
+		nv.WordNum, map[bool]string{
+			true:  `付费`,
+			false: `免费`,
+		}[nv.IsVIP],
 		func() string {
-			tr, err := nv.todayReport()
+			tr, err := nv.todayReport(ctx)
 			if err != nil {
-				kitten.Error(err)
+				log.Error(err)
 				return ``
 			}
 			return "\n间隔时间：" + tr
@@ -116,8 +110,8 @@ func (nv *Novel) Update() string {
 }
 
 // 今日报更
-func (nv *Novel) todayReport() (string, error) {
-	if err := nv.makeCompare(); err != nil {
+func (nv *Novel) todayReport(ctx context.Context) (string, error) {
+	if err := nv.makeCompare(ctx); err != nil {
 		return ``, err
 	}
 	if nv.Times == 0 {
@@ -131,36 +125,40 @@ func (nv *Novel) todayReport() (string, error) {
 }
 
 // 与上次更新比较
-func (nv *Novel) makeCompare() (err error) {
+func (nv *Novel) makeCompare(ctx context.Context) (err error) {
 	var this, pre *chapter.Chapter
 	this = nv.Chapter
 	if this.PreURL == `` || this.PreURL == nv.URL {
 		return status.ErrStatus(nv.URL, status.OnlyAChapter)
 	}
-	if pre, err = NewChapter(nv, this.PreURL); err != nil {
+	if pre, err = NewChapter(ctx, nv, this.PreURL); err != nil {
 		return err
 	}
 	nv.TodayWordNum = this.WordNum
 	nv.Duration = max(time.Second, this.Update.Sub(pre.Update))
 	for nv.Times = 1; equal.IsSameDate4AM(pre.Update, this.Update) &&
 		pre.PreURL != nv.URL; nv.Times++ {
-		times.RandomDelayRange(time.Second, 2*time.Second)
-		this = pre
-		nv.TodayWordNum += this.WordNum
-		if pre, err = NewChapter(nv, this.PreURL); err != nil {
-			return err
+		select {
+		case <-times.RandDelayRange(time.Second, 2*time.Second):
+			this = pre
+			nv.TodayWordNum += this.WordNum
+			if pre, err = NewChapter(ctx, nv, this.PreURL); err != nil {
+				return err
+			}
+		case <-ctx.Done():
+			return ctx.Err()
 		}
 	}
 	return nil
 }
 
 // NewChapter 获取章节
-func NewChapter(nv *Novel, cpURL string) (*chapter.Chapter, error) {
+func NewChapter(ctx context.Context, nv *Novel, cpURL string) (*chapter.Chapter, error) {
 	p, err := platform.Get(nv.Platform)
 	if err != nil {
 		return nil, err
 	}
-	return chapter.New(p, cpURL)
+	return chapter.New(ctx, p, cpURL)
 }
 
 // DurationConvert 距上次更新时间的时间差转换为时间间隔的结构体

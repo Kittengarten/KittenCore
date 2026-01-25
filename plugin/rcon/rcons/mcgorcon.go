@@ -3,6 +3,7 @@ package rcons
 
 import (
 	"bytes"
+	"context"
 	"encoding/binary"
 	"errors"
 	"io"
@@ -12,7 +13,7 @@ import (
 )
 
 type MCConn struct {
-	conn     net.Conn
+	net.Conn
 	password string
 }
 
@@ -45,20 +46,17 @@ var (
 	ErrType = errors.New(`数据包类型错误喵！`)
 )
 
-func (c *MCConn) Open(addr, password string) error {
-	conn, err := net.DialTimeout(`tcp`, addr, shttp.TimeOut)
+func (c *MCConn) Open(ctx context.Context, addr, password string) error {
+	conn, err := (&net.Dialer{Timeout: shttp.Timeout}).
+		DialContext(ctx, `tcp`, addr)
 	if err != nil {
 		return err
 	}
 	*c = MCConn{
-		conn:     conn,
+		Conn:     conn,
 		password: password,
 	}
 	return nil
-}
-
-func (c *MCConn) Close() error {
-	return c.conn.Close()
 }
 
 // SendCommand 向服务器发送命令并返回结果
@@ -100,12 +98,12 @@ func (c *MCConn) sendPacket(t packetType, p []byte) (Header, []byte, error) {
 		return Header{}, nil, err
 	}
 	// 发送二进制包
-	_, err = c.conn.Write(packet)
+	_, err = c.Write(packet)
 	if err != nil {
 		return Header{}, nil, err
 	}
 	// 接收并解码响应
-	return depacketise(c.conn)
+	return depacketise(c.Conn)
 }
 
 // packetise 编码数据包并转换为二进制表达
@@ -114,14 +112,17 @@ func packetise(t packetType, p []byte) ([]byte, error) {
 	if l > PayloadMaxSize {
 		return nil, ErrTooLarge
 	}
-	l32 := int32(l)
-	var buf bytes.Buffer
+	var (
+		l32 = int32(l)
+		buf = new(bytes.Buffer)
+	)
+	buf.Grow(16 + l)
 	if err := errors.Join(
-		binary.Write(&buf, binary.LittleEndian, l32+10),
-		binary.Write(&buf, binary.LittleEndian, int32(0)),
-		binary.Write(&buf, binary.LittleEndian, t),
-		binary.Write(&buf, binary.LittleEndian, p),
-		binary.Write(&buf, binary.LittleEndian, [2]byte{}),
+		binary.Write(buf, binary.LittleEndian, l32+10),
+		binary.Write(buf, binary.LittleEndian, int32(0)),
+		binary.Write(buf, binary.LittleEndian, t),
+		binary.Write(buf, binary.LittleEndian, p),
+		binary.Write(buf, binary.LittleEndian, [2]byte{}),
 	); err != nil {
 		return nil, err
 	}
@@ -135,8 +136,8 @@ func packetise(t packetType, p []byte) ([]byte, error) {
 
 // depacketise 解码数据包
 func depacketise(r io.Reader) (Header, []byte, error) {
-	head := Header{}
-	if err := binary.Read(r, binary.LittleEndian, &head); err != nil {
+	head := new(Header)
+	if err := binary.Read(r, binary.LittleEndian, head); err != nil {
 		return Header{}, nil, err
 	}
 	payload := make([]byte, head.Size-8)
@@ -146,7 +147,7 @@ func depacketise(r io.Reader) (Header, []byte, error) {
 	// 检查
 	switch head.Type {
 	case PacketResponse, PacketCommand:
-		return head, payload[:len(payload)-2], nil
+		return *head, payload[:len(payload)-2], nil
 	default:
 		return Header{}, nil, ErrType
 	}

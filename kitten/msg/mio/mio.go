@@ -27,13 +27,11 @@ func NewPath[T ~string](elem ...T) Path {
 	return Path{fio.NewPath(elem...)}
 }
 
-/*
-Image 从图片的相对 | 绝对路径（文件夹），
-
-或相对 | 绝对路径文件中保存的相对 | 绝对路径，
-
-或网络路径中加载图片
-*/
+// Image 从图片的相对 | 绝对路径（文件夹），
+//
+// 或相对 | 绝对路径文件中保存的相对 | 绝对路径，
+//
+// 或网络路径中加载图片
 func (p Path) Image(name fio.Path) (message.Segment, error) {
 	var (
 		pre = func() string {

@@ -4,7 +4,7 @@ import (
 	"math"
 	"time"
 
-	"github.com/Kittengarten/KittenCore/kitten"
+	"github.com/Kittengarten/KittenCore/kitten/usr"
 )
 
 const (
@@ -72,14 +72,14 @@ type (
 	}
 
 	// 叠猫猫配置
-	config struct {
+	cfg struct {
 		RestHoursPerKG int `comment:"每千克体重的休息小时数" yaml:"rest_hours_per_kg"` // 每千克体重的休息小时数
 		MinRestHours   int `comment:"最小休息小时数"     yaml:"min_rest_hours"`    // 最小休息小时数
 		OCMinRestHours int `comment:"加速的最小休息小时数"  yaml:"oc_min_rest_hours"` // 加速的最小休息小时数
 	}
 
-	// 叠猫猫缓存
-	buffer struct {
+	// 叠猫猫状态
+	status struct {
 		MedianWeight int           // 当前猫池中位数重量（0.1 kg 数）
 		MaxRestTime  time.Duration // 最大休息时间
 	}
@@ -91,7 +91,7 @@ type (
 		Time      time.Time   `yaml:",omitempty"` // 如果在叠猫猫中，叠入的时间；如果未在叠猫猫中，休息结束的时间
 		Daily     time.Time   `yaml:",omitempty"`
 		Name      string      `yaml:",omitempty"` // 群名片或昵称
-		kitten.QQ `yaml:"id"` // QQ
+		usr.QQ `yaml:"id"` // QQ
 		Weight    int         // 体重（0.1 kg 数）
 		Status    bool        // 是否在叠猫猫中
 	}

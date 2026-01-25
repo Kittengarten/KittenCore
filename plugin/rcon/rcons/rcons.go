@@ -5,9 +5,9 @@ import (
 	"regexp"
 	"strings"
 
-	"github.com/Kittengarten/KittenCore/kitten"
 	"github.com/Kittengarten/KittenCore/kitten/core/fio"
 	"github.com/Kittengarten/KittenCore/kitten/core/utils"
+	"github.com/Kittengarten/KittenCore/kitten/msg"
 
 	"github.com/wdvxdr1123/ZeroBot/message"
 )
@@ -27,38 +27,36 @@ const (
 	Password             // Password 密码
 )
 
-// 设置类型
-var setItem = map[item]string{
-	Host:     `主机`,
-	Password: `密码`,
-}
-
 var sec = regexp.MustCompile(`§.`)
 
 // RCON
-func Command(msgr *kitten.Messager, cp fio.PathRWMutex) message.ID {
+func Command(handler *msg.Handler, cp fio.PathRWMutex) message.ID {
 	cp.RLock()
 	defer cp.RUnlock()
-	config, err := fio.Load[rcon](cp.Path, fio.Empty)
+	config, err := fio.LoadWithContext[rcon](handler, cp.Path, fio.Empty)
 	if err != nil {
-		return msgr.SendWithImageFail(`RCON 配置文件错误喵！`, err)
+		return handler.SendWithImageFail(`RCON 配置文件错误喵！`, err)
 	}
 	conn := new(MCConn)
-	if err = conn.Open(config.HOST, config.Password); err != nil {
-		return msgr.SendWithImageFail(`连接 RCON 服务器错误喵！`, err)
+	if err = conn.Open(handler, config.HOST, config.Password); err != nil {
+		return handler.SendWithImageFail(`连接 RCON 服务器错误喵！`, err)
 	}
-	defer conn.Close()
+	defer func() {
+		if err := conn.Close(); err != nil {
+			handler.SendWithImageFail(`关闭 RCON 连接错误喵！`, err)
+		}
+	}()
 	if err = conn.Authenticate(); err != nil {
-		return msgr.SendWithImageFail(`RCON 密码验证错误喵！`, err)
+		return handler.SendWithImageFail(`RCON 密码验证错误喵！`, err)
 	}
-	resp, err := conn.SendCommand(msgr.Args())
+	resp, err := conn.SendCommand(handler.Args())
 	if err != nil {
-		return msgr.SendWithImageFail(`发送 RCON 命令错误喵！`, err)
+		return handler.SendWithImageFail(`发送 RCON 命令错误喵！`, err)
 	}
 	if resp == `` {
-		return msgr.Quote().At().Text(`命令响应为空喵！`).Send()
+		return handler.Quote().At().Text(`命令响应为空喵！`).Send()
 	}
-	return msgr.Quote().AtLf().Text(
+	return handler.Quote().AtLf().Text(
 		sec.ReplaceAllString(
 			strings.TrimRight(
 				strings.ReplaceAll(resp, ` ms`, " ms\n"),
@@ -70,22 +68,22 @@ func Command(msgr *kitten.Messager, cp fio.PathRWMutex) message.ID {
 }
 
 // 设置 RCON
-func Set(msgr *kitten.Messager, i item, cp fio.PathRWMutex) message.ID {
+func Set(handler *msg.Handler, i item, cp fio.PathRWMutex) message.ID {
 	s, err := func() (string, error) {
-		rm := kitten.State[[]string](msgr, `regex_matched`)
+		rm := msg.State[[]string](handler, `regex_matched`)
 		if len(rm) == 0 {
 			return ``, fmt.Errorf(`设置 RCON 失败：%w`, utils.ErrNoMatch)
 		}
 		return rm[1], nil
 	}()
 	if err != nil {
-		return msgr.SendWithImageFail(err)
+		return handler.SendWithImageFail(err)
 	}
 	cp.Lock()
 	defer cp.Unlock()
-	config, err := fio.Load[rcon](cp.Path, fio.Empty)
+	config, err := fio.LoadWithContext[rcon](handler, cp.Path, fio.Empty)
 	if err != nil {
-		return msgr.SendWithImageFail(`RCON 配置文件错误喵！`, err)
+		return handler.SendWithImageFail(`RCON 配置文件错误喵！`, err)
 	}
 	switch i {
 	case Host:
@@ -93,13 +91,16 @@ func Set(msgr *kitten.Messager, i item, cp fio.PathRWMutex) message.ID {
 	case Password:
 		config.Password = s
 	}
-	if err = fio.Save(cp.Path, config); err != nil {
-		return msgr.SendWithImageFail(`保存 RCON 配置文件错误喵！`, err)
+	if err = fio.SaveWithContext(handler, cp.Path, config); err != nil {
+		return handler.SendWithImageFail(`保存 RCON 配置文件错误喵！`, err)
 	}
-	return msgr.Quote().At().Text(`RCON `, &i, `设置成功喵！`).Send()
+	return handler.Quote().At().Text(`RCON `, &i, `设置成功喵！`).Send()
 }
 
 // String 实现 fmt.Stringer
 func (i item) String() string {
-	return setItem[i]
+	return map[item]string{
+		Host:     `主机`,
+		Password: `密码`,
+	}[i]
 }

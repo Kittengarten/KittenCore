@@ -8,7 +8,7 @@
 
 由于项目中可能含有非 `ASCII` 字符文件名，可能需要执行 `git config --bool hooks.allownoascii true`。
 
-由于项目依赖了使用 `go:linkname` 的包，必须在编译命令中添加 `-ldflags=-checklinkname=0` 参数，可直接使用本项目的 `makefile` 编译（已经添加了该参数）。
+可直接使用本项目的 `makefile` 或 `make.ps1` 编译。
 
 包含的插件可用于任何基于 [ZeroBot](https://github.com/wdvxdr1123/ZeroBot) 的程序，但在一些环境中可能需要部分修改。部分功能需要通过其它程序实现。
 

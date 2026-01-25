@@ -27,11 +27,11 @@ func init() {
 
 // All 获取 QQ 表情键值的迭代器
 func All() iter.Seq2[string, rune] {
-	return maps.All(maps.Clone(qqEmoji))
+	return maps.All(qqEmoji)
 }
 
-// New 获取 QQ 表情
-func New(emoji string) rune {
+// Get 获取 QQ 表情
+func Get(emoji string) rune {
 	return qqEmoji[emoji]
 }
 

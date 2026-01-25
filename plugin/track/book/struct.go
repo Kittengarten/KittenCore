@@ -4,7 +4,7 @@ import (
 	"errors"
 	"time"
 
-	"github.com/Kittengarten/KittenCore/kitten"
+	"github.com/Kittengarten/KittenCore/kitten/usr"
 )
 
 type (
@@ -19,7 +19,7 @@ type (
 		Writer       string      // Writer 小说作者
 		RecordURL    string      `yaml:",omitempty"` // RecordURL 上次更新链接
 		Protagonists []string    `yaml:",omitempty"` // Protagonists 主角
-		Users        []kitten.QQ // Users 用户，正数代表 QQ 号，负数代表群号
+		Users        []usr.QQ // Users 用户，正数代表 QQ 号，负数代表群号
 	}
 )
 

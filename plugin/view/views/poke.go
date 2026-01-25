@@ -4,39 +4,46 @@ import (
 	"math/rand/v2"
 	"time"
 
-	"github.com/Kittengarten/KittenCore/kitten"
 	"github.com/Kittengarten/KittenCore/kitten/core/times"
+	"github.com/Kittengarten/KittenCore/kitten/msg"
 
 	zero "github.com/wdvxdr1123/ZeroBot"
 	"github.com/wdvxdr1123/ZeroBot/message"
 )
 
 // Poke 戳一戳
-func Poke(msgr *kitten.Messager) message.ID {
-	o, err := msgr.Object()
+func Poke(handler *msg.Handler) message.ID {
+	o, err := handler.Object()
 	if err != nil {
-		return msgr.SendWithImageFail(err)
+		return handler.SendWithImageFail(err)
 	}
-	n, err := o.Name()
+	n, err := o.Name(handler)
 	if err != nil {
-		return msgr.SendWithImageFail(err)
+		return handler.SendWithImageFail(err)
 	}
-	switch limiter := pokeLimiter(msgr.Ctx); {
+	switch limiter := pokeLimiter(handler.Ctx); {
 	case limiter.AcquireN(5):
 		// 5 分钟共 9 块命令牌 一次消耗 5 块命令牌
-		times.RandomDelayRange(time.Second, 2*time.Second)
-		msgr.Poke()
-		msgr.CallAction(`send_like`, zero.H{
-			`user_id`: msgr.Event.UserID,
-			`times`:   rand.N(20) + 1, //nolint:gosec
-		})
+		select {
+		case <-times.RandDelayRange(time.Second, 2*time.Second):
+			handler.Poke()
+			handler.CallActionWithContext(
+				`send_like`,
+				zero.H{
+					`user_id`: handler.Event().UserID,
+					`times`:   rand.N(20) + 1, //nolint:gosec
+				},
+			)
+		case <-handler.Done():
+			handler.SendWithImageFail(handler.Err())
+		}
 	case limiter.AcquireN(3):
 		// 5 分钟共 9 块命令牌 一次消耗 3 块命令牌
-		return msgr.SendWithImageFail(`请不要拍`, n, ` >_<`)
+		return handler.SendWithImageFail(`请不要拍`, n, ` >_<`)
 	case limiter.Acquire():
 		// 5 分钟共 9 块命令牌 一次消耗 1 块命令牌
 		//nolint:gosec
-		return msgr.SendWithImageFailf("喂(#`O′) 拍%s干嘛！（好感 - %d）", n, rand.N(100)+1)
+		return handler.SendWithImageFailf("喂(#`O′) 拍%s干嘛！（好感 - %d）", n, rand.N(100)+1)
 	}
 	// 频繁触发，不回复
 	return message.ID{}

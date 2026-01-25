@@ -2,14 +2,16 @@ package fanqie
 
 import (
 	"cmp"
+	"context"
 	"fmt"
 	"net/url"
 	"strconv"
 	"strings"
 	"time"
 
-	"github.com/Kittengarten/KittenCore/kitten"
+	"github.com/Kittengarten/KittenCore/kitten/core/log"
 	"github.com/Kittengarten/KittenCore/kitten/core/shttp"
+	"github.com/Kittengarten/KittenCore/kitten/core/stat"
 	"github.com/Kittengarten/KittenCore/kitten/core/times"
 	"github.com/Kittengarten/KittenCore/kitten/core/utils"
 	"github.com/Kittengarten/KittenCore/plugin/track/chapter"
@@ -23,7 +25,7 @@ import (
 
 type (
 	// FQAPI 番茄 API
-	FQAPI struct{}
+	FQAPI utils.Object
 )
 
 const (
@@ -38,12 +40,8 @@ const (
 	TabType = `tab_type` // 0: 不限，1：综合，2：听书，3：书籍，4：社区，5：全文，8：漫画，11：短句
 )
 
-var (
-	// API 番茄 API
-	API = FQAPI{}
-	// APIHOST
-	APIHOST string
-)
+// API 番茄 API
+var API = FQAPI{}
 
 func init() {
 	platform.Register(API)
@@ -70,7 +68,7 @@ func (FQAPI) RestorePlatform(nv *novel.Novel) {
 
 // String 实现 fmt.Stringer，返回小说平台名称
 func (FQAPI) String() string {
-	if APIHOST == `` {
+	if stat.APIHOST[stat.Fanqie] == `` {
 		return Platform.String()
 	}
 	return `番茄 API`
@@ -78,18 +76,18 @@ func (FQAPI) String() string {
 
 // Layout 返回时间格式
 func (FQAPI) Layout() string {
-	if APIHOST == `` {
+	if stat.APIHOST[stat.Fanqie] == `` {
 		return Platform.Layout()
 	}
 	return times.Layout
 }
 
 // FindBookID 用关键词搜索书号
-func (FQAPI) FindBookID(key search.Keyword) (string, error) {
-	if APIHOST == `` {
-		return Platform.FindBookID(key)
+func (FQAPI) FindBookID(ctx context.Context, key search.Keyword) (string, error) {
+	if stat.APIHOST[stat.Fanqie] == `` {
+		return Platform.FindBookID(ctx, key)
 	}
-	u, err := url.Parse(APIHOST)
+	u, err := url.Parse(stat.APIHOST[stat.Fanqie])
 	if err != nil {
 		return ``, err
 	}
@@ -100,7 +98,7 @@ func (FQAPI) FindBookID(key search.Keyword) (string, error) {
 	v.Add(Offset, strconv.FormatInt(10*(page-1), 10))
 	v.Add(TabType, `3`) // 默认搜索类型（3：小说）
 	u.RawQuery = v.Encode()
-	data, err := shttp.GETDataURL(u)
+	data, err := shttp.GETDataURLWithContext(ctx, u)
 	if err != nil {
 		return ``, err
 	}
@@ -121,9 +119,9 @@ func (FQAPI) ChapterID(cpURL string) string {
 }
 
 // Init 小说网页信息获取
-func (f FQAPI) Init(cpID string) (any, error) {
-	if APIHOST == `` {
-		return Platform.Init(cpID)
+func (f FQAPI) Init(ctx context.Context, cpID string) (any, error) {
+	if stat.APIHOST[stat.Fanqie] == `` {
+		return Platform.Init(ctx, cpID)
 	}
 	// 初始化小说
 	nv := novel.Pool.Get().(*novel.Novel)
@@ -135,7 +133,7 @@ func (f FQAPI) Init(cpID string) (any, error) {
 	nv.ID = cpID
 	// 生成链接
 	nv.URL = URL + nv.ID
-	u, err := url.Parse(APIHOST)
+	u, err := url.Parse(stat.APIHOST[stat.Fanqie])
 	if err != nil {
 		return nv, err
 	}
@@ -144,12 +142,12 @@ func (f FQAPI) Init(cpID string) (any, error) {
 	v.Add(BookID, cpID)
 	u.RawQuery = v.Encode()
 	// 获取小说网页，失败则返回
-	data, err := shttp.GETDataURL(u)
+	data, err := shttp.GETDataURLWithContext(ctx, u)
 	if err != nil {
 		return nv, err
 	}
 	if !gjson.ValidBytes(data) {
-		kitten.Errorf("无效的 JSON：\n%s", data)
+		log.Errorf("无效的 JSON：\n%s", data)
 		err = status.ErrStatus(nv.URL, status.BookStatusException)
 		return nv, err
 	}
@@ -194,14 +192,14 @@ func (f FQAPI) Init(cpID string) (any, error) {
 	clear(v)
 	v.Add(ItemID, ncp)
 	u.RawQuery = v.Encode()
-	nv.Chapter, err = chapter.New(f, u.String())
+	nv.Chapter, err = chapter.New(ctx, f, u.String())
 	return nv, err
 }
 
 // NewChapter 章节信息获取
-func (FQAPI) NewChapter(cpURL string) (any, error) {
-	if APIHOST == `` {
-		return Platform.NewChapter(cpURL)
+func (FQAPI) NewChapter(ctx context.Context, cpURL string) (any, error) {
+	if stat.APIHOST[stat.Fanqie] == `` {
+		return Platform.NewChapter(ctx, cpURL)
 	}
 	// 初始化章节
 	cp := chapter.Pool.Get().(*chapter.Chapter)
@@ -215,7 +213,7 @@ func (FQAPI) NewChapter(cpURL string) (any, error) {
 		// 先从 SNSSDK API 获取
 		s, err := SNSSDKDetail(cp.URL)
 		if err == nil {
-			b, err := shttp.GETDataURL(s)
+			b, err := shttp.GETDataURLWithContext(ctx, s)
 			if err == nil {
 				// 替换 URL
 				cp.URL = s.String()
@@ -224,16 +222,16 @@ func (FQAPI) NewChapter(cpURL string) (any, error) {
 			}
 		}
 		// SNSSDK API 获取失败
-		kitten.Error(err)
+		log.Error(err)
 		// 获取章节网页，失败则返回
-		return shttp.GETData(cp.URL)
+		return shttp.GETDataWithContext(ctx, cp.URL)
 	}()
 	defer func() { cp.URL = cpURL }() // 恢复 URL
 	if err != nil {
 		return cp, err
 	}
 	if !gjson.ValidBytes(data) {
-		kitten.Errorf("无效的 JSON：\n%s", data)
+		log.Errorf("无效的 JSON：\n%s", data)
 		err = status.ErrStatus(cp.URL, status.ChapterStatusException)
 		return cp, err
 	}
@@ -252,13 +250,13 @@ func (FQAPI) NewChapter(cpURL string) (any, error) {
 		result.Get(`data.`+p+`.chapter_word_number`).Int(),
 		result.Get(`data.novel_data.word_number`).Int(),
 	)); cp.WordNum <= 0 {
-		kitten.Errorf("错误的 JSON：\n%s", data)
+		log.Errorf("错误的 JSON：\n%s", data)
 		return cp, fmt.Errorf(`%w字数：%d`,
 			status.ErrStatus(cp.URL, status.ChapterStatusException), cp.WordNum)
 	}
 	if p == i {
 		// 正在使用 SNSSDK
-		data, err := shttp.GETData(cpURL)
+		data, err := shttp.GETDataWithContext(ctx, cpURL)
 		if err != nil {
 			return cp, err
 		}
@@ -278,7 +276,7 @@ func (FQAPI) NewChapter(cpURL string) (any, error) {
 func getChapterURL(id string) (string, error) {
 	v := make(url.Values)
 	v.Set(ItemID, id)
-	u, err := url.Parse(APIHOST)
+	u, err := url.Parse(stat.APIHOST[stat.Fanqie])
 	if err != nil {
 		return ``, err
 	}
@@ -287,7 +285,15 @@ func getChapterURL(id string) (string, error) {
 	return u.String(), nil
 }
 
-// IsUpdate 书籍更新检测
-func IsUpdate(upd, rec string) bool {
-	return Platform.ChapterID(upd) == Platform.ChapterID(rec)
+// ShouldUpdate 书籍更新检测
+func ShouldUpdate(upd, rec string) bool {
+	var (
+		u = Platform.ChapterID(upd)
+		r = Platform.ChapterID(rec)
+	)
+	// 长度大的数字一定更大
+	if len(u) != len(r) {
+		return len(u) > len(r)
+	}
+	return u > r
 }

@@ -2,6 +2,7 @@
 package shttp
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"io"
@@ -16,6 +17,7 @@ import (
 
 	"github.com/Kittengarten/KittenCore/kitten/core/utils"
 
+	"golang.org/x/net/html"
 	"golang.org/x/net/html/charset"
 
 	trsh1 "github.com/fumiama/terasu/http"
@@ -32,9 +34,7 @@ type (
 	}
 
 	// 设置用户代理
-	uaSetter struct {
-		ua string
-	}
+	uaSetter string
 )
 
 const (
@@ -43,20 +43,20 @@ const (
 	UserAgent = `Mozilla/5.0 (Windows NT 10.0; Win64; x64)` +
 		` AppleWebKit/537.36 (KHTML, like Gecko)` +
 		` Chrome/129.0.0.0 Safari/537.36 Edg/129.0.0.0` // UserAgent 用户代理
-	TimeOutSeconds = 10                           // TimeOutSeconds 超时时间
-	TimeOut        = TimeOutSeconds * time.Second // TimeOut 超时时间
+	TimeoutSeconds = 10                           // TimeOutSeconds 超时时间
+	Timeout        = TimeoutSeconds * time.Second // TimeOut 超时时间
 )
 
 var (
-	TLSClient      = trsh1.DefaultClient // TLSClient TLS HTTP 客户端
-	TLSHTTP2Client = trsh2.DefaultClient // TLSHTTP2Client TLS HTTP2 客户端
+	TLSClient      = &trsh1.DefaultClient // TLSClient TLS HTTP 客户端
+	TLSHTTP2Client = &trsh2.DefaultClient // TLSHTTP2Client TLS HTTP2 客户端
 )
 
 func init() {
 	// 设置默认 User-Agent
 	SetUserAgent(RandomUserAgent())
 	// 设置默认超时时间
-	SetTimeOut(TimeOut)
+	SetTimeOut(Timeout)
 }
 
 // RandomUserAgent 是一个随机的 User-Agent
@@ -77,15 +77,15 @@ func SetUserAgent(ua string) {
 	if ua == `` {
 		return
 	}
-	s := uaSetter{ua: ua}
+	s := uaSetter(ua)
 	http.DefaultClient.Transport = s
 	TLSClient.Transport = s
 	TLSHTTP2Client.Transport = s
 }
 
 // RoundTrip 实现 http.RoundTripper，设置默认 User-Agent
-func (f uaSetter) RoundTrip(r *http.Request) (*http.Response, error) {
-	r.Header.Set(UA, f.ua)
+func (ua uaSetter) RoundTrip(r *http.Request) (*http.Response, error) {
+	r.Header.Set(UA, string(ua))
 	return http.DefaultTransport.RoundTrip(r)
 }
 
@@ -112,9 +112,19 @@ func GETURL(u fmt.Stringer) (io.ReadCloser, error) {
 	return GET(u.String())
 }
 
+// GETURLWithContext 从 fmt.Stringer 获取 HTTP GET 响应体（带上下文）
+func GETURLWithContext(ctx context.Context, u fmt.Stringer) (io.ReadCloser, error) {
+	return GETWithContext(ctx, u.String())
+}
+
 // GETDataURL 从 fmt.Stringer 获取 HTTP GET 数据
 func GETDataURL(u fmt.Stringer) ([]byte, error) {
 	return GETData(u.String())
+}
+
+// GETDataURLWithContext 从 fmt.Stringer 获取 HTTP GET 数据（带上下文）
+func GETDataURLWithContext(ctx context.Context, u fmt.Stringer) ([]byte, error) {
+	return GETDataWithContext(ctx, u.String())
 }
 
 // POSTURL 从 fmt.Stringer 获取 HTTP POST 响应体
@@ -122,35 +132,57 @@ func POSTURL(u fmt.Stringer, contentType string, body io.Reader) (io.ReadCloser,
 	return POST(u.String(), contentType, body)
 }
 
+// POSTURLWithContext 从 fmt.Stringer 获取 HTTP POST 响应体（带上下文）
+func POSTURLWithContext(ctx context.Context, u fmt.Stringer, contentType string, body io.Reader) (io.ReadCloser, error) {
+	return POSTWithContext(ctx, u.String(), contentType, body)
+}
+
 // POSTDataURL 从 fmt.Stringer 获取 HTTP POST 数据
 func POSTDataURL(u fmt.Stringer, contentType string, body io.Reader) ([]byte, error) {
 	return POSTData(u.String(), contentType, body)
 }
 
+// POSTDataURLWithContext 从 fmt.Stringer 获取 HTTP POST 数据（带上下文）
+func POSTDataURLWithContext(ctx context.Context, u fmt.Stringer, contentType string, body io.Reader) ([]byte, error) {
+	return POSTDataWithContext(ctx, u.String(), contentType, body)
+}
+
 // GET 获取 HTTP GET 响应体
 func GET(urlStr string) (io.ReadCloser, error) {
+	return GETWithContext(context.Background(), urlStr)
+}
+
+// GETWithContext 获取 HTTP GET 响应体（带上下文）
+func GETWithContext(ctx context.Context, urlStr string) (io.ReadCloser, error) {
 	res, err := tryTLS(
-		func(string, string, io.Reader) (*http.Response, error) {
-			return TLSHTTP2Client.Get(urlStr)
+		ctx,
+		func(context.Context, string, string, io.Reader) (*http.Response, error) {
+			return getWithContext(ctx, TLSHTTP2Client, urlStr)
 		},
-		func(string, string, io.Reader) (*http.Response, error) {
-			return TLSClient.Get(urlStr)
+		func(context.Context, string, string, io.Reader) (*http.Response, error) {
+			return getWithContext(ctx, TLSClient, urlStr)
 		},
 		http.MethodGet, urlStr, ``, nil)
 	if err != nil {
 		return nil, err
 	}
-	return charsetConv(res.Header.Get(CT), res.Body)
+	return CharsetConv(res.Header.Get(CT), res.Body)
 }
 
 // GETData 获取 HTTP GET 数据
 func GETData(urlStr string) ([]byte, error) {
+	return GETDataWithContext(context.Background(), urlStr)
+}
+
+// GETDataWithContext 获取 HTTP GET 数据（带上下文）
+func GETDataWithContext(ctx context.Context, urlStr string) ([]byte, error) {
 	res, err := tryTLS(
-		func(string, string, io.Reader) (*http.Response, error) {
-			return TLSHTTP2Client.Get(urlStr)
+		ctx,
+		func(context.Context, string, string, io.Reader) (*http.Response, error) {
+			return getWithContext(ctx, TLSHTTP2Client, urlStr)
 		},
-		func(string, string, io.Reader) (*http.Response, error) {
-			return TLSClient.Get(urlStr)
+		func(context.Context, string, string, io.Reader) (*http.Response, error) {
+			return getWithContext(ctx, TLSClient, urlStr)
 		},
 		http.MethodGet, urlStr, ``, nil)
 	if err != nil {
@@ -160,25 +192,57 @@ func GETData(urlStr string) ([]byte, error) {
 	return io.ReadAll(res.Body)
 }
 
+func getWithContext(
+	ctx context.Context,
+	c *http.Client,
+	url string,
+) (*http.Response, error) {
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
+	if err != nil {
+		return nil, err
+	}
+	return Retry(ctx, c, req)
+}
+
 // POST 获取 HTTP POST 响应体
 func POST(urlStr, contentType string, body io.Reader) (io.ReadCloser, error) {
+	return POSTWithContext(context.Background(), urlStr, contentType, body)
+}
+
+// POSTWithContext 获取 HTTP POST 响应体（带上下文）
+func POSTWithContext(ctx context.Context, urlStr, contentType string, body io.Reader) (io.ReadCloser, error) {
 	res, err := tryTLS(
-		TLSHTTP2Client.Post,
-		TLSClient.Post,
+		ctx,
+		func(context.Context, string, string, io.Reader) (*http.Response, error) {
+			return postWithContext(ctx, TLSHTTP2Client, urlStr, contentType, body)
+		},
+		func(context.Context, string, string, io.Reader) (*http.Response, error) {
+			return postWithContext(ctx, TLSClient, urlStr, contentType, body)
+		},
 		http.MethodPost,
 		urlStr, contentType, body,
 	)
 	if err != nil {
 		return nil, err
 	}
-	return charsetConv(res.Header.Get(CT), res.Body)
+	return CharsetConv(res.Header.Get(CT), res.Body)
 }
 
 // POSTData 获取 HTTP POST 数据
 func POSTData(urlStr, contentType string, body io.Reader) ([]byte, error) {
+	return POSTDataWithContext(context.Background(), urlStr, contentType, body)
+}
+
+// POSTDataWithContext 获取 HTTP POST 数据（带上下文）
+func POSTDataWithContext(ctx context.Context, urlStr, contentType string, body io.Reader) ([]byte, error) {
 	res, err := tryTLS(
-		TLSHTTP2Client.Post,
-		TLSClient.Post,
+		ctx,
+		func(context.Context, string, string, io.Reader) (*http.Response, error) {
+			return postWithContext(ctx, TLSHTTP2Client, urlStr, contentType, body)
+		},
+		func(context.Context, string, string, io.Reader) (*http.Response, error) {
+			return postWithContext(ctx, TLSClient, urlStr, contentType, body)
+		},
 		http.MethodPost,
 		urlStr, contentType, body,
 	)
@@ -189,8 +253,22 @@ func POSTData(urlStr, contentType string, body io.Reader) ([]byte, error) {
 	return io.ReadAll(res.Body)
 }
 
+func postWithContext(
+	ctx context.Context,
+	c *http.Client,
+	url, contentType string,
+	body io.Reader,
+) (*http.Response, error) {
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, url, body)
+	if err != nil {
+		return nil, err
+	}
+	req.Header.Set(CT, contentType)
+	return Retry(ctx, c, req)
+}
+
 // tryTLS 尝试 TLS
-func tryTLS(f2, f func(string, string, io.Reader) (*http.Response, error),
+func tryTLS(ctx context.Context, f2, f func(context.Context, string, string, io.Reader) (*http.Response, error),
 	method, urlStr, contentType string,
 	body io.Reader,
 ) (res *http.Response, err error) {
@@ -200,7 +278,8 @@ func tryTLS(f2, f func(string, string, io.Reader) (*http.Response, error),
 	}
 	//nolint:nestif
 	if u.Scheme == `https` {
-		if u.Host == `multimedia.nt.qq.com.cn` {
+		switch u.Host {
+		case `multimedia.nt.qq.com.cn`:
 			// 临时启用 RSA
 			// 避免 remote error: tls: handshake failure
 			if err = SetRSA(true); err != nil {
@@ -212,19 +291,27 @@ func tryTLS(f2, f func(string, string, io.Reader) (*http.Response, error),
 				}
 			}()
 		}
-		res, err = f2(urlStr, contentType, body)
-		err = errors.Join(err, checkError(res, urlStr))
+		res, err = f2(ctx, urlStr, contentType, body)
+		err = checkError(err, res, urlStr)
+		logError := func(s string) {
+			slog.Error(s,
+				slog.Any(`错误`, err),
+				slog.String(`Method`, method),
+				slog.String(CT, contentType),
+				slog.String(`URL`, urlStr),
+			)
+		}
 		if err != nil {
-			slog.Error(`TLS HTTP/2 请求失败`, slog.Any(`错误`, err))
-			res, err = f(urlStr, contentType, body)
-			err = errors.Join(err, checkError(res, urlStr))
+			logError(`TLS HTTP/2 请求失败`)
+			res, err = f(ctx, urlStr, contentType, body)
+			err = checkError(err, res, urlStr)
 		}
 		if err == nil {
 			return res, nil
 		}
-		slog.Error(`TLS HTTP 请求失败`, slog.Any(`错误`, err))
+		logError(`TLS HTTP 请求失败`)
 	}
-	return doRequest(method, urlStr, contentType, body)
+	return doRequest(ctx, method, urlStr, contentType, body)
 }
 
 const (
@@ -238,21 +325,21 @@ func SetRSA(enable bool) error {
 }
 
 // 执行 HTTP 请求
-func doRequest(method, urlStr, contentType string, body io.Reader) (*http.Response, error) {
-	req, err := http.NewRequest(method, urlStr, body)
+func doRequest(ctx context.Context, method, urlStr, contentType string, body io.Reader) (*http.Response, error) {
+	req, err := http.NewRequestWithContext(ctx, method, urlStr, body)
 	if err != nil {
 		return nil, err
 	}
 	req.Header.Set(CT, contentType)
-	res, err := http.DefaultClient.Do(req)
-	if err != nil {
-		return nil, err
-	}
-	return res, checkError(res, urlStr)
+	res, err := Retry(ctx, http.DefaultClient, req)
+	return res, checkError(err, res, urlStr)
 }
 
 // 判断 HTTP 错误
-func checkError(res *http.Response, urlStr string) error {
+func checkError(err error, res *http.Response, urlStr string) error {
+	if err != nil {
+		return err
+	}
 	if res == nil {
 		return &Error{URL: urlStr, Message: `响应为空喵！`}
 	}
@@ -260,15 +347,11 @@ func checkError(res *http.Response, urlStr string) error {
 		// 不能处理 3xx 重定向状态码
 		return nil
 	}
-	return &Error{
-		URL:        urlStr,
-		Method:     res.Request.Method,
-		StatusCode: res.StatusCode,
-	}
+	return NewError(urlStr, res.Request.Method, res.StatusCode, ``)
 }
 
-// 转换字符集
-func charsetConv(contentType string, body io.ReadCloser) (io.ReadCloser, error) {
+// CharsetConv 转换字符集
+func CharsetConv(contentType string, body io.ReadCloser) (io.ReadCloser, error) {
 	if !strings.HasPrefix(contentType, `text`) &&
 		!strings.HasPrefix(contentType, `application/json`) &&
 		!strings.HasPrefix(contentType, `application/xml`) {
@@ -315,4 +398,14 @@ func Clear(body io.ReadCloser) error {
 		return errors.Join(err, body.Close())
 	}
 	return body.Close()
+}
+
+// LoadURLWithContext 从指定的 URL 加载 HTML 文档
+func LoadURLWithContext(ctx context.Context, url string) (*html.Node, error) {
+	res, err := GETWithContext(ctx, url)
+	if err != nil {
+		return nil, err
+	}
+	defer Clear(res)
+	return html.Parse(res)
 }

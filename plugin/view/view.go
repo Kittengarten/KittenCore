@@ -2,12 +2,17 @@
 package view
 
 import (
+	"context"
 	"fmt"
 	"strings"
 
-	"github.com/Kittengarten/KittenCore/kitten"
+	"github.com/Kittengarten/KittenCore/internal/config"
+	"github.com/Kittengarten/KittenCore/kitten/core"
 	"github.com/Kittengarten/KittenCore/kitten/core/fio"
+	"github.com/Kittengarten/KittenCore/kitten/core/log"
+	"github.com/Kittengarten/KittenCore/kitten/msg"
 	"github.com/Kittengarten/KittenCore/kitten/rate"
+	"github.com/Kittengarten/KittenCore/kitten/usr"
 	"github.com/Kittengarten/KittenCore/plugin/view/img"
 	"github.com/Kittengarten/KittenCore/plugin/view/perf"
 	"github.com/Kittengarten/KittenCore/plugin/view/views"
@@ -22,10 +27,8 @@ import (
 const (
 	replyServiceName = `perf` // 插件名
 	brief            = `查看运行状况`
-	filePath         = `file.txt` // 保存微星小飞机温度配置文件路径的文件，非 Windows 系统或不使用可以忽略
 	cView            = `查看`
 	poke             = `notice/notify/poke`
-	logFile          = `C:\Program Files (x86)\MSI Afterburner\HardwareMonitoring.hml`
 )
 
 // 注册插件
@@ -33,69 +36,81 @@ var engine = control.AutoRegister(&ctrl.Options[*zero.Ctx]{
 	DisableOnDefault: false,
 	Brief:            brief,
 	Help: func() string {
-		var s strings.Builder // 字符串构建器
-		s.Grow(32 * len(kitten.MainConfig().NickName))
-		for _, n := range kitten.MainConfig().NickName {
-			fmt.Fprintln(&s, kitten.MainConfig().CommandPrefix+cView, n, `// 可获取服务器运行状况`)
+		s := new(strings.Builder)
+		s.Grow(32 * len(config.Name()))
+		for _, n := range config.Name() {
+			fmt.Fprintln(s, config.CommandPrefix()+cView, n, `// 可获取服务器运行状况`)
 		}
-		fmt.Fprint(&s, `戳一戳`, kitten.MainConfig().NickName[0], ` // 可得到响应`)
+		fmt.Fprint(s, `戳一戳`, config.DefaultName(), ` // 可得到响应`)
 		return s.String()
 	}(),
-}).ApplySingle(ctxext.DefaultSingle)
+}).ApplySingle(ctxext.NewGroupSingle(`等一下喵！`))
 
 var (
 	// 日志文件
+	logFile = perf.LogFile
+	// 日志文件配置
 	logPath = fio.NewPath(engine.DataFolder(), `logPath.txt`)
 	// 日志文件路径
 	logFilePath fio.Path
 )
 
-// bot 自身 ID
-var sid = kitten.Self()
-
 func init() {
-	if err := logPath.InitFileText(logFile); err != nil {
-		kitten.Error(err)
+	if err := logPath.InitFileText(string(logFile)); err != nil {
+		log.Error(err)
 	}
 	logFilePath = logPath.Get(logFile)
+	perf.LogFile = logFilePath
 
 	// 查看功能
 	engine.OnCommand(cView).SetBlock(true).
-		Limit(rate.Get(rate.User)).
-		Limit(rate.Get(rate.GroupNormal)).
+		Limit(rate.User.Get()).
+		Limit(rate.GroupNormal.Get()).
 		Handle(func(ctx *zero.Ctx) {
-			views.View(kitten.New(ctx), replyServiceName, logFilePath)
+			c, cancel := context.WithTimeout(context.Background(), core.Timeout)
+			defer cancel()
+			views.View(msg.NewWithContext(c, ctx), replyServiceName, logFilePath)
 		})
 
 	// 支付宝到账语音
 	engine.OnPrefix(`支付宝到账`).SetBlock(true).
-		Limit(rate.Get(rate.User)).
-		Limit(rate.Get(rate.GroupNormal)).
+		Limit(rate.User.Get()).
+		Limit(rate.GroupNormal.Get()).
 		Handle(func(ctx *zero.Ctx) {
-			voice.SendAlipayVoice(kitten.New(ctx))
+			c, cancel := context.WithTimeout(context.Background(), core.Timeout)
+			defer cancel()
+			voice.SendAlipayVoice(msg.NewWithContext(c, ctx))
 		})
 
 	// Ping 功能
 	engine.OnCommandGroup([]string{`Ping`, `ping`}, zero.SuperUserPermission).
-		SetBlock(true).Limit(rate.Get(rate.GroupFast)).Handle(func(ctx *zero.Ctx) {
-		perf.Ping(kitten.New(ctx))
+		SetBlock(true).Limit(rate.GroupFast.Get()).Handle(func(ctx *zero.Ctx) {
+		c, cancel := context.WithTimeout(context.Background(), core.Timeout)
+		defer cancel()
+		perf.Ping(msg.NewWithContext(c, ctx))
 	})
 
 	// 戳一戳
-	engine.On(poke, sid.IsTarget()).SetBlock(true).Handle(func(ctx *zero.Ctx) {
-		views.Poke(kitten.New(ctx))
+	engine.On(poke, usr.Self().IsTarget()).SetBlock(true).Handle(func(ctx *zero.Ctx) {
+		c, cancel := context.WithTimeout(context.Background(), core.Timeout)
+		defer cancel()
+		views.Poke(msg.NewWithContext(c, ctx))
 	})
 
 	// 通过链接让 Bot 发送图片，为防止滥用，仅管理员可用
 	zero.OnCommand(`图片`, zero.AdminPermission).SetBlock(true).Handle(func(ctx *zero.Ctx) {
-		img.SendImage(kitten.New(ctx), zero.SuperUserPermission(ctx))
+		c, cancel := context.WithTimeout(context.Background(), core.Timeout)
+		defer cancel()
+		img.SendImage(msg.NewWithContext(c, ctx), zero.SuperUserPermission(ctx))
 	})
 
 	// 通过链接、图片等让 Bot 扫描二维码，为防止滥用，仅管理员可用
 	zero.OnCommandGroup([]string{`扫码`, `扫描`}, zero.AdminPermission).
 		SetBlock(true).
 		Handle(func(ctx *zero.Ctx) {
-			img.Scan(kitten.New(ctx),
+			c, cancel := context.WithTimeout(context.Background(), core.Timeout)
+			defer cancel()
+			img.Scan(msg.NewWithContext(c, ctx),
 				zero.SuperUserPermission,
 				zero.MustProvidePicture,
 			)

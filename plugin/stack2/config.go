@@ -1,12 +1,13 @@
 package stack2
 
 import (
-	_ "embed"
 	"fmt"
+	"strings"
 	"time"
 
-	"github.com/Kittengarten/KittenCore/kitten"
+	"github.com/Kittengarten/KittenCore/internal/config"
 	"github.com/Kittengarten/KittenCore/kitten/core/fio"
+	"github.com/Kittengarten/KittenCore/kitten/core/log"
 
 	"github.com/goccy/go-yaml"
 
@@ -17,21 +18,22 @@ import (
 
 var (
 	// 叠猫猫配置文件名
-	configPath = fio.NewPath(`data`, `Stack2`, `config.yaml`)
+	cfgPath = fio.NewPath(`data`, `Stack2`, `config.yaml`)
 	// 叠猫猫配置文件
-	stackConfig, err = fio.Load[config](configPath, func() []byte {
-		def, err := yaml.Marshal(config{
+	stackConfig, err = fio.Load[cfg](cfgPath, func() string {
+		s := new(strings.Builder)
+		s.Grow(61)
+		if err := yaml.NewEncoder(s).Encode(cfg{
 			RestHoursPerKG: 1,
 			MinRestHours:   1,
 			OCMinRestHours: 24,
-		})
-		if err != nil {
-			kitten.Panic(err)
+		}); err != nil {
+			log.Panic(err)
 		}
-		return def
+		return s.String()
 	}())
-	// bot 配置
-	botConfig = kitten.MainConfig()
+	// 指令前缀
+	p = config.CommandPrefix()
 	// 帮助文本
 	help = fmt.Sprintf(`%s%s%s %s|%s|%s|%s|%s|%s
 
@@ -53,19 +55,19 @@ var (
 叠猫猫失败摔下去；
 平地摔——
 这些情况需要休息 | N(0, 体重²) |（至少为 %d 小时，至多为 [最大休息时间]）后，才能再次加入。`,
-		botConfig.CommandPrefix, cStack, cMeow, cIn, cView, cAnalysis, cRank, cOC, cDaily,
+		p, cStack, cMeow, cIn, cView, cAnalysis, cRank, cOC, cDaily,
 		stackConfig.MinRestHours, stackConfig.OCMinRestHours,
 		stackConfig.OCMinRestHours,
 		stackConfig.MinRestHours)
 	// 吃猫猫帮助文本
 	helpEat = fmt.Sprintf(`%s%s%s
 需要休息 | N(0, (e*体重)²) |（至少为 %d 小时，至多为 [最大休息时间]）后，才能再次加入`,
-		botConfig.CommandPrefix, cEat, cMeow,
+		p, cEat, cMeow,
 		stackConfig.MinRestHours)
 	// 撞大运帮助文本
 	helpLorry = fmt.Sprintf(`%s%s
 需要休息 | N(0, (e*体重)²) |（至少为 %d 小时，至多为 [最大休息时间]）后，才能再次加入`,
-		botConfig.CommandPrefix, cLorry,
+		p, cLorry,
 		stackConfig.MinRestHours)
 	// 注册插件
 	engine = control.AutoRegister(&ctrl.Options[*zero.Ctx]{
@@ -89,8 +91,8 @@ func init() {
 	n, err := fio.NewPath(`data`, `Stack2`,
 		`data-`+time.Now().Format(time.DateOnly)+`.yaml`).Copy(dataPath)
 	if err != nil {
-		kitten.Error(err)
+		log.Error(err)
 		return
 	}
-	kitten.Infoln(`备份配置文件`, n, `字节喵！`)
+	log.Infoln(`备份配置文件`, n, `字节喵！`)
 }

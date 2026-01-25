@@ -2,11 +2,14 @@ package eekda2
 
 import (
 	"cmp"
+	"context"
 	"maps"
 	"slices"
 
-	"github.com/Kittengarten/KittenCore/kitten"
+	"github.com/Kittengarten/KittenCore/kitten/core"
 	"github.com/Kittengarten/KittenCore/kitten/core/fio"
+	"github.com/Kittengarten/KittenCore/kitten/msg"
+	"github.com/Kittengarten/KittenCore/kitten/usr"
 
 	zero "github.com/wdvxdr1123/ZeroBot"
 )
@@ -16,25 +19,27 @@ func getStat(ctx *zero.Ctx) {
 	statPath.RLock()
 	defer statPath.RUnlock()
 	var (
-		s, err = fio.Load[stat](statPath.Path, fio.Empty)
-		msgr   = kitten.New(ctx)
+		co, cancel = context.WithTimeout(context.Background(), core.Timeout)
+		handler       = msg.NewWithContext(co, ctx)
+		s, err     = fio.LoadWithContext[stat](handler, statPath.Path, fio.Empty)
 	)
+	defer cancel()
 	if err != nil {
-		msgr.SendWithImageFail(err)
+		handler.SendWithImageFail(err)
 	}
 	i := slices.IndexFunc(s, func(f food) bool {
 		return ctx.Event.UserID == f.Int()
 	})
 	if i == -1 {
-		msgr.DoNotKnow()
+		handler.DoNotKnow()
 		return
 	}
-	c, err := fio.Load[config](todayPath.Path, fio.Empty)
+	c, err := fio.LoadWithContext[config](handler, todayPath.Path, fio.Empty)
 	if err != nil {
-		msgr.SendWithImageFail(err)
+		handler.SendWithImageFail(err)
 	}
 	for _, t := range c {
-		if slices.Contains(t.Group, *kitten.NewQQGroup(ctx.Event.GroupID)) {
+		if slices.Contains(t.Group, usr.NewQQGroup(ctx.Event.GroupID)) {
 			// 如果当前角色在本群已注册，跳过
 			continue
 		}
@@ -44,17 +49,17 @@ func getStat(ctx *zero.Ctx) {
 		})
 	}
 	if len(s[i].Stat) == 0 {
-		msgr.DoNotKnow()
+		handler.DoNotKnow()
 		return
 	}
-	msgr.Quote().AtLf().Text(&s[i]).Send()
+	handler.Quote().AtLf().Text(&s[i]).Send()
 }
 
 // 统计被吃次数
-func doStat(msgr *kitten.Messager, td today) {
-	s, err := fio.Load[stat](statPath.Path, fio.Empty)
+func doStat(handler *msg.Handler, td today) {
+	s, err := fio.LoadWithContext[stat](handler, statPath.Path, fio.Empty)
 	if err != nil {
-		msgr.SendWithImageFail(err)
+		handler.SendWithImageFail(err)
 	}
 	var ok [mealsPerDay]bool
 	// 查询 QQ
@@ -86,8 +91,8 @@ func doStat(msgr *kitten.Messager, td today) {
 	// 排序
 	s.sort()
 	// 写入文件
-	if err := fio.Save(statPath.Path, s); err != nil {
-		msgr.SendWithImageFail(err)
+	if err := fio.SaveWithContext(handler, statPath.Path, s); err != nil {
+		handler.SendWithImageFail(err)
 	}
 }
 
@@ -95,19 +100,12 @@ func doStat(msgr *kitten.Messager, td today) {
 func (s *stat) sort() {
 	// 统计数据按总被吃次数排序
 	slices.SortStableFunc(*s, func(i, j food) int {
-		var (
-			ic = i.cmpStat().sum
-			jc = j.cmpStat().sum
-		)
-		if ic < jc {
-			return -1
-		}
-		if ic > jc {
-			return 1
+		if sum := cmp.Compare(i.cmpStat().sum, j.cmpStat().sum); sum != 0 {
+			return sum
 		}
 		// 如果总数相等，比较集齐五餐的数量
-		if c := cmp.Compare(i.cmpStat().min, j.cmpStat().min); c != 0 {
-			return c
+		if min := cmp.Compare(i.cmpStat().min, j.cmpStat().min); min != 0 {
+			return min
 		}
 		// 如果集齐五餐的数量相等，比较单次最高
 		return cmp.Compare(i.cmpStat().max, j.cmpStat().max)

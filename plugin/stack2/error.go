@@ -5,13 +5,14 @@ import (
 	"strings"
 	"time"
 
-	"github.com/Kittengarten/KittenCore/kitten"
 	"github.com/Kittengarten/KittenCore/kitten/core/times"
+	"github.com/Kittengarten/KittenCore/kitten/core/utils"
+	"github.com/Kittengarten/KittenCore/kitten/msg"
 )
 
 type (
 	// 已经加入叠猫猫
-	alreadyJoinedError struct{}
+	alreadyJoinedError utils.Object
 
 	// 需要休息
 	needRestError struct {
@@ -23,12 +24,12 @@ type (
 
 	// 叠猫猫失败
 	stackError struct {
-		*kitten.Messager
-		m *meow
-		strings.Builder
-		l int
-		n int
-		r result
+		strings.Builder        // 错误内容
+		*msg.Handler           // 上下文
+		*meow                  // 失败的猫猫
+		l               int    // 叠猫猫队列高度
+		n               int    // 造成别的猫猫退出的数量
+		r               result // 退出原因
 	}
 )
 
@@ -70,61 +71,59 @@ func needRest(t time.Duration, w, i int, b bool) *needRestError {
 // Error 实现 error
 func (e *stackError) Error() string {
 	if e.Len() != 0 {
-		return e.String()
+		return e.Builder.String()
 	}
-	w := e.m.Weight // 叠猫猫前的体重
+	w := e.meow.Weight // 叠猫猫前的体重
 	e.Grow(128)
 	_, _ = e.WriteString(`叠猫猫失败，杂鱼～杂鱼❤`)
 	switch e.r {
 	case flat:
 		// 如果平地摔
-		exit(e.Messager, e.m, e.r, e.n) // 让失败的猫猫退出
+		exit(e.Handler, e.meow, e.r, e.n) // 让失败的猫猫退出
 		_, _ = fmt.Fprintf(e, `你平地摔了喵！需要休息 %s。
 你的体重由 %.1f kg 变为 %.1f kg。`,
-			times.ConvertTimeDuration(e.m.Time.Sub(time.Unix(e.Event.Time, 0))),
-			i2f(w), i2f(e.m.Weight))
+			times.ConvertTimeDuration(e.Time.Sub(time.Unix(e.Event().Time, 0))),
+			i2f(w), i2f(e.meow.Weight))
 	case press:
 		// 压坏了别的猫猫
-		exit(e.Messager, e.m, e.r, e.n) // 让失败的猫猫退出
+		exit(e.Handler, e.meow, e.r, e.n) // 让失败的猫猫退出
 		_, _ = fmt.Fprintf(e, `有 %d 只猫猫被压坏了喵！需要休息一段时间。`, e.n)
-		doClear(e.Messager, e.l, e.n, w, e.m, &e.Builder)
+		doClear(e.Handler, e.l, e.n, w, e.meow, &e.Builder)
 		for range e.n {
 			_, _ = e.WriteRune('🙀')
 		}
 	case fall:
 		// 摔坏了别的猫猫
-		exit(e.Messager, e.m, e.r, e.l) // 让失败的猫猫退出
+		exit(e.Handler, e.meow, e.r, e.l) // 让失败的猫猫退出
 		_, _ = fmt.Fprintf(e, `上面 %d 只猫猫摔下去了喵！需要休息一段时间。`, e.n)
-		doClear(e.Messager, e.l, e.n, w, e.m, &e.Builder)
+		doClear(e.Handler, e.l, e.n, w, e.meow, &e.Builder)
 		for range e.n {
 			_, _ = e.WriteRune('😿')
 		}
 	default:
 		_, _ = e.WriteString(`未知错误喵！`)
 	}
-	return e.String()
+	return e.Builder.String()
 }
 
-/*
-*stackErr 的构造函数
-
-	// 叠猫猫失败
-	stackError struct {
-		*kitten.Messager        // 上下文
-		m                *meow  // 失败的猫猫
-		l                int    // 叠猫猫队列高度
-		n                int    // 造成别的猫猫退出的数量
-		r                result // 退出原因
-		strings.Builder         // 错误内容
-	}
-*/
-func stack(msgr *kitten.Messager, m *meow, l, n int, r result) *stackError {
-	go setCard(msgr, l-n)
+// *stackErr 的构造函数
+//
+//	// 叠猫猫失败
+//	type stackError struct {
+//		strings.Builder         // 错误内容
+//		*msg.Handler        // 上下文
+//		*meow                   // 失败的猫猫
+//		l                int    // 叠猫猫队列高度
+//		n                int    // 造成别的猫猫退出的数量
+//		r                result // 退出原因
+//	}
+func stack(handler *msg.Handler, m *meow, l, n int, r result) *stackError {
+	utils.Go(`叠猫猫失败设置群昵称`, func() { setCard(handler, l-n) })
 	return &stackError{
-		Messager: msgr,
-		m:        m,
-		l:        l,
-		n:        n,
-		r:        r,
+		Handler: handler,
+		meow:    m,
+		l:       l,
+		n:       n,
+		r:       r,
 	}
 }

@@ -7,54 +7,51 @@ import (
 	"slices"
 	"time"
 
-	"github.com/Kittengarten/KittenCore/kitten"
 	"github.com/Kittengarten/KittenCore/kitten/core/equal"
 	"github.com/Kittengarten/KittenCore/kitten/core/times"
+	"github.com/Kittengarten/KittenCore/kitten/msg"
+	"github.com/Kittengarten/KittenCore/kitten/usr"
 )
 
 // 自动过程
-func self(msgr *kitten.Messager, d data) {
-	if selfDaily(msgr, d) {
+func self(handler *msg.Handler, d data) {
+	if selfDaily(handler, d) {
 		return
 	}
-	if selfLorry(msgr, d) {
+	if selfLorry(handler, d) {
 		return
 	}
-	if selfEat(msgr, d) {
+	if selfEat(handler, d) {
 		return
 	}
-	if selfIn(msgr, d) {
+	if selfIn(handler, d) {
 		return
 	}
-	_ = selfOC(msgr, d)
+	_ = selfOC(handler, d)
 }
 
 // 自动日常任务
-func selfDaily(msgr *kitten.Messager, d data) bool {
-	if msgr.Event.UserID == 0 {
+func selfDaily(handler *msg.Handler, d data) bool {
+	if handler.Event().UserID == 0 {
 		return false
 	}
-	msgr.Event.UserID = sid.Int()
+	handler.Event().UserID = usr.Self().Int()
 	//nolint:gosec
-	if rand.Float64() >= d.evaluateDaily(msgr) {
+	if rand.Float64() >= d.evaluateDaily(handler) {
 		// 以 评估 的概率，触发喵喵使用 /叠猫猫 日常
 		return false
 	}
-	times.RandomDelayRange(time.Second, 2*time.Second)
-	msgr.ID = msgr.Ctx.Send(botConfig.CommandPrefix + cStack + cMeow + ` ` + cDaily)
-	times.RandomDelayRange(time.Second, 2*time.Second)
-	d.daily(msgr)
-	return true
+	return selfDo(handler, cStack+cMeow+` `+cDaily, func() { d.daily(handler) })
 }
 
 // 评估日常任务，返回日常任务的权重作为概率
-func (d *data) evaluateDaily(msgr *kitten.Messager) float64 {
+func (d *data) evaluateDaily(handler *msg.Handler) float64 {
 	var (
-		dr     = slices.Clone(*d)         // 克隆切片，防止对后续调用造成影响
-		m, err = dr.pre(msgr)             // 初始化自身
-		nre    = needRest(0, 0, 0, false) // 默认错误：需要休息
+		dr      = slices.Clone(*d)                   // 克隆切片，防止对后续调用造成影响
+		m, err  = dr.pre(handler)                       // 初始化自身
+		nre, ok = errors.AsType[*needRestError](err) // 错误是否需要休息
 	)
-	if !errors.As(err, &nre) {
+	if !ok {
 		// 当前不在休息，不需要日常任务，什么也不做
 		return 0
 	}
@@ -62,7 +59,7 @@ func (d *data) evaluateDaily(msgr *kitten.Messager) float64 {
 		// 剩余休息时间过短，不能进行日常任务，什么也不做
 		return 0
 	}
-	if equal.IsSameDate4AM(m.Daily, time.Unix(msgr.Event.Time, 0)) {
+	if equal.IsSameDate4AM(m.Daily, time.Unix(handler.Event().Time, 0)) {
 		// 已经完成日常任务，不能进行日常任务，直接返回
 		return 0
 	}
@@ -75,28 +72,24 @@ func (d *data) evaluateDaily(msgr *kitten.Messager) float64 {
 }
 
 // 自动撞大运
-func selfLorry(msgr *kitten.Messager, d data) bool {
-	if msgr.Event.UserID == 0 {
+func selfLorry(handler *msg.Handler, d data) bool {
+	if handler.Event().UserID == 0 {
 		return false
 	}
-	msgr.Event.UserID = sid.Int()
+	handler.Event().UserID = usr.Self().Int()
 	//nolint:gosec
-	if rand.Float64() >= d.evaluateLorry(msgr) {
+	if rand.Float64() >= d.evaluateLorry(handler) {
 		// 以评估的概率，触发喵喵使用 /你要撞大运了
 		return false
 	}
-	times.RandomDelayRange(time.Second, 2*time.Second)
-	msgr.ID = msgr.Ctx.Send(botConfig.CommandPrefix + `你要撞大运了`)
-	times.RandomDelayRange(time.Second, 2*time.Second)
-	_ = d.lorry(msgr)
-	return true
+	return selfDo(handler, `你要撞大运了`, func() { _ = d.lorry(handler) })
 }
 
 // 评估撞大运，返回撞大运的权重作为概率
-func (d *data) evaluateLorry(msgr *kitten.Messager) float64 {
+func (d *data) evaluateLorry(handler *msg.Handler) float64 {
 	var (
 		dr     = slices.Clone(*d) // 克隆切片，防止对后续调用造成影响
-		m, err = dr.pre(msgr)     // 初始化自身
+		m, err = dr.pre(handler)     // 初始化自身
 	)
 	if err != nil {
 		// 不能活动，什么也不做
@@ -115,28 +108,24 @@ func (d *data) evaluateLorry(msgr *kitten.Messager) float64 {
 }
 
 // 自动吃猫猫
-func selfEat(msgr *kitten.Messager, d data) bool {
-	if msgr.Event.UserID == 0 {
+func selfEat(handler *msg.Handler, d data) bool {
+	if handler.Event().UserID == 0 {
 		return false
 	}
-	msgr.Event.UserID = sid.Int()
+	handler.Event().UserID = usr.Self().Int()
 	//nolint:gosec
-	if rand.Float64() >= d.evaluateEat(msgr) {
+	if rand.Float64() >= d.evaluateEat(handler) {
 		// 以评估的概率，触发喵喵使用 /吃猫猫
 		return false
 	}
-	times.RandomDelayRange(time.Second, 2*time.Second)
-	msgr.ID = msgr.Ctx.Send(botConfig.CommandPrefix + cEat + cMeow)
-	times.RandomDelayRange(time.Second, 2*time.Second)
-	_ = d.eat(msgr)
-	return true
+	return selfDo(handler, cEat+cMeow, func() { _ = d.eat(handler) })
 }
 
 // 评估吃猫猫，返回吃的权重作为概率
-func (d *data) evaluateEat(msgr *kitten.Messager) float64 {
+func (d *data) evaluateEat(handler *msg.Handler) float64 {
 	var (
 		dr     = slices.Clone(*d) // 克隆切片，防止对后续调用造成影响
-		m, err = dr.pre(msgr)     // 初始化自身
+		m, err = dr.pre(handler)     // 初始化自身
 	)
 	if err != nil {
 		// 不能活动，什么也不做
@@ -150,11 +139,11 @@ func (d *data) evaluateEat(msgr *kitten.Messager) float64 {
 		// 空队列，什么也不做
 		return 0
 	}
-	if t := s[l-1].getTypeID(msgr); t >= 小老虎 {
+	if t := s[l-1].getTypeID(handler); t >= 小老虎 {
 		// 老虎以上无法被吃
 		return 0
 	}
-	if t := s[0].getTypeID(msgr); t >= 猫猫巴士 {
+	if t := s[0].getTypeID(handler); t >= 猫猫巴士 {
 		// 底座是猫猫巴士以上无法被吃
 		return 0
 	}
@@ -164,45 +153,38 @@ func (d *data) evaluateEat(msgr *kitten.Messager) float64 {
 }
 
 // 自动加入
-func selfIn(msgr *kitten.Messager, d data) bool {
-	if msgr.Event.UserID == 0 {
+func selfIn(handler *msg.Handler, d data) bool {
+	if handler.Event().UserID == 0 {
 		return false
 	}
-	msgr.Event.UserID = sid.Int()
+	handler.Event().UserID = usr.Self().Int()
 	//nolint:gosec
-	if rand.Float64() >= d.evaluateIn(msgr) {
+	if rand.Float64() >= d.evaluateIn(handler) {
 		// 以评估的概率，触发喵喵使用 /叠猫猫 加入
 		return false
 	}
-	times.RandomDelayRange(time.Second, 2*time.Second)
-	msgr.ID = msgr.Ctx.Send(botConfig.CommandPrefix + cStack + cMeow + ` ` + cIn)
-	times.RandomDelayRange(time.Second, 2*time.Second)
-	_ = d.in(msgr)
-	return true
+	return selfDo(handler, cStack+cMeow+` `+cIn, func() { _ = d.in(handler) })
 }
 
 // 自动分析
-func selfAnalysis(msgr *kitten.Messager, d data) {
-	if msgr.Event.UserID == 0 {
-		return
+func selfAnalysis(handler *msg.Handler, d data) bool {
+	if handler.Event().UserID == 0 {
+		return false
 	}
-	msgr.Event.UserID = sid.Int()
+	handler.Event().UserID = usr.Self().Int()
 	//nolint:gosec
-	if rand.Float64() >= d.evaluateIn(msgr) {
+	if rand.Float64() >= d.evaluateIn(handler) {
 		// 以评估的概率，触发喵喵使用 /叠猫猫 分析
-		return
+		return false
 	}
-	times.RandomDelayRange(time.Second, 2*time.Second)
-	msgr.ID = msgr.Ctx.Send(botConfig.CommandPrefix + cStack + cMeow + ` ` + cAnalysis)
-	times.RandomDelayRange(time.Second, 2*time.Second)
-	d.analysis(msgr)
+	return selfDo(handler, cStack+cMeow+` `+cAnalysis, func() { d.analysis(handler) })
 }
 
 // 评估叠猫猫，返回叠入的权重作为概率
-func (d *data) evaluateIn(msgr *kitten.Messager) float64 {
+func (d *data) evaluateIn(handler *msg.Handler) float64 {
 	var (
 		dr     = slices.Clone(*d) // 克隆切片，防止对后续调用造成影响
-		m, err = dr.pre(msgr)     // 初始化自身
+		m, err = dr.pre(handler)     // 初始化自身
 	)
 	if err != nil {
 		// 不能活动，什么也不做
@@ -217,15 +199,15 @@ func (d *data) evaluateIn(msgr *kitten.Messager) float64 {
 		return 1
 	}
 	// 非空队列
-	if float64(m.Weight)*chanceFlat(m)*chanceClear(msgr, s, m)*(math.E-1) >= float64(l) {
+	if float64(m.Weight)*chanceFlat(m)*chanceClear(handler, s, m)*(math.E-1) >= float64(l) {
 		// 清空特效导致体重增加的期望不少于当前的猫堆高度，直接叠入
 		return 1
 	}
 	var (
 		sn = append(s, m)           // 用于压坏判定的队列
-		cp = sn.chancePressed(msgr) // 压坏概率
+		cp = sn.chancePressed(handler) // 压坏概率
 		gp = func() float64 {
-			if m.getTypeID(msgr) <= 抱枕 || s[l-1].getTypeID(msgr) >= 幼年猫娘 {
+			if m.getTypeID(handler) <= 抱枕 || s[l-1].getTypeID(handler) >= 幼年猫娘 {
 				// 抱枕及以下的猫猫不会导致猫猫摔下去，直接在猫娘身上叠猫猫不会摔下去
 				return 0
 			}
@@ -241,7 +223,7 @@ func (d *data) evaluateIn(msgr *kitten.Messager) float64 {
 	if s[0].Weight < mapMeow[大老虎].weight &&
 		m.Weight >= mapMeow[大老虎].weight {
 		// 底座不是猫车以上，自己是猫车以上
-		return 0.5 - cf
+		return 0.1 - cf
 	}
 	if s[0].Weight >= mapMeow[幼年猫娘].weight && cp > 0 {
 		// 底座是猫娘萝莉以上，只要可能压坏，就不叠入
@@ -265,35 +247,31 @@ func (d *data) evaluateIn(msgr *kitten.Messager) float64 {
 }
 
 // 自动加速
-func selfOC(msgr *kitten.Messager, d data) bool {
-	if msgr.Event.UserID == 0 {
+func selfOC(handler *msg.Handler, d data) bool {
+	if handler.Event().UserID == 0 {
 		return false
 	}
-	msgr.Event.UserID = sid.Int()
+	handler.Event().UserID = usr.Self().Int()
 	//nolint:gosec
-	if rand.Float64() >= d.evaluateOC(msgr) {
+	if rand.Float64() >= d.evaluateOC(handler) {
 		// 以评估的概率，触发喵喵使用 /叠猫猫 锻炼
 		return false
 	}
-	times.RandomDelayRange(time.Second, 2*time.Second)
-	msgr.ID = msgr.Ctx.Send(botConfig.CommandPrefix + cStack + cMeow + ` ` + cOC)
-	times.RandomDelayRange(time.Second, 2*time.Second)
-	d.oc(msgr)
-	return true
+	return selfDo(handler, cStack+cMeow+` `+cOC, func() { d.oc(handler) })
 }
 
 // 评估加速，返回加速的权重作为概率
-func (d *data) evaluateOC(msgr *kitten.Messager) float64 {
+func (d *data) evaluateOC(handler *msg.Handler) float64 {
 	var (
-		dr     = slices.Clone(*d)         // 克隆切片，防止对后续调用造成影响
-		_, err = dr.pre(msgr)             // 初始化自身
-		nre    = needRest(0, 0, 0, false) // 默认错误：需要休息
+		dr      = slices.Clone(*d)                   // 克隆切片，防止对后续调用造成影响
+		_, err  = dr.pre(handler)                       // 初始化自身
+		nre, ok = errors.AsType[*needRestError](err) // 错误是否需要休息
 	)
-	if !errors.As(err, &nre) {
+	if !ok {
 		// 当前不在休息，不需要加速，什么也不做
 		return 0
 	}
-	if (*d)[nre.i].getTypeID(msgr) < 大老虎 {
+	if (*d)[nre.i].getTypeID(handler) < 大老虎 {
 		// 不是大老虎，不能加速，什么也不做
 		return 0
 	}
@@ -314,18 +292,37 @@ func (d *data) evaluateOC(msgr *kitten.Messager) float64 {
 }
 
 // 自动排行
-func selfRank(msgr *kitten.Messager, d data) {
-	if msgr.Event.UserID == 0 {
-		return
+func selfRank(handler *msg.Handler, d data) bool {
+	if handler.Event().UserID == 0 {
+		return false
 	}
-	msgr.Event.UserID = sid.Int()
+	handler.Event().UserID = usr.Self().Int()
 	//nolint:gosec
 	if rand.Float64() >= 0.1 {
 		// 以 0.1 的概率，触发喵喵使用 /叠猫猫 排行
-		return
+		return false
 	}
-	times.RandomDelayRange(time.Second, 2*time.Second)
-	msgr.ID = msgr.Ctx.Send(botConfig.CommandPrefix + cStack + cMeow + ` ` + cRank)
-	times.RandomDelayRange(time.Second, 2*time.Second)
-	d.rank(msgr)
+	return selfDo(handler, cStack+cMeow+` `+cRank, func() { d.rank(handler) })
+}
+
+// 自动过程
+func selfDo(handler *msg.Handler, command string, f func()) bool {
+	const (
+		minDelay = time.Second
+		maxDelay = 2 * minDelay
+	)
+	select {
+	case <-times.RandDelayRange(minDelay, maxDelay):
+	case <-handler.Done():
+		handler.SendWithImageFail(handler.Err())
+		return true
+	}
+	handler.ID = handler.SendWithContext(p + command)
+	select {
+	case <-times.RandDelayRange(minDelay, maxDelay):
+		f()
+	case <-handler.Done():
+		handler.SendWithImageFail(handler.Err())
+	}
+	return true
 }

@@ -1,7 +1,8 @@
-package kitten
+package log
 
 import (
 	"os"
+	"strings"
 	"time"
 
 	"github.com/Kittengarten/KittenCore/kitten/core/fio"
@@ -11,64 +12,64 @@ import (
 	"go.uber.org/zap/zapcore"
 )
 
-// WrappedWriteSyncer 包装写入同步结构
-type WrappedWriteSyncer struct {
-	file *os.File
-}
-
-// 日志编码器配置
-var encoderConfig = zapcore.EncoderConfig{
-	TimeKey:       `time`,
-	LevelKey:      `level`,
-	NameKey:       `logger`,
-	CallerKey:     `caller`,
-	MessageKey:    `msg`,
-	StacktraceKey: `stacktrace`,
-	LineEnding:    zapcore.DefaultLineEnding,
-	EncodeLevel:   zapcore.CapitalColorLevelEncoder, // 指定颜色
-	EncodeTime: func(t time.Time, enc zapcore.PrimitiveArrayEncoder) {
-		enc.AppendString(`[` + t.Format(times.Layout) + `]`)
-	}, // 时间格式
-	EncodeDuration: zapcore.SecondsDurationEncoder,
-	EncodeCaller: func(caller zapcore.EntryCaller, enc zapcore.PrimitiveArrayEncoder) {
-		enc.AppendString(`[` + caller.TrimmedPath() + `]`)
-	}, // 路径编码器
-	EncodeName: zapcore.FullNameEncoder,
-}
-
-// zap 日志配置初始化
-func zapInit() {
-	if err := fio.NewPath(botConfig.Log.Path).InitFile(); err != nil {
-		zap.Error(err)
+// ZapInit zap 日志配置初始化
+func ZapInit(cfg Log, test bool) {
+	if !test {
+		if err := fio.NewPath(cfg.Path).InitFile(); err != nil {
+			zap.Error(err)
+		}
 	}
+
 	// 日志记录器配置
 	log := zap.New(
 		zapcore.NewCore(
-			zapcore.NewConsoleEncoder(encoderConfig),
-			zapcore.NewMultiWriteSyncer(
-				zapcore.Lock(WrappedWriteSyncer{os.Stdout}),
-				zapcore.AddSync(rotate(botConfig)),
-			),
-			level(botConfig.Log),
+			zapcore.NewConsoleEncoder(zapcore.EncoderConfig{
+				MessageKey:    `msg`,
+				LevelKey:      `level`,
+				TimeKey:       `time`,
+				NameKey:       `logger`,
+				CallerKey:     `caller`,
+				FunctionKey:   `func`,
+				StacktraceKey: `trace`,
+				LineEnding:    zapcore.DefaultLineEnding,
+				EncodeLevel:   zapcore.CapitalColorLevelEncoder, // 指定颜色
+				EncodeTime: func(t time.Time, enc zapcore.PrimitiveArrayEncoder) {
+					enc.AppendString(`[` + t.Format(times.Layout) + `]`)
+				}, // 时间格式
+				EncodeDuration: zapcore.SecondsDurationEncoder,
+				EncodeCaller: func(caller zapcore.EntryCaller, enc zapcore.PrimitiveArrayEncoder) {
+					enc.AppendString(`[` + caller.TrimmedPath() + `]`)
+				}, // 路径编码器
+				EncodeName: zapcore.FullNameEncoder,
+			}), // 日志编码器配置
+			func() zapcore.WriteSyncer {
+				stdout := zapcore.Lock(zapcore.AddSync(os.Stdout))
+				if test {
+					return stdout
+				}
+				return zapcore.NewMultiWriteSyncer(
+					stdout,
+					zapcore.Lock(zapcore.AddSync(rotate(cfg))),
+				)
+			}(),
+			func() zapcore.Level {
+				if test {
+					return zap.DebugLevel
+				}
+				return level(cfg)
+			}(), // 日志等级
 		),
 		zap.AddCaller(),
-		zap.AddCallerSkip(2),
+		zap.AddCallerSkip(1),
+		zap.AddStacktrace(zap.WarnLevel),
 	)
-	defer func() {
-		if err := log.Sync(); err != nil {
-			log.Sugar().Error(`日志刷新失败喵！`, err)
-			return
-		}
-		log.Info(`日志刷新成功喵！`)
-	}()
 	zap.ReplaceGlobals(log)
 	zap.RedirectStdLog(log)
-	zap.AddStacktrace(zap.WarnLevel)
 }
 
 // 获取 zap 日志等级
-func level(lc Log) zapcore.Level {
-	level, err := zap.ParseAtomicLevel(lc.Level)
+func level(cfg Log) zapcore.Level {
+	level, err := zap.ParseAtomicLevel(strings.ToLower(cfg.Level))
 	if err != nil {
 		zap.Error(err)
 		return zap.InfoLevel
@@ -76,14 +77,11 @@ func level(lc Log) zapcore.Level {
 	return level.Level()
 }
 
-// Write WrappedWriteSyncer 实现 Writer 接口
-func (mws WrappedWriteSyncer) Write(p []byte) (int, error) {
-	return mws.file.Write(p)
-}
-
-// Sync 同步
-func (mws WrappedWriteSyncer) Sync() error {
-	return nil
+// Skip 创建配置了 AddCallerSkip 的新 *zap.SugaredLogger
+//
+// 默认已有 1 层，配置时会向上追加
+func Skip(n int) *zap.SugaredLogger {
+	return zap.S().WithOptions(zap.AddCallerSkip(n))
 }
 
 // Debug 在 Debug 等级记录提供的参数。当参数都不是字符串时，会在参数之间添加空格。

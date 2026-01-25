@@ -1,6 +1,8 @@
 package platform
 
 import (
+	"errors"
+	"fmt"
 	"time"
 )
 
@@ -22,16 +24,10 @@ func Get(platform string) (Platform, error) {
 	return nil, NotSupported(platform)
 }
 
-// NotSupported *NotSupportedError 的构造函数，不支持的平台
-func NotSupported(platform string) *NotSupportedError {
-	return &NotSupportedError{
-		platform: platform,
-	}
-}
-
-// Error 实现 error
-func (e *NotSupportedError) Error() string {
-	return e.platform + `不是受支持的小说平台喵！`
+// NotSupported 不支持的平台
+func NotSupported(platform string) error {
+	return fmt.Errorf(`%s不是受支持的小说平台喵！%w`,
+		platform, errors.ErrUnsupported)
 }
 
 // ParseTime 解析时间

@@ -5,14 +5,12 @@ import (
 	"strings"
 	"time"
 
-	"github.com/Kittengarten/KittenCore/kitten"
 	"github.com/Kittengarten/KittenCore/kitten/core/fio"
 )
 
-// Windows 系统下获取 CPU 温度，通过微星小飞机（需要自行安装配置，并确保温度在其 log 中的位置）
-func cpuTemperature(l fio.Path) string {
+// CPUTemperature Windows 系统下获取 CPU 温度，通过微星小飞机（需要自行安装配置，并确保温度在其 log 中的位置）
+func CPUTemperature(l fio.Path) (t string) {
 	if err := l.Delete(); err != nil {
-		kitten.Error(err)
 		return err.Error()
 	}
 	time.Sleep(time.Second)
@@ -21,10 +19,11 @@ func cpuTemperature(l fio.Path) string {
 		return err.Error()
 	}
 	fileScanner := bufio.NewScanner(file)
-	if err := file.Close(); err != nil {
-		return err.Error()
-	}
-	fileScanner.Split(bufio.ScanLines)
+	defer func() {
+		if err := file.Close(); err != nil {
+			t = err.Error()
+		}
+	}()
 	for index := 0; fileScanner.Scan(); {
 		const offset = 2
 		switch line := fileScanner.Text(); {
@@ -39,5 +38,5 @@ func cpuTemperature(l fio.Path) string {
 			return strings.TrimSpace(strings.Split(line, `,`)[index+offset])
 		}
 	}
-	return defaultTemperature
+	return ErrNoData.Error()
 }

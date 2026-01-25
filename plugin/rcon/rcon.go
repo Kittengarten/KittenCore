@@ -1,8 +1,11 @@
 package rcon
 
 import (
-	"github.com/Kittengarten/KittenCore/kitten"
+	"context"
+
+	"github.com/Kittengarten/KittenCore/kitten/core"
 	"github.com/Kittengarten/KittenCore/kitten/core/fio"
+	"github.com/Kittengarten/KittenCore/kitten/msg"
 	"github.com/Kittengarten/KittenCore/plugin/rcon/rcons"
 
 	ctrl "github.com/FloatTech/zbpctrl"
@@ -22,33 +25,40 @@ const (
 设置 RCON 密码 [密码]`
 )
 
-// 注册插件
-var engine = control.AutoRegister(&ctrl.Options[*zero.Ctx]{
-	DisableOnDefault:  false,
-	Brief:             brief,
-	Help:              help,
-	PrivateDataFolder: replyServiceName,
-}).ApplySingle(ctxext.DefaultSingle)
-
-// 配置文件路径
-var configPath = fio.NewPath(engine.DataFolder(), configFile).WithRWMutex()
+var (
+	// 注册插件
+	engine = control.AutoRegister(&ctrl.Options[*zero.Ctx]{
+		DisableOnDefault:  false,
+		Brief:             brief,
+		Help:              help,
+		PrivateDataFolder: replyServiceName,
+	}).ApplySingle(ctxext.GroupSingle)
+	// 配置文件路径
+	configPath = fio.NewPath(engine.DataFolder(), configFile).WithRWMutex()
+)
 
 func init() {
 	// RCON
 	engine.OnPrefixGroup([]string{`RCON`, `rcon`}, zero.SuperUserPermission).
 		SetBlock(true).Handle(func(ctx *zero.Ctx) {
-		rcons.Command(kitten.New(ctx), configPath)
+		c, cancel := context.WithTimeout(context.Background(), core.Timeout)
+		defer cancel()
+		rcons.Command(msg.NewWithContext(c, ctx), configPath)
 	})
 
 	// 设置 RCON 主机
 	engine.OnRegex(`^设置\s*(?i)RCON\s*主机\s*(.*)$`, zero.OnlyPrivate, zero.SuperUserPermission).
 		SetBlock(true).Handle(func(ctx *zero.Ctx) {
-		rcons.Set(kitten.New(ctx), rcons.Host, configPath)
+		c, cancel := context.WithTimeout(context.Background(), core.Timeout)
+		defer cancel()
+		rcons.Set(msg.NewWithContext(c, ctx), rcons.Host, configPath)
 	})
 
 	// 设置 RCON 密码
 	engine.OnRegex(`^设置\s*(?i)RCON\s*密码\s*(.*)$`, zero.OnlyPrivate, zero.SuperUserPermission).
 		SetBlock(true).Handle(func(ctx *zero.Ctx) {
-		rcons.Set(kitten.New(ctx), rcons.Password, configPath)
+		c, cancel := context.WithTimeout(context.Background(), core.Timeout)
+		defer cancel()
+		rcons.Set(msg.NewWithContext(c, ctx), rcons.Password, configPath)
 	})
 }

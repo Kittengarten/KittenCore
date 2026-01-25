@@ -1,11 +1,29 @@
 package logrus
 
 import (
+	"context"
 	"io"
 	"log"
 
 	"go.uber.org/zap"
 )
+
+type Logger struct {
+	*zap.SugaredLogger
+}
+
+func (l Logger) Warningf(format string, args ...any) {
+	l.Warnf(format, args...)
+}
+
+// WithContext ctx 会被忽略
+func WithContext(_ context.Context) Logger {
+	return Logger{SugaredLogger: zap.S()}
+}
+
+func WithError(err error) Logger {
+	return Logger{SugaredLogger: zap.S().With(zap.Error(err))}
+}
 
 func Debug(args ...any) {
 	zap.S().Debug(args...)

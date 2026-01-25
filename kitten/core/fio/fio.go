@@ -2,7 +2,8 @@
 package fio
 
 import (
-	"bytes"
+	"context"
+	"crypto/sha256"
 	"crypto/sha512"
 	"encoding/hex"
 	"errors"
@@ -17,7 +18,6 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/Kittengarten/KittenCore/kitten/core/shttp"
 	"github.com/Kittengarten/KittenCore/kitten/core/str"
 	"github.com/Kittengarten/KittenCore/kitten/core/utils"
 
@@ -29,13 +29,13 @@ type (
 	Path string
 	// PathMutex Path 的互斥锁版本
 	PathMutex struct {
-		*sync.Mutex // 互斥锁
 		Path        // 路径
+		*sync.Mutex // 互斥锁
 	}
 	// PathRWMutex Path 的读写锁版本
 	PathRWMutex struct {
-		*sync.RWMutex // 读写锁
 		Path          // 路径
+		*sync.RWMutex // 读写锁
 	}
 )
 
@@ -54,24 +54,44 @@ func (p Path) WithRWMutex() PathRWMutex {
 	return PathRWMutex{Path: p, RWMutex: new(sync.RWMutex)}
 }
 
-/*
-Load 加载 YAML 配置文件，def 为默认值（加载不到的时候会尝试初始化）
+// 记录错误，s 为描述，p 为路径
+func logError(s string, path Path, err error) {
+	p := slog.Any(`路径`, path)
+	if err == nil {
+		slog.Error(s, p)
+		return
+	}
+	slog.Error(s, p, slog.Any(`错误`, err))
+}
 
-即使 err == nil，加载的映射或切片也可能为 nil，需要判断
-*/
+// Load 加载 YAML 配置文件，def 为默认值（加载不到的时候会尝试初始化）
+//
+//	即使 err == nil，加载的映射或切片也可能为 nil，需要判断
 func Load[T any, S str.Str](p Path, def S, opts ...yaml.DecodeOption) (c T, err error) {
+	return LoadWithContext[T](context.Background(), p, def, opts...)
+}
+
+// LoadWithContext 加载 YAML 配置文件（带上下文），def 为默认值（加载不到的时候会尝试初始化）
+//
+//	即使 err == nil，加载的映射或切片也可能为 nil，需要判断
+func LoadWithContext[T any, S str.Str](ctx context.Context, p Path, def S, opts ...yaml.DecodeOption) (c T, err error) {
 	if err = p.InitFileText(string(def)); err != nil {
 		err = fmt.Errorf(`初始化 %s 时失败喵！%w`, p, err)
 		return
 	}
 	f, err := p.Load(false)
-	return c, errors.Join(err, yaml.NewDecoder(f, opts...).Decode(&c), f.Close())
+	return c, errors.Join(err, yaml.NewDecoder(f, opts...).DecodeContext(ctx, &c), f.Close())
 }
 
 // Save 保存 YAML 配置文件
 func Save[T any](p Path, c T, opts ...yaml.EncodeOption) error {
+	return SaveWithContext(context.Background(), p, c, opts...)
+}
+
+// SaveWithContext 保存 YAML 配置文件（带上下文）
+func SaveWithContext[T any](ctx context.Context, p Path, c T, opts ...yaml.EncodeOption) error {
 	f, err := p.Load(true)
-	return errors.Join(err, yaml.NewEncoder(f, opts...).Encode(c), f.Close())
+	return errors.Join(err, yaml.NewEncoder(f, opts...).EncodeContext(ctx, c), f.Close())
 }
 
 // NoDuplicate 生成不重复的文件或文件夹名
@@ -103,11 +123,9 @@ func (p Path) Rand() (Path, error) {
 	return NewPath(p.String(), names[rand.N(len(names))]), nil
 }
 
-/*
-Names 获取文件夹下所有文件（夹）名
-
-如果是文件，获取父文件夹下的所有文件（夹）名
-*/
+// Names 获取文件夹下所有文件（夹）名
+//
+//	如果是文件，获取父文件夹下的所有文件（夹）名
 func (p Path) Names() ([]string, error) {
 	isDir, err := p.IsDir()
 	if err != nil {
@@ -176,22 +194,6 @@ func (p Path) LoadPath() (Path, error) {
 	return NewPath(s), nil
 }
 
-// DownloadImage 从 url 下载图片到 path
-func (p Path) DownloadImage(url string) (int64, error) {
-	// 获取 HTTP 响应体，失败则返回
-	b, err := shttp.GET(url)
-	if err != nil {
-		return 0, err
-	}
-	defer shttp.Clear(b)
-	f, err := p.Load(true)
-	if err != nil {
-		return 0, err
-	}
-	i, err := f.ReadFrom(b)
-	return i, errors.Join(err, f.Close())
-}
-
 // Get 从文件获取路径，def 为默认值（加载不到的时候会尝试初始化）
 func (p Path) Get(def Path) Path {
 	return NewPath(p.GetString(string(def)))
@@ -200,16 +202,12 @@ func (p Path) Get(def Path) Path {
 // GetString 从文件获取字符串，def 为默认值（加载不到的时候会尝试初始化）
 func (p Path) GetString(def string) string {
 	if err := p.InitFileText(def); err != nil {
-		slog.Error(`初始化文件失败了喵！`,
-			slog.Any(`路径`, p),
-			slog.Any(`错误`, err))
+		logError(`初始化文件失败了喵！`, p, err)
 		return def
 	}
 	s, err := p.ReadString()
 	if err != nil {
-		slog.Error(`打开文件失败了喵！`,
-			slog.Any(`路径`, p),
-			slog.Any(`错误`, err))
+		logError(`打开文件失败了喵！`, p, err)
 		return def
 	}
 	return s
@@ -235,11 +233,9 @@ func (p Path) InitFile(def ...byte) error {
 	return p.WriteBytes(def)
 }
 
-/*
-WriteString 向文件写入字符串
-
-如文件不存在会尝试新建
-*/
+// WriteString 向文件写入字符串
+//
+//	如文件不存在会尝试新建
 func (p Path) WriteString(s string) error {
 	f, err := p.Load(true)
 	if err != nil {
@@ -249,11 +245,9 @@ func (p Path) WriteString(s string) error {
 	return errors.Join(err, f.Close())
 }
 
-/*
-WriteBytes 向文件写入字节切片（会从头覆盖文件）
-
-如文件不存在会尝试新建
-*/
+// WriteBytes 向文件写入字节切片（会从头覆盖文件）
+//
+//	如文件不存在会尝试新建
 func (p Path) WriteBytes(b []byte) error {
 	f, err := p.Load(true)
 	if err != nil {
@@ -263,13 +257,18 @@ func (p Path) WriteBytes(b []byte) error {
 	return errors.Join(err, f.Close())
 }
 
-// ReadString 从文件读取字符串
+// ReadString 从文件一次性读取全部内容，返回字符串
 func (p Path) ReadString() (string, error) {
 	f, err := p.Load(false)
 	if err != nil {
 		return ``, err
 	}
+	info, err := f.Stat()
+	if err != nil {
+		return ``, errors.Join(err, f.Close())
+	}
 	s := new(strings.Builder)
+	s.Grow(int(info.Size()))
 	_, err = io.Copy(s, f)
 	return s.String(), errors.Join(err, f.Close())
 }
@@ -308,7 +307,27 @@ func (p Path) SHA512() (SHA512, error) {
 	if err != nil {
 		return SHA512{}, err
 	}
-	return SHA512(sha512.Sum512(b.Bytes())), nil
+	return SHA512(sha512.Sum512(b)), nil
+}
+
+// SHA256 ...
+type SHA256 [sha256.Size]byte
+
+// String 实现 fmt.Stringer，返回十六进制哈希值（64 位数字）
+func (s SHA256) String() string {
+	return hex.EncodeToString(s[:])
+}
+
+// SHA256 获取文件 SHA256 哈希值
+func (p Path) SHA256() (SHA256, error) {
+	if !p.Exists() {
+		return SHA256{}, os.ErrNotExist
+	}
+	b, err := p.ReadBytes()
+	if err != nil {
+		return SHA256{}, err
+	}
+	return SHA256(sha256.Sum256(b)), nil
 }
 
 // Exists 判断文件或文件夹是否存在
@@ -317,24 +336,23 @@ func (p Path) Exists() bool {
 	return err == nil || os.IsExist(err)
 }
 
-// ReadBytes 从文件读取字节切片
-func (p Path) ReadBytes() (*bytes.Buffer, error) {
+// ReadBytes 从文件一次性读取全部内容，返回字节切片
+func (p Path) ReadBytes() ([]byte, error) {
 	f, err := p.Load(false)
 	if err != nil {
 		return nil, err
 	}
-	b := new(bytes.Buffer)
-	_, err = io.Copy(b, f)
+	info, err := f.Stat()
+	if err != nil {
+		return nil, errors.Join(err, f.Close())
+	}
+	b := make([]byte, int(info.Size()))
+	_, err = io.ReadFull(f, b)
 	return b, errors.Join(err, f.Close())
 }
 
 // 载入文件以供操作，当 write 为 false 时只读
 func (p Path) Load(write bool) (f *os.File, err error) {
-	// 检查其父文件夹是否存在，不存在则创建
-	if err := p.TryMakeDir(); err != nil {
-		err = fmt.Errorf(`创建 %s 失败喵！%w`, p.Dir(), err)
-		return nil, err
-	}
 	if !write {
 		// 只读，打开文件
 		f, err = os.Open(p.String())
@@ -343,6 +361,11 @@ func (p Path) Load(write bool) (f *os.File, err error) {
 		}
 	}
 	// 需要写入或不存在，尝试创建文件
+	// 检查其父文件夹是否存在，不存在则创建
+	if err := p.TryMakeDir(); err != nil {
+		err = fmt.Errorf(`创建 %s 失败喵！%w`, p.Dir(), err)
+		return nil, err
+	}
 	return os.Create(p.String())
 }
 

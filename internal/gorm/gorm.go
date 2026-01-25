@@ -1,12 +1,14 @@
+// Package gorm 适配来自 https://github.com/glebarez/sqlite
 package gorm
 
 import (
 	"errors"
+	"fmt"
+	"log/slog"
 	"strings"
 
 	"github.com/Kittengarten/KittenCore/kitten/core/fio"
 
-	"github.com/glebarez/sqlite"
 	"gorm.io/gorm"
 )
 
@@ -15,26 +17,28 @@ type (
 	Model struct{ *gorm.Model }
 )
 
-// ErrNotSupported 不支持的数据库类型喵！
-var ErrNotSupported = errors.New(`不支持的数据库类型喵！`)
+// New initialize a new sqlite3 db
+func New(dsn string) gorm.Dialector {
+	return &Dialector{DSN: dsn}
+}
 
 // Open initialize a new db connection, need to import driver first
-func Open[T string | fio.Path](dialect string, path T) (db *DB, err error) {
+func Open[T string | fio.Path](dialect string, path T) (*DB, error) {
 	if !strings.Contains(dialect, `sqlite`) {
-		return nil, ErrNotSupported
+		return nil, fmt.Errorf(`不支持的数据库类型喵！%w`, errors.ErrUnsupported)
 	}
-	db = &DB{DB: new(gorm.DB)}
-	db.DB, err = gorm.Open(&sqlite.Dialector{
-		DriverName: dialect,
-		DSN:        string(path),
-	}, &gorm.Config{})
-	return
+	db, err := gorm.Open(New(string(path)), new(gorm.Config))
+	return &DB{DB: db}, err
 }
 
 // AutoMigrate run auto migration for given models, will only add missing fields, won't delete/change current data
 func (s *DB) AutoMigrate(values ...any) *DB {
 	if err := s.DB.AutoMigrate(values...); err != nil {
-		panic(err)
+		// 遇到可忽略错误时不 panic
+		if !strings.Contains(err.Error(), `already exists`) {
+			panic(err)
+		}
+		slog.Error(`数据库迁移`, slog.Any(`错误`, err))
 	}
 	return s
 }

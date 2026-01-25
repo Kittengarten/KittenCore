@@ -13,6 +13,7 @@ var (
 		true:  14,
 		false: 13,
 	}
+	// 麻将牌
 	mahjong = map[string]rune{
 		`东风`: 0x1F000,
 		`南风`: 0x1F001,
@@ -49,20 +50,22 @@ var (
 		`八筒`: 0x1F020,
 		`九筒`: 0x1F021,
 	}
+	// 基础牌山（每种牌一张）
+	baseTiles = slices.Collect(maps.Values(mahjong))
 )
 
 // New 配牌
-func New(dealer bool) (m []rune) {
-	m = NewWall()[:deal[dealer]]
+func New(dealer bool) []rune {
+	m := NewWall()[:deal[dealer]]
 	slices.Sort(m)
-	return
+	return m
 }
 
 // NewWall 新的牌山
-func NewWall() (m []rune) {
-	m = slices.Repeat(slices.Collect(maps.Values(mahjong)), 4)
+func NewWall() []rune {
+	m := slices.Repeat(baseTiles, 4)
 	rand.Shuffle(len(m), func(i, j int) {
 		m[i], m[j] = m[j], m[i]
 	})
-	return
+	return m
 }

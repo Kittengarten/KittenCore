@@ -4,14 +4,28 @@ package utils
 import (
 	"errors"
 	"fmt"
+	"iter"
+	"log/slog"
 	"maps"
 	"math"
 	"math/rand/v2"
+	"os"
 	"reflect"
+	"runtime/debug"
 	"slices"
 
 	"golang.org/x/exp/constraints"
 )
+
+type (
+	// Object 空对象
+	Object = struct{}
+	// Set 集合
+	Set[T comparable] = map[T]Object
+)
+
+// PlatformBits 平台位数
+const PlatformBits = 32 << (^uint(0) >> 63)
 
 var (
 	// ErrInvalidData 无效的数据喵！
@@ -23,7 +37,7 @@ var (
 )
 
 // GenerateRandomNumber 生成 n 个 [start, end) 范围的不重复的随机数
-func GenerateRandomNumber(start, end, n int) ([]int, error) {
+func GenerateRandomNumber(start, end, n int) (Set[int], error) {
 	// 范围检查
 	if start >= end {
 		return nil, fmt.Errorf(`下限 %d 必须小于上限 %d：%w`,
@@ -55,20 +69,19 @@ func GenerateRandomNumber(start, end, n int) ([]int, error) {
 }
 
 // 集合法生成 n 个 [start, end) 范围的不重复的随机数
-func grnSet(start, end, n int) []int {
+func grnSet(start, end, n int) Set[int] {
 	// 存放不重复结果的集合
-	set := make(map[int]struct{}, n)
+	set := make(Set[int], n)
 	for len(set) < n {
 		// 生成随机数
 		//nolint:gosec
-		set[rand.N(end-start)+start] = struct{}{}
+		set[rand.N(end-start)+start] = Object{}
 	}
-	// 集合转换为切片
-	return slices.Collect(maps.Keys(set))
+	return set
 }
 
 // 蓄水池抽样法生成 n 个 [start, end) 范围的不重复的随机数
-func gnrReservoir(start, end, n int) []int {
+func gnrReservoir(start, end, n int) Set[int] {
 	reservoir := make([]int, n)
 	// 初始化蓄水池为前k个元素
 	for i := range n {
@@ -81,11 +94,11 @@ func gnrReservoir(start, end, n int) []int {
 			reservoir[j] = start + i
 		}
 	}
-	return reservoir
+	return maps.Collect(keys(reservoir))
 }
 
 // 洗牌法生成 n 个 [start, end) 范围的不重复的随机数
-func gnrShuffle(start, end, n int) []int {
+func gnrShuffle(start, end, n int) Set[int] {
 	// 构造 [start, end) 范围内的切片
 	nums := make([]int, end-start)
 	for i := range nums {
@@ -96,43 +109,86 @@ func gnrShuffle(start, end, n int) []int {
 		nums[i], nums[j] = nums[j], nums[i]
 	})
 	// 返回前n个元素
-	return nums[:n]
+	return maps.Collect(keys(nums[:n]))
+}
+func keys[Slice ~[]E, E any](s Slice) iter.Seq2[E, struct{}] {
+	return func(yield func(E, struct{}) bool) {
+		for _, e := range s {
+			if !yield(e, struct{}{}) {
+				return
+			}
+		}
+	}
 }
 
-// ConvertSlice 将 src 中的每个元素由 T 类型转换为 U 类型
-func ConvertSlice[T any, U any](src []T, f func(T) U) []U {
-	dst := make([]U, len(src))
-	for i, v := range src {
-		dst[i] = f(v)
+// ConvertSlice 将 src 中的每个元素由 E1 类型转换为 E2 类型
+func ConvertSlice[E1 any, E2 any](src []E1, f func(E1) E2) []E2 {
+	dst := make([]E2, len(src))
+	for i, e := range src {
+		dst[i] = f(e)
 	}
 	return dst
 }
 
 // RemoveDuplicates 去除切片中的重复元素
-func RemoveDuplicates[T comparable](slice []T) []T {
+func RemoveDuplicates[E comparable](slice []E) []E {
 	var (
-		seen   = make(map[T]struct{})
-		result = make([]T, 0, len(slice))
+		seen   = make(Set[E])
+		result = make([]E, 0, len(slice))
 	)
-	for _, v := range slice {
-		if _, ok := seen[v]; !ok {
-			seen[v] = struct{}{}
-			result = append(result, v)
+	for _, e := range slice {
+		if _, ok := seen[e]; !ok {
+			seen[e] = Object{}
+			result = append(result, e)
 		}
 	}
 	return result
 }
 
 // RemoveDuplicatesFunc 去除切片中的重复元素
-func RemoveDuplicatesFunc[T any](slice []T, f func(T, T) bool) (result []T) {
-	for _, v := range slice {
-		if !slices.ContainsFunc(result, func(e T) bool {
-			return f(e, v)
+func RemoveDuplicatesFunc[E any](slice []E, f func(E, E) bool) (result []E) {
+	for _, e := range slice {
+		if !slices.ContainsFunc(result, func(er E) bool {
+			return f(er, e)
 		}) {
-			result = append(result, v)
+			result = append(result, e)
 		}
 	}
 	return result
+}
+
+// RemoveDuplicateIter 去除迭代器中的重复元素
+func RemoveDuplicateIter[E comparable](iter iter.Seq[E]) (result iter.Seq[E]) {
+	return func(yield func(E) bool) {
+		seen := make(Set[E])
+		for e := range iter {
+			if _, ok := seen[e]; !ok {
+				seen[e] = Object{}
+				continue
+			}
+			if !yield(e) {
+				return
+			}
+		}
+	}
+}
+
+// RemoveDuplicateIterFunc 去除迭代器中的重复元素
+func RemoveDuplicateIterFunc[E any](iter iter.Seq[E], f func(E, E) bool) (result iter.Seq[E]) {
+	return func(yield func(E) bool) {
+		s := make([]E, 0)
+		for e := range iter {
+			if !slices.ContainsFunc(s, func(es E) bool {
+				return f(e, es)
+			}) {
+				s = append(s, e)
+				continue
+			}
+			if !yield(e) {
+				return
+			}
+		}
+	}
 }
 
 // Round 保留小数点后 n 位
@@ -167,4 +223,40 @@ func GetTypeName(value any) string {
 	}
 	// 返回类型名
 	return t.Name()
+}
+
+// 崩溃信息路径
+var Crash string
+
+// Go 运行一个 goroutine
+func Go(name string, f func()) {
+	go func() {
+		// 处理 panic，防止程序崩溃
+		defer HandlePanic(name)
+		slog.Info(`正在启动协程……`,
+			slog.String(`名称`, name))
+		f()
+	}()
+}
+
+// HandlePanic 处理 panic
+func HandlePanic(name string) {
+	if err := recover(); err != nil {
+		slog.Info(`协程从 panic 恢复……`,
+			slog.String(`名称`, name),
+			slog.Any(`错误`, err),
+			slog.String(`堆栈`, string(debug.Stack())),
+		)
+		file, err := os.Create(Crash)
+		if err != nil {
+			slog.Error(`创建`, slog.String(`路径`, Crash),
+				slog.Any(`错误`, err))
+			return
+		}
+		defer file.Close()
+		if _, err := fmt.Fprintf(file, "panic: %v\n%s\n", err, string(debug.Stack())); err != nil {
+			slog.Error(`写入`, slog.String(`路径`, Crash),
+				slog.Any(`错误`, err))
+		}
+	}
 }

@@ -2,32 +2,36 @@ package stack2
 
 import (
 	"cmp"
+	"context"
 	"fmt"
 	"math"
 	"math/rand/v2"
 	"time"
 
-	"github.com/Kittengarten/KittenCore/kitten"
 	"github.com/Kittengarten/KittenCore/kitten/core/fio"
+	"github.com/Kittengarten/KittenCore/kitten/core/log"
+	"github.com/Kittengarten/KittenCore/kitten/core/shttp"
 	"github.com/Kittengarten/KittenCore/kitten/core/times"
+	"github.com/Kittengarten/KittenCore/kitten/core/utils"
+	"github.com/Kittengarten/KittenCore/kitten/msg"
 
 	"github.com/wdvxdr1123/ZeroBot/message"
 )
 
 // 缓存刷新
-func (b *buffer) refresh(msgr *kitten.Messager, d *data) {
-	stackBuffer, err = fio.Load[buffer](bufferPath, fio.Blank)
+func (b *status) refresh(handler *msg.Handler, d *data) {
+	stackStatus, err = fio.LoadWithContext[status](handler, bufferPath, fio.Blank)
 	if err != nil {
-		sendWithImageFail(msgr, `读取叠猫猫缓存时发生错误喵！`, err)
+		sendWithImageFail(handler, `读取叠猫猫缓存时发生错误喵！`, err)
 		return
 	}
 	// 计算猫池中位数重量
-	d.median(msgr)
+	d.median(handler)
 	// 计算最大休息时间
-	stackBuffer.MaxRestTime = min(math.MaxInt64/dailyRatio, times.HoursPerDay*time.Hour*
-		time.Duration(stackConfig.MinRestHours*stackBuffer.MedianWeight))
-	if err := fio.Save(bufferPath, stackBuffer); err != nil {
-		sendWithImageFail(msgr, `叠猫猫缓存时发生错误喵！`, err)
+	stackStatus.MaxRestTime = min(math.MaxInt64/dailyRatio, times.Day*
+		time.Duration(stackConfig.MinRestHours*stackStatus.MedianWeight))
+	if err := fio.SaveWithContext(handler, bufferPath, stackStatus); err != nil {
+		sendWithImageFail(handler, `叠猫猫缓存时发生错误喵！`, err)
 	}
 }
 
@@ -36,13 +40,11 @@ func chanceFlat(m meow) float64 {
 	return min(float64(mapMeow[抱枕].weight)/float64(m.Weight), 1)
 }
 
-/*
-检查是否因为叠猫猫失败摔下去
-
-m 为上方的猫猫，n 为下方的猫猫
-
-如果没有摔下去则返回 true
-*/
+// 检查是否因为叠猫猫失败摔下去
+//
+//	m 为上方的猫猫
+//	n 为下方的猫猫
+//	如果没有摔下去则返回 true
 func (m meow) checkFall(n meow) bool {
 	//nolint:gosec
 	return rand.Float64() >= m.chanceFall(n)
@@ -55,15 +57,15 @@ func (m meow) chanceFall(n meow) float64 {
 }
 
 // 获取猫猫类型
-func (m meow) getType(msgr *kitten.Messager) meowType {
-	return mapMeow[m.getTypeID(msgr)]
+func (m meow) getType(handler *msg.Handler) meowType {
+	return mapMeow[m.getTypeID(handler)]
 }
 
 // 获取猫猫类型 ID
-func (m meow) getTypeID(msgr *kitten.Messager) meowTypeID {
+func (m meow) getTypeID(handler *msg.Handler) meowTypeID {
 	for i := range unknown {
 		if m.Weight < mapMeow[i].weight {
-			if i == 猫娘少女 && m.IsAdult(msgr) {
+			if i == 猫娘少女 && m.IsAdult(handler) {
 				continue
 			}
 			return i
@@ -89,48 +91,69 @@ func normal(σ float64) float64 {
 }
 
 // 发送本地化文本
-func sendText(msgr *kitten.Messager, lf bool, text ...any) message.ID {
+func sendText(handler *msg.Handler, lf bool, text ...any) message.ID {
 	if lf {
-		return msgr.Quote().AtLf().Text(rangeAssertion(text)...).Send()
+		return handler.Quote().AtLf().Text(rangeAssertion(text)...).Send()
 	}
-	return msgr.Quote().At().Text(rangeAssertion(text)...).Send()
+	return handler.Quote().At().Text(rangeAssertion(text)...).Send()
 }
 
 // 发送本地化格式化文本
-func sendTextf(msgr *kitten.Messager, lf bool, format string, a ...any) message.ID {
+func sendTextf(handler *msg.Handler, lf bool, format string, a ...any) message.ID {
 	if lf {
-		return msgr.Quote().AtLf().Textf(
+		return handler.Quote().AtLf().Textf(
 			l10n.Replace(format),
 			rangeAssertion(a)...,
 		).Send()
 	}
-	return msgr.Quote().At().Textf(
+	return handler.Quote().At().Textf(
 		l10n.Replace(format),
 		rangeAssertion(a)...,
 	).Send()
 }
 
 // 发送带有撞大运图片的本地化文字消息
-func sendWithImageLorry(msgr *kitten.Messager, text ...any) message.ID {
-	return msgr.Quote().AtLf().Image(fio.NewPath(lorryImage)).
+func sendWithImageLorry(handler *msg.Handler, text ...any) message.ID {
+	return handler.Quote().AtLf().Image(fio.NewPath(imagePath, lorryImage)).
 		Text(rangeAssertion(text)...).Send()
 }
 
 // 发送带有失败图片的本地化文字消息
-func sendWithImageFail(msgr *kitten.Messager, text ...any) message.ID {
-	return msgr.SendWithImageFail(rangeAssertion(text)...)
+func sendWithImageFail(handler *msg.Handler, text ...any) message.ID {
+	return handler.SendWithImageFail(rangeAssertion(text)...)
 }
 
 // 发送带有杂鱼图片的本地化文字消息
-func sendWithZako(msgr *kitten.Messager, text ...any) message.ID {
-	return msgr.Quote().AtLf().Image(fio.NewPath(zako)).
+func sendWithZako(handler *msg.Handler, text ...any) message.ID {
+	return handler.Quote().AtLf().Image(fio.NewPath(zako)).
 		Text(rangeAssertion(text)...).Send()
 }
 
 // 发送带有压扁图片的本地化文字消息
-func sendWithPressed(msgr *kitten.Messager, text ...any) message.ID {
-	return msgr.Quote().AtLf().Image(fio.NewPath(`压扁.gif`)).
+func sendWithPressed(handler *msg.Handler, text ...any) message.ID {
+	return handler.Quote().AtLf().Image(fio.NewPath(imagePath, `压扁.gif`)).
 		Text(rangeAssertion(text)...).Send()
+}
+
+// 发送带有没压扁图片的本地化格式文字消息
+func sendWithNoPressedf(handler *msg.Handler, format string, text ...any) message.ID {
+	return handler.Quote().AtLf().Image(fio.NewPath(imagePath, `没压扁.png`)).
+		Textf(format, rangeAssertion(text)...).Send()
+}
+
+// 发送带有跳跃图片的本地化格式文字消息
+func sendWithJump(handler *msg.Handler, text ...any) message.ID {
+	return handler.Quote().AtLf().Image(fio.NewPath(imagePath, `跳.gif`)).
+		Text(rangeAssertion(text)...).Send()
+}
+
+// 异步发送表情回复
+func asyncSendEmoji(handler *msg.Handler, emojiName string) {
+	utils.Go(`叠猫猫发送表情回复`, func() {
+		if err := handler.SendEmojiLike(emojiName); err != nil {
+			log.Warn(err)
+		}
+	})
 }
 
 // 遍历断言
@@ -148,8 +171,23 @@ func rangeAssertion(a []any) []any {
 	return a
 }
 
+// Format 实现 fmt.Formatter
+func (m meow) Format(f fmt.State, verb rune) {
+	switch verb {
+	case 's', 'v': // 需要 %v 以屏蔽底层的 usr.QQ 的格式
+		fmt.Fprint(f, m.String())
+	default:
+		type raw meow
+		fmt.Fprintf(f, fmt.FormatString(f, verb), raw(m))
+	}
+}
+
 // String 实现 fmt.Stringer
 func (m meow) String() string {
+	ctx, cancel := context.WithTimeout(context.Background(), shttp.Timeout)
+	defer cancel()
+	GlobalMessager.Context = ctx // 设置上下文
+	defer func() { GlobalMessager.Context = context.Background() }()
 	if globalLocation == cockroach {
 		return fmt.Sprintf(`【%s】	翼展 %.1f cm`, m.getType(GlobalMessager), i2f(m.Weight))
 	}

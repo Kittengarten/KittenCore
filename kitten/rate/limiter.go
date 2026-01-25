@@ -2,9 +2,8 @@
 package rate
 
 import (
+	"log/slog"
 	"time"
-
-	"github.com/Kittengarten/KittenCore/kitten"
 
 	"github.com/FloatTech/zbputils/ctxext"
 	zero "github.com/wdvxdr1123/ZeroBot"
@@ -42,12 +41,12 @@ func init() {
 }
 
 // Get 获取共通限速器，o 为限速器类型
-func Get(o limiterType) Limiter {
+func (o limiterType) Get() Limiter {
 	if lmt, ok := limiterStore[o]; ok {
 		return lmt
 	}
 	// 如果获取限速器失败，则返回默认的个人限速器
-	kitten.Error(`获取限速器失败，请检查限速器类型喵！`)
+	slog.Error(`获取限速器失败，请检查限速器类型喵！`)
 	return ctxext.LimitByUser
 }
 

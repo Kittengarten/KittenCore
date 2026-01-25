@@ -34,16 +34,64 @@ func IsSameDate4AM(t ...time.Time) bool {
 
 // 判断两个时间是否在同一天，界限为 4:00
 func equalDate4AM(t1, t2 time.Time) bool {
-	t1 = t1.Add(-4 * time.Hour)
-	t2 = t2.Add(-4 * time.Hour)
-	return equalDate(t1, t2)
+	return equalDate(t1.Add(-4*time.Hour), t2.Add(-4*time.Hour))
 }
 
 // 判断两个时间是否在同一天
 func equalDate(t1, t2 time.Time) bool {
+	return CmpDay(t1, t2) == 0
+}
+
+// CmpDay4AM 比较天数差值 t2 - t1
+func CmpDay4AM(t1, t2 time.Time) int {
+	return CmpDay(t1.Add(-4*time.Hour), t2.Add(-4*time.Hour))
+}
+
+// CmpDay 比较天数差值 t2 - t1
+func CmpDay(t1, t2 time.Time) int {
+	y1, m1, d1 := t1.Local().Date()
+	y2, m2, d2 := t2.Local().Date()
+	return int(
+		time.Date(y2, m2, d2,
+			0, 0, 0, 0, time.Local).
+			Sub(time.Date(y1, m1, d1,
+				0, 0, 0, 0, time.Local)))
+}
+
+// CmpWeek 比较 ISO 周数差值 t2 - t1
+func CmpWeek(t1, t2 time.Time) int {
 	t1 = t1.Local()
 	t2 = t2.Local()
-	return t1.YearDay() == t2.YearDay() && t1.Year() == t2.Year()
+	return int(t2.AddDate(
+		0,
+		0,
+		-int((int(t2.Weekday())+6)%7),
+	).Sub(t1.AddDate(
+		0,
+		0,
+		-int((int(t1.Weekday())+6)%7),
+	)).Hours()/24) / 7
+}
+
+// CmpMonth 比较月数差值 t2 - t1
+func CmpMonth(t1, t2 time.Time) int {
+	y1, m1, _ := t1.Local().Date()
+	y2, m2, _ := t2.Local().Date()
+	return (y2-y1)*12 + int(m2) - int(m1)
+}
+
+// FullYears 获取周年数 t2 - t1
+func FullYears(t1, t2 time.Time) int {
+	y := CmpYear(t1, t2)
+	if t1.AddDate(y, 0, 0).After(t2) {
+		y--
+	}
+	return y
+}
+
+// CmpYear 比较年数差值 t2 - t1
+func CmpYear(t1, t2 time.Time) int {
+	return t2.Local().Year() - t1.Local().Year()
 }
 
 // IsSameFunc 用函数判断值是否相同

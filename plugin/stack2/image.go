@@ -1,8 +1,9 @@
 package stack2
 
 import (
-	"github.com/Kittengarten/KittenCore/kitten"
+	"github.com/Kittengarten/KittenCore/internal/config"
 	"github.com/Kittengarten/KittenCore/kitten/core/fio"
+	"github.com/Kittengarten/KittenCore/kitten/msg"
 
 	"github.com/vicanso/go-charts/v2"
 
@@ -10,16 +11,17 @@ import (
 )
 
 // 生成并发送图片
-func sendImage(msgr *kitten.Messager, p *charts.Painter) message.ID {
+func sendImage(handler *msg.Handler, p *charts.Painter) message.ID {
 	buf, err := p.Bytes()
-	defer p.Close()
+	p.Close()
+	p = nil
 	if err != nil {
-		return sendWithImageFail(msgr, err)
+		return sendWithImageFail(handler, err)
 	}
 	path := fio.NewPath(imagePath, `叠猫猫.png`)
-	if err = fio.NewPath(kitten.ImagePath().String(), path.String()).
+	if err = fio.NewPath(config.ImagePath().String(), path.String()).
 		WriteBytes(buf); err != nil {
-		return sendWithImageFail(msgr, err)
+		return sendWithImageFail(handler, err)
 	}
-	return msgr.Quote().Image(path).Send()
+	return handler.Quote().Image(path).Send()
 }

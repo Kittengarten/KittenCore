@@ -3,6 +3,7 @@ package fanqie
 
 import (
 	"cmp"
+	"context"
 	"fmt"
 	"net/url"
 	"path"
@@ -11,8 +12,8 @@ import (
 
 	"golang.org/x/net/html"
 
-	"github.com/Kittengarten/KittenCore/kitten"
 	"github.com/Kittengarten/KittenCore/kitten/core/htmls"
+	"github.com/Kittengarten/KittenCore/kitten/core/log"
 	"github.com/Kittengarten/KittenCore/kitten/core/shttp"
 	"github.com/Kittengarten/KittenCore/kitten/core/str"
 	"github.com/Kittengarten/KittenCore/kitten/core/utils"
@@ -27,7 +28,7 @@ import (
 )
 
 // FQ 番茄小说网
-type FQ struct{}
+type FQ utils.Object
 
 const (
 	// Host 网站
@@ -56,7 +57,7 @@ func (FQ) Layout() string {
 }
 
 // FindBookID 番茄网页暂不支持用关键词搜索书号
-func (FQ) FindBookID(key search.Keyword) (string, error) {
+func (FQ) FindBookID(_ context.Context, key search.Keyword) (string, error) {
 	return ``, platform.NotSupported(Platform.String())
 }
 
@@ -64,14 +65,14 @@ func (FQ) FindBookID(key search.Keyword) (string, error) {
 func (FQ) ChapterID(cpURL string) string {
 	u, err := url.Parse(cpURL)
 	if err != nil {
-		kitten.Error(err)
+		log.Error(err)
 		return ``
 	}
 	return cmp.Or(u.Query().Get(ItemID), path.Base(u.Path))
 }
 
 // Init 小说网页信息获取
-func (f FQ) Init(cpID string) (any, error) {
+func (f FQ) Init(ctx context.Context, cpID string) (any, error) {
 	// 初始化小说
 	nv := novel.Pool.Get().(*novel.Novel)
 	*nv = novel.Novel{}
@@ -84,7 +85,7 @@ func (f FQ) Init(cpID string) (any, error) {
 	// 获取小说网页，失败则返回
 	shttp.SetUserAgent(shttp.RandomUserAgent())
 	defer shttp.SetUserAgent(shttp.UserAgent)
-	doc, err := htmlquery.LoadURL(nv.URL)
+	doc, err := shttp.LoadURLWithContext(ctx, nv.URL)
 	if err != nil {
 		return nv, err
 	}
@@ -133,12 +134,12 @@ func (f FQ) Init(cpID string) (any, error) {
 		return nv, err
 	}
 	// 加载新章节
-	nv.Chapter, err = chapter.New(f, ncpURL)
+	nv.Chapter, err = chapter.New(ctx, f, ncpURL)
 	return nv, err
 }
 
 // NewChapter 章节信息获取
-func (f FQ) NewChapter(cpURL string) (any, error) {
+func (f FQ) NewChapter(ctx context.Context, cpURL string) (any, error) {
 	// 初始化章节
 	cp := chapter.Pool.Get().(*chapter.Chapter)
 	*cp = chapter.Chapter{}
@@ -147,7 +148,7 @@ func (f FQ) NewChapter(cpURL string) (any, error) {
 	// 获取章节网页，失败则返回
 	shttp.SetUserAgent(shttp.RandomUserAgent())
 	defer shttp.SetUserAgent(shttp.UserAgent)
-	doc, err := htmlquery.LoadURL(cp.URL)
+	doc, err := shttp.LoadURLWithContext(ctx, cp.URL)
 	if err != nil {
 		return cp, err
 	}

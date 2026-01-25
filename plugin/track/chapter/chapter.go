@@ -1,6 +1,7 @@
 package chapter
 
 import (
+	"context"
 	"sync"
 
 	"github.com/Kittengarten/KittenCore/plugin/track/platform"
@@ -19,8 +20,8 @@ func (cp *Chapter) String() string {
 }
 
 // New 初始化章节
-func New(p platform.Platform, cpURL string) (*Chapter, error) {
-	cpa, err := p.NewChapter(cpURL)
+func New(ctx context.Context, p platform.Platform, cpURL string) (*Chapter, error) {
+	cpa, err := p.NewChapter(ctx, cpURL)
 	if err != nil {
 		return nil, err
 	}

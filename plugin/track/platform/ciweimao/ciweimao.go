@@ -2,6 +2,7 @@
 package ciweimao
 
 import (
+	"context"
 	"fmt"
 	"net/url"
 	"path"
@@ -10,6 +11,7 @@ import (
 	"time"
 
 	"github.com/Kittengarten/KittenCore/kitten/core/htmls"
+	"github.com/Kittengarten/KittenCore/kitten/core/shttp"
 	"github.com/Kittengarten/KittenCore/kitten/core/str"
 	"github.com/Kittengarten/KittenCore/kitten/core/utils"
 	"github.com/Kittengarten/KittenCore/plugin/track/chapter"
@@ -23,7 +25,7 @@ import (
 )
 
 // CWM 刺猬猫阅读
-type CWM struct{}
+type CWM utils.Object
 
 const (
 	// Host 网站
@@ -50,8 +52,9 @@ func (c CWM) Layout() string {
 }
 
 // FindBookID 用关键词搜索书号
-func (c CWM) FindBookID(key search.Keyword) (string, error) {
-	doc, err := htmlquery.LoadURL(
+func (c CWM) FindBookID(ctx context.Context, key search.Keyword) (string, error) {
+	doc, err := shttp.LoadURLWithContext(
+		ctx,
 		fmt.Sprint(Host, `/get-search-book-list/0-0-0-0-0-0/全部/`, key, `/1`),
 	)
 	if err != nil {
@@ -74,7 +77,7 @@ func (c CWM) ChapterID(cpURL string) string {
 }
 
 // Init 小说网页信息获取
-func (c CWM) Init(cpID string) (any, error) {
+func (c CWM) Init(ctx context.Context, cpID string) (any, error) {
 	// 初始化小说
 	nv := novel.Pool.Get().(*novel.Novel)
 	*nv = novel.Novel{}
@@ -85,7 +88,7 @@ func (c CWM) Init(cpID string) (any, error) {
 	// 生成链接
 	nv.URL = URL + nv.ID
 	// 获取小说网页，失败则返回
-	doc, err := htmlquery.LoadURL(nv.URL)
+	doc, err := shttp.LoadURLWithContext(ctx, nv.URL)
 	if err != nil {
 		return nv, err
 	}
@@ -111,14 +114,14 @@ func (c CWM) Init(cpID string) (any, error) {
 		nv.Status = htmls.InnerText(bookInfo, `/p[@class="update-state"]`)
 		// 获取小说成绩
 		bookGrade := htmlquery.Find(bookInfo, `/p[@class="book-grade"]/b`)
-		if len(bookGrade) >= 3 {
+		novel.CheckComplete(`成绩`, bookGrade, 3, func() {
 			// 获取小说点击
 			nv.HitNum = htmlquery.InnerText(bookGrade[0])
 			// 获取小说收藏
 			nv.Collection = htmlquery.InnerText(bookGrade[1])
 			// 获取小说字数
 			nv.TotalWordNum = htmlquery.InnerText(bookGrade[2])
-		}
+		})
 	}
 	// 获取项目
 	if item := htmlquery.FindOne(doc, `//div[starts-with(@class,"book-desc")]/p`); item != nil {
@@ -126,9 +129,10 @@ func (c CWM) Init(cpID string) (any, error) {
 	}
 	// 获取简述
 	var (
-		s    strings.Builder
 		desc = htmlquery.Find(doc, `//div[starts-with(@class,"book-desc")]/text()`)
+		s    = new(strings.Builder)
 	)
+	s.Grow(1024)
 	for n, i := range desc {
 		s.WriteString(str.Clean(htmlquery.InnerText(i), false))
 		if n < len(desc)-1 {
@@ -163,19 +167,19 @@ func (c CWM) Init(cpID string) (any, error) {
 		return nv, err
 	}
 	// 加载新章节
-	nv.Chapter, err = chapter.New(c, ncpURL)
+	nv.Chapter, err = chapter.New(ctx, c, ncpURL)
 	return nv, err
 }
 
 // NewChapter 章节信息获取
-func (c CWM) NewChapter(cpURL string) (any, error) {
+func (c CWM) NewChapter(ctx context.Context, cpURL string) (any, error) {
 	// 初始化章节
 	cp := chapter.Pool.Get().(*chapter.Chapter)
 	*cp = chapter.Chapter{}
 	// 向章节传入链接
 	cp.URL = cpURL
 	// 获取章节网页，失败则返回
-	doc, err := htmlquery.LoadURL(cp.URL)
+	doc, err := shttp.LoadURLWithContext(ctx, cp.URL)
 	if err != nil {
 		return cp, err
 	}

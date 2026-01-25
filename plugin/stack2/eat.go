@@ -7,39 +7,38 @@ import (
 	"strings"
 	"time"
 
-	"github.com/Kittengarten/KittenCore/kitten"
 	"github.com/Kittengarten/KittenCore/kitten/core/fio"
 	"github.com/Kittengarten/KittenCore/kitten/core/times"
+	"github.com/Kittengarten/KittenCore/kitten/core/utils"
+	"github.com/Kittengarten/KittenCore/kitten/msg"
 
 	"github.com/wdvxdr1123/ZeroBot/message"
 )
 
 // 吃猫猫执行逻辑
-func eatExe(msgr *kitten.Messager) {
-	if !setGlobalLocation(msgr.Args()) {
+func eatExe(handler *msg.Handler) {
+	if !setGlobalLocation(handler.Args()) {
 		// 设置全局地区标记位，如当前活动未开放则返回
-		if err := msgr.SendEmojiLike(`辣眼睛`); err != nil {
-			kitten.Warn(err)
-		}
-		msgr.SendWithImageFail(`当前活动未开放喵！`)
+		asyncSendEmoji(handler, `辣眼睛`)
+		handler.SendWithImageFail(`当前活动未开放喵！`)
 		return
 	}
-	GlobalMessager = msgr
-	d, err := fio.Load[data](dataPath, fio.Empty)
+	GlobalMessager.Ctx = handler.Ctx
+	d, err := fio.LoadWithContext[data](handler, dataPath, fio.Empty)
 	if err != nil {
-		sendWithImageFail(msgr, `加载叠猫猫数据文件时发生错误喵！`, err)
+		sendWithImageFail(handler, `加载叠猫猫数据文件时发生错误喵！`, err)
 		return
 	}
-	stackBuffer.refresh(msgr, &d)
-	_ = d.eat(msgr)
-	self(msgr, d)
+	stackStatus.refresh(handler, &d)
+	_ = d.eat(handler)
+	self(handler, d)
 }
 
 // 吃猫猫
-func (d *data) eat(msgr *kitten.Messager) message.ID {
+func (d *data) eat(handler *msg.Handler) message.ID {
 	var (
 		// 初始化自身
-		m, err = d.pre(msgr)
+		m, err = d.pre(handler)
 		// 未在叠猫猫的队列
 		dn data
 		// 取消恢复数据状态
@@ -59,33 +58,31 @@ func (d *data) eat(msgr *kitten.Messager) message.ID {
 		// 初始化错误（需要休息或已经加入），不能吃猫猫，依靠延迟函数恢复数据状态
 		return message.ID{}
 	}
-	if m.getTypeID(msgr) < 小老虎 {
+	if m.getTypeID(handler) < 小老虎 {
 		// 不是老虎，不能吃猫猫，依靠延迟函数恢复数据状态
-		if err := msgr.SendEmojiLike(`NO`); err != nil {
-			kitten.Warn(err)
-		}
-		return sendWithImageFail(msgr, `老虎以上才可以吃猫猫——`)
+		asyncSendEmoji(handler, `NO`)
+		return sendWithImageFail(handler, `老虎以上才可以吃猫猫——`)
 	}
 	// 未在叠猫猫的队列
 	dn = d.getNoStack()
 	// 执行吃猫猫
-	if !d.doEat(msgr, &m) {
+	if !d.doEat(handler, &m) {
 		// 如果不能吃猫猫，依靠延迟函数恢复数据状态
 		return message.ID{}
 	}
 	// 合并当前未叠猫猫与叠猫猫的队列，将老虎追加入切片中
 	restore()
 	// 清理过期玩家
-	d.clear(msgr, false)
+	d.clear(handler, false)
 	// 存储叠猫猫数据
-	if err := fio.Save(dataPath, d); err != nil {
-		return sendWithImageFail(msgr, `存储叠猫猫数据时发生错误喵！`, err)
+	if err := fio.SaveWithContext(handler, dataPath, d); err != nil {
+		return sendWithImageFail(handler, `存储叠猫猫数据时发生错误喵！`, err)
 	}
 	return message.ID{}
 }
 
 // 执行吃猫猫
-func (d *data) doEat(msgr *kitten.Messager, m *meow) bool {
+func (d *data) doEat(handler *msg.Handler, m *meow) bool {
 	*d = d.getStack() // 正在叠猫猫的队列
 	var (
 		dr = slices.Clone(*d) // 叠猫猫队列的克隆
@@ -93,26 +90,20 @@ func (d *data) doEat(msgr *kitten.Messager, m *meow) bool {
 	)
 	if l == 0 {
 		// 没有猫猫
-		if err := msgr.SendEmojiLike(`哦`); err != nil {
-			kitten.Warn(err)
-		}
-		sendWithImageFail(msgr, `猫堆中没有猫猫可以吃——`)
+		asyncSendEmoji(handler, `哦`)
+		sendWithImageFail(handler, `猫堆中没有猫猫可以吃——`)
 		return false
 	}
-	if t := (*d)[l-1].getTypeID(msgr); t >= 小老虎 {
+	if t := (*d)[l-1].getTypeID(handler); t >= 小老虎 {
 		// 老虎以上无法被吃
-		if err := msgr.SendEmojiLike(`😁 呲牙`); err != nil {
-			kitten.Warn(err)
-		}
-		sendWithImageFail(msgr, `不可以吃`, &t, `——`)
+		asyncSendEmoji(handler, `😁 呲牙`)
+		sendWithImageFail(handler, `不可以吃`, &t, `——`)
 		return false
 	}
-	if t := (*d)[0].getTypeID(msgr); t >= 猫猫巴士 {
+	if t := (*d)[0].getTypeID(handler); t >= 猫猫巴士 {
 		// 底座是猫猫巴士以上无法被吃
-		if err := msgr.SendEmojiLike(`✨ 闪光`); err != nil {
-			kitten.Warn(err)
-		}
-		sendWithImageFail(msgr, `不可以吃`, &t, `载的猫猫——`)
+		asyncSendEmoji(handler, `✨ 闪光`)
+		sendWithImageFail(handler, `不可以吃`, &t, `载的猫猫——`)
 		return false
 	}
 	var (
@@ -123,52 +114,49 @@ func (d *data) doEat(msgr *kitten.Messager, m *meow) bool {
 	for i := range *d {
 		// 下方的猫猫
 		n := &(*d)[l-i-1]
-		if !mv.checkEat(msgr, *n) {
+		if !mv.checkEat(handler, *n) {
 			// 这只猫猫没有被吃，直接结束遍历
 			break
 		}
 		mv = n
 		c++
 		// 去除被吃的猫猫
-		exit(msgr, n, eaten, 0 /* 此参数无效 */)
+		exit(handler, n, eaten, 0 /* 此参数无效 */)
 		// 老虎增加被吃的猫猫的体重
 		w += n.Weight
 	}
-	go setCard(msgr, l-c)
+	utils.Go(`吃猫猫设置群昵称`, func() { setCard(handler, l-c) })
 	// 老虎进入休息
-	exit(msgr, m, eat, w)
-	var s strings.Builder
+	exit(handler, m, eat, w)
+	s := new(strings.Builder)
+	s.Grow(256)
 	if w == 0 {
 		// 吃猫猫失败
-		if err := msgr.SendEmojiLike(`调皮`); err != nil {
-			kitten.Warn(err)
-		}
-		fmt.Fprintf(&s, `吃猫猫失败，杂鱼～杂鱼❤需要休息 %s。`,
-			times.ConvertTimeDuration(m.Time.Sub(time.Unix(msgr.Event.Time, 0))))
-		doClear(msgr, l, c, m.Weight, m, &s)
+		asyncSendEmoji(handler, `调皮`)
+		fmt.Fprintf(s, `吃猫猫失败，杂鱼～杂鱼❤需要休息 %s。`,
+			times.ConvertTimeDuration(m.Time.Sub(time.Unix(handler.Event().Time, 0))))
+		doClear(handler, l, c, m.Weight, m, s)
 		s.WriteRune('🐅')
-		sendWithZako(msgr, &s)
+		sendWithZako(handler, s)
 		return true
 	}
 	// 吃猫猫成功
-	if err := msgr.SendEmojiLike(`😰 紧张`); err != nil {
-		kitten.Warn(err)
-	}
-	fmt.Fprintf(&s, `吃猫猫成功，你吃掉了 %d 只猫猫！需要休息 %s。`,
-		c, times.ConvertTimeDuration(m.Time.Sub(time.Unix(msgr.Event.Time, 0))))
-	doClear(msgr, l, c, m.Weight-w, m, &s)
+	asyncSendEmoji(handler, `😰 紧张`)
+	fmt.Fprintf(s, `吃猫猫成功，你吃掉了 %d 只猫猫！需要休息 %s。`,
+		c, times.ConvertTimeDuration(m.Time.Sub(time.Unix(handler.Event().Time, 0))))
+	doClear(handler, l, c, m.Weight-w, m, s)
 	s.WriteRune('🐯')
 	for range c {
 		s.WriteRune('😿')
 	}
 	e := dr[l-c:]
-	sendText(msgr, true, &s, &e)
+	sendText(handler, true, s, &e)
 	return true
 }
 
 // 检查是否成功吃掉，m 为老虎，n 为猫猫
-func (m meow) checkEat(msgr *kitten.Messager, n meow) bool {
-	if n.getTypeID(msgr) >= 小老虎 {
+func (m meow) checkEat(handler *msg.Handler, n meow) bool {
+	if n.getTypeID(handler) >= 小老虎 {
 		// 老虎不能被吃
 		return false
 	}

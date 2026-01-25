@@ -1,15 +1,20 @@
 package novel
 
 import (
+	"context"
 	"fmt"
 	"slices"
 	"strings"
 	"sync"
 
-	"github.com/Kittengarten/KittenCore/kitten"
+	"github.com/Kittengarten/KittenCore/kitten/core/log"
 	"github.com/Kittengarten/KittenCore/kitten/core/times"
+	"github.com/Kittengarten/KittenCore/kitten/core/utils"
 	"github.com/Kittengarten/KittenCore/plugin/track/chapter"
 	"github.com/Kittengarten/KittenCore/plugin/track/platform"
+
+	"github.com/antchfx/htmlquery"
+	"golang.org/x/net/html"
 )
 
 // Export 导出点评接口
@@ -87,13 +92,13 @@ func (nv *Novel) item() string {
 }
 
 // 获取小说标签
-func (nv *Novel) tags() *strings.Builder {
-	var s strings.Builder
+func (nv *Novel) tags() string {
+	s := new(strings.Builder)
 	s.Grow(8 * len(nv.TagList))
 	for _, t := range nv.TagList {
-		fmt.Fprint(&s, `[`, t, `]`)
+		fmt.Fprint(s, `[`, t, `]`)
 	}
-	return &s
+	return s.String()
 }
 
 // 获取小说收藏
@@ -133,7 +138,7 @@ func (nv *Novel) introduce() string {
 func (nv *Novel) ChapterID() string {
 	p, err := platform.Get(nv.Platform)
 	if err != nil {
-		kitten.Error(err)
+		log.Error(err)
 		return ``
 	}
 	return p.ChapterID(nv.Chapter.URL)
@@ -152,7 +157,7 @@ func (nv *Novel) String() string {
 		nv.protagonists(),
 		nv.URL,
 		nv.themes(),
-		nv.tags().String(),
+		nv.tags(),
 		nv.collection(),
 		nv.wordNum(),
 		nv.hitNum(),
@@ -162,12 +167,9 @@ func (nv *Novel) String() string {
 }
 
 // Init 初始化小说
-func Init(p platform.Platform, nvID string) (*Novel, error) {
-	nva, err := p.Init(nvID)
-	if err != nil {
-		return nil, err
-	}
-	return Assert(nva), nil
+func Init(ctx context.Context, p platform.Platform, nvID string) (*Novel, error) {
+	nv, err := p.Init(ctx, nvID)
+	return Assert(nv), err
 }
 
 // Assert 断言为小说，不是小说时返回空小说
@@ -175,5 +177,22 @@ func Assert(a any) *Novel {
 	if nv, ok := a.(*Novel); ok {
 		return nv
 	}
-	return &Novel{Chapter: &chapter.Chapter{}}
+	return &Novel{Chapter: new(chapter.Chapter)}
+}
+
+// CheckComplete 检查数据长度，判断是否完整
+func CheckComplete(name string, data []*html.Node, n int, f func()) {
+	if len(data) >= n {
+		f()
+		return
+	}
+	log.Warnf(`小说%s不完整喵！
+长度：%d
+内容：
+%s`,
+		name,
+		len(data),
+		strings.Join(utils.ConvertSlice(data,
+			func(n *html.Node) string { return htmlquery.InnerText(n) },
+		), "\n"))
 }

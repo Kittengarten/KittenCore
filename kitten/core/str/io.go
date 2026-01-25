@@ -7,11 +7,9 @@ import (
 	"unicode"
 )
 
-/*
-Rename 在已知文件名重复的情况下，生成新的文件名
-
-不能保证生成的文件名不重复，需要自行判断
-*/
+// Rename 在已知文件名重复的情况下，生成新的文件名
+//
+//	不能保证生成的文件名不重复，需要自行判断
 func Rename(file string) string {
 	filename, ext := GetFileName(file)
 	filename, num := SplitNumber(filename)
@@ -27,7 +25,7 @@ func GetFileName(file string) (filename, ext string) {
 	return strings.TrimSuffix(file, ext), ext
 }
 
-// SplitNumber 分离文件名（不含拓展名）末尾的数字
+// SplitNumber 分离文件名（不含扩展名）末尾的数字
 func SplitNumber(filename string) (string, int) {
 	if filename == `` {
 		return filename, 0
@@ -67,5 +65,5 @@ var (
 
 // HandleFileName 处理文件名中不支持的字符
 func HandleFileName(filename string) string {
-	return replacer.Replace(filename)
+	return strings.Trim(replacer.Replace(filename), `. `)
 }

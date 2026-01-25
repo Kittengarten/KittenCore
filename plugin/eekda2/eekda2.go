@@ -1,16 +1,19 @@
 package eekda2
 
 import (
+	"context"
 	"slices"
 	"strings"
 	"time"
 
-	"github.com/Kittengarten/KittenCore/kitten"
+	"github.com/Kittengarten/KittenCore/kitten/core"
 	"github.com/Kittengarten/KittenCore/kitten/core/equal"
 	"github.com/Kittengarten/KittenCore/kitten/core/fio"
 	"github.com/Kittengarten/KittenCore/kitten/core/str"
 	"github.com/Kittengarten/KittenCore/kitten/core/utils"
+	"github.com/Kittengarten/KittenCore/kitten/msg"
 	"github.com/Kittengarten/KittenCore/kitten/rate"
+	"github.com/Kittengarten/KittenCore/kitten/usr"
 
 	"github.com/tidwall/gjson"
 
@@ -56,11 +59,11 @@ var (
 func init() {
 	// XX 今天吃什么
 	engine.OnSuffix(cEEKDA, zero.OnlyGroup).SetBlock(true).
-		Limit(rate.Get(rate.GroupNormal)).Handle(todayMeal)
+		Limit(rate.GroupNormal.Get()).Handle(todayMeal)
 
 	// 查询被吃次数
 	engine.OnFullMatchGroup([]string{`查询被吃次数`, `查看被吃次数`}, zero.OnlyGroup).SetBlock(true).
-		Limit(rate.Get(rate.User)).Limit(rate.Get(rate.GroupNormal)).Handle(getStat)
+		Limit(rate.User.Get()).Limit(rate.GroupNormal.Get()).Handle(getStat)
 }
 
 // XX 今天吃什么
@@ -68,95 +71,97 @@ func todayMeal(ctx *zero.Ctx) {
 	todayPath.Lock()
 	defer todayPath.Unlock()
 	var (
-		c, err = fio.Load[config](todayPath.Path, fio.Empty)
-		msgr   = kitten.New(ctx)
+		co, cancel = context.WithTimeout(context.Background(), core.Timeout)
+		c, err     = fio.LoadWithContext[config](co, todayPath.Path, fio.Empty)
+		handler       = msg.NewWithContext(co, ctx)
 	)
+	defer cancel()
 	if err != nil {
-		msgr.SendWithImageFail(err)
+		handler.SendWithImageFail(err)
 	}
-	name := str.Mid(``, cEEKDA, str.Clean(msgr.Event.RawMessage, false))
+	name := str.Mid(``, cEEKDA, str.Clean(handler.Event().RawMessage, false))
 	name, needRegister := strings.CutPrefix(name, cRegister)
 	name, needUnegister := strings.CutPrefix(name, cUnregister)
 	if name == `` {
 		// 角色名为空
-		msgr.SendWithImageFail(`角色名为空喵！`)
+		handler.SendWithImageFail(`角色名为空喵！`)
 		return
 	}
 	if needRegister && needUnegister {
 		// 指令冲突
-		msgr.SendWithImageFail(`指令冲突喵！`)
+		handler.SendWithImageFail(`指令冲突喵！`)
 		return
 	}
 	ci := slices.IndexFunc(c, func(t today) bool {
 		return name == t.ID
 	})
-	g := kitten.NewQQGroup(msgr.Event.GroupID)
+	g := usr.NewQQGroup(handler.Event().GroupID)
 	// 角色是否存在
 	if ci == -1 {
 		// 该角色不存在
 		if !needRegister {
 			// 不执行注册指令
-			msgr.SendWithImageFail(name, `未在任何群注册喵！`)
+			handler.SendWithImageFail(name, `未在任何群注册喵！`)
 			return
 		}
 		// 执行注册指令
-		if !zero.AdminPermission(msgr.Ctx) {
+		if !zero.AdminPermission(handler.Ctx) {
 			// 没有权限
-			msgr.SendWithImageFail(isNotAdmin)
+			handler.SendWithImageFail(isNotAdmin)
 			return
 		}
 		// 注册
 		c = append(c, today{
 			ID:    name,
-			Group: []kitten.QQ{*g},
+			Group: []usr.QQ{g},
 		})
 		// 写入文件
-		if err := fio.Save(todayPath.Path, c); err != nil {
-			msgr.SendWithImageFail(err)
+		if err := fio.SaveWithContext(co, todayPath.Path, c); err != nil {
+			handler.SendWithImageFail(err)
 			return
 		}
-		msgr.Quote().AtLf().Text(name, registerSuccess).Send()
+		handler.Quote().AtLf().Text(name, registerSuccess).Send()
 		return
 	}
 	// 该角色存在
-	if !slices.Contains(c[ci].Group, *g) {
+	if !slices.Contains(c[ci].Group, g) {
 		// 该角色未在本群注册
 		if !needRegister {
 			// 不执行注册指令
-			msgr.SendWithImageFail(name, `未在本群注册喵！`)
+			handler.SendWithImageFail(name, `未在本群注册喵！`)
 			return
 		}
 		// 执行注册指令
-		if !zero.AdminPermission(msgr.Ctx) {
+		if !zero.AdminPermission(handler.Ctx) {
 			// 没有权限
-			msgr.SendWithImageFail(isNotAdmin)
+			handler.SendWithImageFail(isNotAdmin)
 			return
 		}
 		// 注册
-		c[ci].Group = append(c[ci].Group, *g)
+		c[ci].Group = append(c[ci].Group, g)
 		// 写入文件
-		if err := fio.Save(todayPath.Path, c); err != nil {
-			msgr.SendWithImageFail(err)
+		if err := fio.SaveWithContext(co, todayPath.Path, c); err != nil {
+			handler.SendWithImageFail(err)
 			return
 		}
-		msgr.Quote().AtLf().Text(name, registerSuccess).Send()
+		handler.Quote().AtLf().Text(name, registerSuccess).Send()
 		return
 	}
 	// 该角色已在本群注册
 	switch {
 	case needRegister:
 		// 执行注册指令
-		msgr.SendWithImageFail(name, `已在本群注册，无需重复注册喵！`)
+		handler.SendWithImageFail(name, `已在本群注册，无需重复注册喵！`)
 	case needUnegister:
 		// 执行注销指令
-		if !zero.AdminPermission(msgr.Ctx) {
+		if !zero.AdminPermission(handler.Ctx) {
 			// 没有权限
-			msgr.SendWithImageFail(isNotAdmin)
+			handler.SendWithImageFail(isNotAdmin)
 			return
 		}
 		// 注销
-		c[ci].Group = slices.DeleteFunc(c[ci].Group, func(g_ kitten.QQ) bool {
-			return *g == g_
+		c[ci].Group = slices.DeleteFunc(c[ci].Group, func(g_ usr.QQ) bool {
+			return g == g_
 		})
 		if len(c[ci].Group) == 0 {
 			// 如果该角色已经在所有群注销，删除该角色
@@ -165,60 +170,64 @@ func todayMeal(ctx *zero.Ctx) {
 			})
 		}
 		// 写入文件
-		if err := fio.Save(todayPath.Path, c); err != nil {
-			msgr.SendWithImageFail(err)
+		if err := fio.SaveWithContext(co, todayPath.Path, c); err != nil {
+			handler.SendWithImageFail(err)
 			return
 		}
-		msgr.Quote().AtLf().Text(name, unregisterSuccess).Send()
+		handler.Quote().AtLf().Text(name, unregisterSuccess).Send()
 	default:
 		// 执行通常指令，写入上下文
-		c[ci].Messager = msgr
-		if equal.IsSameDate4AM(c[ci].Time, time.Unix(msgr.Event.Time, 0)) {
+		c[ci].Handler = handler
+		if equal.IsSameDate4AM(c[ci].Time, time.Unix(handler.Event().Time, 0)) {
 			// 今天已经生成了，直接播报
-			msgr.Quote().AtLf().Text(&c[ci]).Send()
+			handler.Quote().AtLf().Text(&c[ci]).Send()
 			return
 		}
 		// 今天没有生成，执行生成
 		var (
-			list = make([]gjson.Result, 0, 128) // 群员列表
-			t    = time.NewTicker(time.Second)  // 时钟
+			// 群员列表
+			list = make([]gjson.Result, 0, 128)
+			// 时钟
+			t = time.NewTicker(time.Second)
 		)
 		// 获取该角色注册的所有群的群员列表
 		for _, g := range c[ci].Group {
 			<-t.C
-			list = append(list, g.MemberList(msgr).List...)
+			list = append(list, g.MemberList(handler).List...)
 		}
 		t.Stop()
 		// 只保留昨天一天的群员
 		list = slices.DeleteFunc(list, func(v gjson.Result) bool {
 			return !equal.IsSameDate4AM(time.Unix(v.Get(`last_sent_time`).Int(), 0),
-				time.Unix(msgr.Event.Time, 0).AddDate(0, 0, -1))
+				time.Unix(handler.Event().Time, 0).AddDate(0, 0, -1))
 		})
 		// 在其中取足够人的索引
 		nums, err := utils.GenerateRandomNumber(0, len(list), mealsPerDay)
 		if err != nil {
-			msgr.SendWithImageFail(`没有足够的食物喵！`, err)
+			handler.SendWithImageFail(`没有足够的食物喵！`, err)
 			return
 		}
 		// 传入足够人的 QQ
-		for i, v := range nums {
-			c[ci].Meal[i] = *kitten.NewQQ(list[v].Get(`user_id`).Int())
+		i := 0
+		for v := range nums {
+			c[ci].Meal[i] = usr.NewQQ(list[v].Get(`user_id`).Int())
+			i++
 		}
 		// 写入时间
-		c[ci].Time = time.Unix(msgr.Event.Time, 0)
+		c[ci].Time = time.Unix(handler.Event().Time, 0)
 		// 写入文件
-		if err := fio.Save(todayPath.Path, c); err != nil {
-			msgr.SendWithImageFail(err)
+		if err := fio.SaveWithContext(co, todayPath.Path, c); err != nil {
+			handler.SendWithImageFail(err)
 			return
 		}
 		// 播报今天吃什么
-		msgr.Quote().AtLf().Text(&c[ci]).Send()
+		handler.Quote().AtLf().Text(&c[ci]).Send()
 		// 统计
-		doStat(msgr, c[ci])
+		doStat(handler, c[ci])
 	}
 }
 
 // 生成每一餐的内容
-func line(td *today, u kitten.QQ) string {
-	return u.TitleCardOrNickName(td.Messager) + `	❤	` + u.String()
+func line(td *today, u usr.QQ) string {
+	return u.TitleCardOrNickName(td.Handler) + `	❤	` + u.String()
 }

@@ -2,6 +2,7 @@
 package sfacg
 
 import (
+	"context"
 	"fmt"
 	"net/url"
 	"slices"
@@ -9,6 +10,7 @@ import (
 	"strings"
 
 	"github.com/Kittengarten/KittenCore/kitten/core/htmls"
+	"github.com/Kittengarten/KittenCore/kitten/core/shttp"
 	"github.com/Kittengarten/KittenCore/kitten/core/str"
 	"github.com/Kittengarten/KittenCore/kitten/core/utils"
 	"github.com/Kittengarten/KittenCore/plugin/track/chapter"
@@ -23,7 +25,7 @@ import (
 
 type (
 	// SF 轻小说
-	SF struct{}
+	SF utils.Object
 	// 用于判断的字数
 	minLen = int
 )
@@ -57,8 +59,9 @@ func (s SF) Layout() string {
 }
 
 // FindBookID 用关键词搜索书号
-func (s SF) FindBookID(key search.Keyword) (string, error) {
-	doc, err := htmlquery.LoadURL(fmt.Sprint(`http://s.sfacg.com/?Key=`, key, `&S=1&SS=0`))
+func (s SF) FindBookID(ctx context.Context, key search.Keyword) (string, error) {
+	doc, err := shttp.LoadURLWithContext(
+		ctx, fmt.Sprint(`http://s.sfacg.com/?Key=`, key, `&S=1&SS=0`))
 	if err != nil {
 		return ``, err
 	}
@@ -82,7 +85,7 @@ func (s SF) ChapterID(cpURL string) string {
 }
 
 // Init 小说网页信息获取
-func (s SF) Init(cpID string) (any, error) {
+func (s SF) Init(ctx context.Context, cpID string) (any, error) {
 	// 初始化小说
 	nv := novel.Pool.Get().(*novel.Novel)
 	*nv = novel.Novel{}
@@ -93,7 +96,7 @@ func (s SF) Init(cpID string) (any, error) {
 	// 生成链接
 	nv.URL = URL + nv.ID + `/`
 	// 获取小说网页，失败则返回
-	doc, err := htmlquery.LoadURL(nv.URL)
+	doc, err := shttp.LoadURLWithContext(ctx, nv.URL)
 	if err != nil {
 		return nv, err
 	}
@@ -110,7 +113,7 @@ func (s SF) Init(cpID string) (any, error) {
 	nv.HeadURL = htmls.InnerText(doc, `//div[@class="author-mask"]//img/@src`)
 	// 小说详细信息
 	textRow := htmlquery.Find(doc, `//div[@class="text-row"]/span`)
-	if len(textRow) >= 3 {
+	novel.CheckComplete(`详细信息`, textRow, 3, func() {
 		// 获取类型
 		nv.Theme = strings.TrimPrefix(htmlquery.InnerText(textRow[0]), `类型：`)
 		textRow1 := htmlquery.InnerText(textRow[1])
@@ -120,13 +123,13 @@ func (s SF) Init(cpID string) (any, error) {
 		nv.Status = str.Mid(`[`, `]`, textRow1)
 		// 获取点击
 		nv.HitNum = strings.TrimPrefix(htmlquery.InnerText(textRow[2]), `点击：`)
-	}
+	})
 	// 获取简述
 	nv.Introduce = htmls.InnerText(doc, `//p[@class="introduce"]`)
 	// 获取移动版简述
-	if introduceMobile, err := getIntroduce(nv); err == nil &&
+	if introduceMobile, err := getIntroduce(ctx, nv); err == nil &&
 		len(introduceMobile) >= len(nv.Introduce) {
-		nv.Introduce = introduceMobile
+		nv.Introduce = strings.TrimSpace(introduceMobile)
 	}
 	// 获取收藏
 	nv.Collection = strings.TrimPrefix(
@@ -157,7 +160,7 @@ func (s SF) Init(cpID string) (any, error) {
 		return nv, err
 	}
 	// 加载新章节
-	nv.Chapter, err = chapter.New(s, ncpURL)
+	nv.Chapter, err = chapter.New(ctx, s, ncpURL)
 	if err != nil {
 		return nv, err
 	}
@@ -166,7 +169,7 @@ func (s SF) Init(cpID string) (any, error) {
 		return nv, err
 	}
 	// 是 VIP 书籍，检查是否存在最新章节
-	err = s.checkUpdate(nv, doc)
+	err = s.checkUpdate(ctx, nv, doc)
 	return nv, err
 }
 
@@ -191,18 +194,18 @@ func getNovelRightItem(nv *novel.Novel, doc *html.Node) {
 }
 
 // 获取移动版简述
-func getIntroduce(nv *novel.Novel) (string, error) {
-	doc, err := htmlquery.LoadURL(`https://m.sfacg.com/b/` + nv.ID + `/`)
+func getIntroduce(ctx context.Context, nv *novel.Novel) (string, error) {
+	doc, err := shttp.LoadURLWithContext(ctx, `https://m.sfacg.com/b/` + nv.ID + `/`)
 	if err != nil {
 		return ``, err
 	}
-	return str.Compose(nil, htmls.InnerText(doc,
+	return str.ComposeAuto(htmls.InnerText(doc,
 		`//ul[@class="book_profile"]/li[@class="book_bk_qs1"]`),
 	), mayExist(doc, nv.URL, BookStrings)
 }
 
 // 检查是否存在最新章节
-func (s SF) checkUpdate(nv *novel.Novel, doc *html.Node) error {
+func (s SF) checkUpdate(ctx context.Context, nv *novel.Novel, doc *html.Node) error {
 	// 尝试获取新公众章节链接
 	ncpPublicNode := htmlquery.FindOne(doc, `//div[@class="chapter-info"]/div/a/@href`)
 	if ncpPublicNode == nil {
@@ -220,7 +223,7 @@ func (s SF) checkUpdate(nv *novel.Novel, doc *html.Node) error {
 		return status.ErrStatus(ncpPublicURL, status.ChapterURLException)
 	}
 	// 加载最新公众章节
-	ncpFree, err := chapter.New(s, ncpPublicURL)
+	ncpFree, err := chapter.New(ctx, s, ncpPublicURL)
 	if err != nil {
 		return err
 	}
@@ -232,14 +235,14 @@ func (s SF) checkUpdate(nv *novel.Novel, doc *html.Node) error {
 }
 
 // NewChapter 章节信息获取
-func (s SF) NewChapter(cpURL string) (any, error) {
+func (s SF) NewChapter(ctx context.Context, cpURL string) (any, error) {
 	// 初始化章节
 	cp := chapter.Pool.Get().(*chapter.Chapter)
 	*cp = chapter.Chapter{}
 	// 向章节传入链接
 	cp.URL = cpURL
 	// 获取章节网页，失败则返回
-	doc, err := htmlquery.LoadURL(cp.URL)
+	doc, err := shttp.LoadURLWithContext(ctx, cp.URL)
 	if err != nil {
 		return cp, err
 	}
