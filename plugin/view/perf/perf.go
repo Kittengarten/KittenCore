@@ -52,9 +52,9 @@ var (
 	server bool // 工作模式
 	work   = sync.OnceFunc(func() {
 		// 设置超时
-		shttp.SetTimeOut(core.Timeout)
+		shttp.SetTimeout(core.Timeout)
 		// 恢复超时
-		defer shttp.SetTimeOut(shttp.Timeout)
+		defer shttp.SetTimeout(shttp.Timeout)
 		res, err := shttp.GET(urlStr + view)
 		if err == nil {
 			defer shttp.Clear(res)
@@ -132,9 +132,9 @@ func ViewString(ctx context.Context, name, t, w string) string {
 func viewString(ctx context.Context, t string) string {
 	if !server {
 		// 设置超时
-		shttp.SetTimeOut(core.Timeout)
+		shttp.SetTimeout(core.Timeout)
 		// 恢复超时
-		defer shttp.SetTimeOut(shttp.Timeout)
+		defer shttp.SetTimeout(shttp.Timeout)
 		res, err := shttp.GETData(urlStr + view)
 		if err != nil {
 			return err.Error()

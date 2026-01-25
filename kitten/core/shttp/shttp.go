@@ -43,8 +43,8 @@ const (
 	UserAgent = `Mozilla/5.0 (Windows NT 10.0; Win64; x64)` +
 		` AppleWebKit/537.36 (KHTML, like Gecko)` +
 		` Chrome/129.0.0.0 Safari/537.36 Edg/129.0.0.0` // UserAgent 用户代理
-	TimeoutSeconds = 10                           // TimeOutSeconds 超时时间
-	Timeout        = TimeoutSeconds * time.Second // TimeOut 超时时间
+	TimeoutSeconds = 10                           // TimeoutSeconds 超时时间
+	Timeout        = TimeoutSeconds * time.Second // Timeout 超时时间
 )
 
 var (
@@ -56,7 +56,7 @@ func init() {
 	// 设置默认 User-Agent
 	SetUserAgent(RandomUserAgent())
 	// 设置默认超时时间
-	SetTimeOut(Timeout)
+	SetTimeout(Timeout)
 }
 
 // RandomUserAgent 是一个随机的 User-Agent
@@ -65,8 +65,8 @@ func RandomUserAgent() string {
 	return strings.ReplaceAll(UserAgent, `129`, strconv.Itoa(100+rand.N(30)))
 }
 
-// SetTimeOut 设置超时时间
-func SetTimeOut(d time.Duration) {
+// SetTimeout 设置超时时间
+func SetTimeout(d time.Duration) {
 	http.DefaultClient.Timeout = d
 	TLSClient.Timeout = d
 	TLSHTTP2Client.Timeout = d
