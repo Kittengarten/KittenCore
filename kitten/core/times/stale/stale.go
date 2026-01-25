@@ -31,16 +31,16 @@ func (l Level) String() string {
 // Check 检查停更等级
 func Check(last time.Time) Level {
 	now := time.Now()
-	if diffDays := equal.CmpDay(last, now); diffDays <= 1 {
+	if d := equal.CmpDay(last, now); d <= 1 {
 		return Day
 	}
-	if diffWeeks := equal.CmpWeek(last, now); diffWeeks <= 1 {
+	if w := equal.CmpWeek(last, now); w <= 1 {
 		return Week
 	}
-	if diffMonths := equal.CmpMonth(last, now); diffMonths <= 1 {
+	if m := equal.CmpMonth(last, now); m <= 1 {
 		return Month
 	}
-	if diffYears := equal.CmpYear(last, now); diffYears <= 1 {
+	if y := equal.CmpYear(last, now); y <= 1 {
 		return Year
 	}
 	return Life
