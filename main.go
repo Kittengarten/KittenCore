@@ -11,7 +11,7 @@ import (
 
 	// 自定义优先级
 	// 字典序靠前（大写开头）以提高 init 优先级，伪装第三方包，不影响外部模块导入
-	_ "github.com/BellerophonMobile/logberry"
+	_ "github.com/FloatTech/Plugin-Template"
 
 	// 内部插件
 	// _ "github.com/Kittengarten/KittenCore/internal/auth" // 内置黑名单控制插件

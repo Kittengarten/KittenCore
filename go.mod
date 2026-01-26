@@ -10,7 +10,7 @@ ignore (
 )
 
 require (
-	github.com/BellerophonMobile/logberry v0.0.0-20181025163003-73d3f13cff46
+	github.com/FloatTech/Plugin-Template v0.0.0-20220112034251-2d0ac4afceff
 	github.com/FloatTech/ZeroBot-Plugin v1.10.17-0.20260117133339-37dfad9a2903
 	github.com/FloatTech/ZeroBot-Plugin-Playground v0.0.0-20250514132903-38bc3197f052
 	github.com/FloatTech/floatbox v0.0.0-20251002074805-f95cbc7edb31
@@ -111,8 +111,8 @@ require (
 	golang.org/x/sys v0.40.0 // indirect
 	golang.org/x/text v0.33.0 // indirect
 	golang.org/x/xerrors v0.0.0-20240903120638-7835f813f4da // indirect
-	modernc.org/libc v1.67.6 // indirect
+	modernc.org/libc v1.67.7 // indirect
 	modernc.org/mathutil v1.7.1 // indirect
 	modernc.org/memory v1.11.0 // indirect
-	modernc.org/sqlite v1.44.2 // indirect
+	modernc.org/sqlite v1.44.3 // indirect
 )
