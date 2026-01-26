@@ -3,12 +3,15 @@ package main
 
 import (
 	// 标准库
-	_ "a" // 字典序靠前以提高 init 优先级
 	_ "net/http/pprof"
 
 	// KittenCore 的核心库
 	"github.com/Kittengarten/KittenCore/internal/protocol"
 	"github.com/Kittengarten/KittenCore/kitten/core/utils"
+
+	// 自定义优先级
+	// 字典序靠前（大写开头）以提高 init 优先级，伪装第三方包，不影响外部模块导入
+	_ "github.com/BellerophonMobile/logberry"
 
 	// 内部插件
 	// _ "github.com/Kittengarten/KittenCore/internal/auth" // 内置黑名单控制插件

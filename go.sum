@@ -1,3 +1,7 @@
+github.com/BellerophonMobile/gocui v0.3.2/go.mod h1:LlAvOYQaDnE4Gx+MKku4XKQT/7L2w4JcqPRwp2UsVdg=
+github.com/BellerophonMobile/logberry v0.0.0-20181025163003-73d3f13cff46 h1:LJYYsri/4hW8rKnIWHP0LHIZFhIrNjDk9STfCGlXiV0=
+github.com/BellerophonMobile/logberry v0.0.0-20181025163003-73d3f13cff46/go.mod h1:iVJm6vekMSHYQ5V07NNR0X6zO9Wj/EU8m1fkTgW54ss=
+github.com/BellerophonMobile/sse v0.0.0-20161215130822-78f7721c7b46/go.mod h1:BVX6fuDQeSssQtFXm1EoDp+kdZpeXYugXteUDK+R3t4=
 github.com/FloatTech/AnimeAPI v1.7.1-0.20251028071248-0c948e3db65c h1:fmvlRUzwoK6KdoRSW+XeTQ9myKHimd0pV6GbmRJLNRo=
 github.com/FloatTech/AnimeAPI v1.7.1-0.20251028071248-0c948e3db65c/go.mod h1:cuDd67B23xmICSmFBhWzXN51blod2BlM1liN9Ux0pSc=
 github.com/FloatTech/ZeroBot-Plugin v1.10.17-0.20260117133339-37dfad9a2903 h1:Ts/5K95su9+1nYQ0svYTDf5aV4RR4LSlcIEES9V/ZO0=
@@ -144,6 +148,7 @@ github.com/makiuchi-d/gozxing v0.1.2-0.20230218072048-d8563176fedd h1:SCT/G62vUD
 github.com/makiuchi-d/gozxing v0.1.2-0.20230218072048-d8563176fedd/go.mod h1:eRIHbOjX7QWxLIDJoQuMLhuXg9LAuw6znsUtRkNw9DU=
 github.com/mattn/go-isatty v0.0.20 h1:xfD0iDuEKnDkl03q4limB+vH+GxLEtL/jb4xVJSWWEY=
 github.com/mattn/go-isatty v0.0.20/go.mod h1:W+V8PltTTMOvKvAeJH7IuucS94S2C6jfK/D7dTCTo3Y=
+github.com/mattn/go-runewidth v0.0.3/go.mod h1:LwmH8dsx7+W8Uxz3IHJYH5QSwggIsqBzpuz5H//U1FU=
 github.com/mattn/go-sqlite3 v1.14.0/go.mod h1:JIl7NbARA7phWnGvh0LKTyg7S9BA+6gx71ShQilpsus=
 github.com/mattn/go-sqlite3 v1.14.22 h1:2gZY6PC6kBnID23Tichd1K+Z0oS6nE/XwU+Vz/5o4kU=
 github.com/mattn/go-sqlite3 v1.14.22/go.mod h1:Uh1q+B4BYcTPb+yiD3kU8Ct7aC0hY9fxUwlHK0RXw+Y=
@@ -162,6 +167,7 @@ github.com/ncruces/go-strftime v1.0.0 h1:HMFp8mLCTPp341M/ZnA4qaf7ZlsbTc+miZjCLOF
 github.com/ncruces/go-strftime v1.0.0/go.mod h1:Fwc5htZGVVkseilnfgOVb9mKy6w1naJmn9CehxcKcls=
 github.com/nfnt/resize v0.0.0-20180221191011-83c6a9932646 h1:zYyBkD/k9seD2A7fsi6Oo2LfFZAehjjQMERAvZLEDnQ=
 github.com/nfnt/resize v0.0.0-20180221191011-83c6a9932646/go.mod h1:jpp1/29i3P1S/RLdc7JQKbRpFeM1dOBd8T9ki5s+AY8=
+github.com/nsf/termbox-go v0.0.0-20180819125858-b66b20ab708e/go.mod h1:IuKpRQcYE1Tfu+oAQqaLisqDeXgjyyltCfsaoYN18NQ=
 github.com/orcaman/writerseeker v0.0.0-20200621085525-1d3f536ff85e h1:s2RNOM/IGdY0Y6qfTeUKhDawdHDpK9RGBdx80qN4Ttw=
 github.com/orcaman/writerseeker v0.0.0-20200621085525-1d3f536ff85e/go.mod h1:nBdnFKj15wFbf94Rwfq4m30eAcyY9V/IyKAGQFtqkW0=
 github.com/pbnjay/memory v0.0.0-20210728143218-7b4eea64cf58 h1:onHthvaw9LFnH4t2DcNVpwGmV9E1BkGknEliJkfwQj0=
@@ -189,6 +195,7 @@ github.com/shirou/gopsutil/v4 v4.25.12/go.mod h1:EivAfP5x2EhLp2ovdpKSozecVXn1Tmu
 github.com/sirupsen/logrus v1.9.4 h1:TsZE7l11zFCLZnZ+teH4Umoq5BhEIfIzfRDZ1Uzql2w=
 github.com/sirupsen/logrus v1.9.4/go.mod h1:ftWc9WdOfJ0a92nsE2jF5u5ZwH8Bv2zdeOC42RjbV2g=
 github.com/stretchr/objx v0.1.0/go.mod h1:HFkY916IF+rwdDfMAkV7OtwuqBVzrE8GR6GFx+wExME=
+github.com/stretchr/testify v1.2.2/go.mod h1:a8OnRcib4nhh0OaRAV+Yts87kKdq0PP7pXfy6kDkUVs=
 github.com/stretchr/testify v1.3.0/go.mod h1:M5WIy9Dh21IEIfnGCwXGc5bZfKNJtfHm1UVUgZn+9EI=
 github.com/stretchr/testify v1.4.0/go.mod h1:j7eGeouHqKxXV5pUuKE4zz7dFj8WfuZ+81PSLYec5m4=
 github.com/stretchr/testify v1.7.1/go.mod h1:6Fq8oRcR53rry900zMqJjRRixrwX3KX962/h/Wwjteg=

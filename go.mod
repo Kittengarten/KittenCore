@@ -10,6 +10,7 @@ ignore (
 )
 
 require (
+	github.com/BellerophonMobile/logberry v0.0.0-20181025163003-73d3f13cff46
 	github.com/FloatTech/ZeroBot-Plugin v1.10.17-0.20260117133339-37dfad9a2903
 	github.com/FloatTech/ZeroBot-Plugin-Playground v0.0.0-20250514132903-38bc3197f052
 	github.com/FloatTech/floatbox v0.0.0-20251002074805-f95cbc7edb31
