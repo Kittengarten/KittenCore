@@ -3,7 +3,7 @@ package main
 
 import (
 	// 标准库
-	_ "a" // 伪标准库以提高 init 优先级
+	_ "a" // 字典序靠前以提高 init 优先级
 	_ "net/http/pprof"
 
 	// KittenCore 的核心库
