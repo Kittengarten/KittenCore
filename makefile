@@ -5,7 +5,7 @@ all: clean build
 build:
 	@echo "复制 main.go 到内嵌资源……"
 	mkdir -p kitten/data_internal/zbp
-	cp main.go internal/config/prio/
+	cp main.go internal/config/prio/main.prio
 	@echo "编译 KittenCore……"
 	go build -ldflags="-s -w" -v -o KittenCore -trimpath
 

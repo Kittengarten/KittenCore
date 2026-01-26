@@ -5,7 +5,7 @@ go 1.26rc2
 ignore (
 	./data
 	./data_internal
-	./internal/config/prio
+	./internal/config/prio/main.prio
 	./log
 )
 

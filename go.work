@@ -5,4 +5,5 @@ use (
 	./internal/gorm
 	./internal/sqlite
 	./internal/zap
+	./internal/config/prio
 )

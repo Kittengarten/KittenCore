@@ -6,7 +6,7 @@ param(
 
 function Build {
     Write-Host "复制 main.go 到内嵌资源……"
-    $destDir = "internal/config/prio/"
+    $destDir = "internal/config/prio/main.prio"
     if (-not (Test-Path $destDir)) {
         New-Item -ItemType Directory -Force -Path $destDir | Out-Null
     }

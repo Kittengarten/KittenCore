@@ -66,8 +66,6 @@ func init() {
 	// 图片路径
 	imagePath = mio.NewPath(botConfig.Path, imageFolder)
 	slog.Info(`图片库配置完成`, slog.Any(`路径`, imagePath))
-	// 加载插件优先级
-	loadPrio()
 }
 
 // 重定向崩溃日志
