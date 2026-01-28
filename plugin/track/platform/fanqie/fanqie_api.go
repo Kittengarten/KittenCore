@@ -155,32 +155,32 @@ func (f FQAPI) Init(ctx context.Context, cpID string) (any, error) {
 		err = status.ErrStatus(nv.URL, status.BookUnreachable)
 		return nv, err
 	}
-	result := gjson.ParseBytes(data)
-	nv.Right = []string{`免费`}                                        // 获取上架状态（番茄均为免费）
-	nv.Name = result.Get(`data.book_name`).String()                  // 获取书名
-	nv.Writer = result.Get(`data.author`).String()                   // 获取作者
-	nv.HeadURL = result.Get(`data.author_info.user_avatar`).String() // 获取头像链接
-	nv.Collection = result.Get(`data.all_bookshelf_count`).String()  // 获取收藏
-	nv.HitNum = result.Get(`data.read_count_all`).String()           // 获取点击
-	nv.TotalWordNum = result.Get(`data.word_number`).String()        // 获取小说字数
-	nv.CoverURL = cmp.Or(result.Get(`data.expand_thumb_url`).String(),
-		result.Get(`data.thumb_url`).String()) // 获取封面
+	result := gjson.GetBytes(data, `data`)
+	nv.Right = []string{`免费`}                                   // 获取上架状态（番茄均为免费）
+	nv.Name = result.Get(`book_name`).String()                  // 获取书名
+	nv.Writer = result.Get(`author`).String()                   // 获取作者
+	nv.HeadURL = result.Get(`author_info.user_avatar`).String() // 获取头像链接
+	nv.Collection = result.Get(`all_bookshelf_count`).String()  // 获取收藏
+	nv.HitNum = result.Get(`read_count_all`).String()           // 获取点击
+	nv.TotalWordNum = result.Get(`word_number`).String()        // 获取小说字数
+	nv.CoverURL = cmp.Or(result.Get(`expand_thumb_url`).String(),
+		result.Get(`thumb_url`).String()) // 获取封面
 	nv.Status = func() string {
 		if v, ok := map[int64]string{
 			0: `已完结`,
 			1: `连载中`,
 			4: `断更`,
-		}[result.Get(`data.creation_status`).Int()]; ok {
+		}[result.Get(`creation_status`).Int()]; ok {
 			return v
 		}
 		return `未知`
 	}() // 获取状态
-	nv.TagList = strings.Split(result.Get(`data.tags`).String(), `,`) // 获取标签
-	nv.Introduce = result.Get(`data.book_abstract_v2`).String()       // 获取简述
-	ncp := result.Get(`data.last_chapter_item_id`).String()           // 获取新章节链接
+	nv.TagList = strings.Split(result.Get(`tags`).String(), `,`) // 获取标签
+	nv.Introduce = result.Get(`book_abstract_v2`).String()       // 获取简述
+	ncp := result.Get(`last_chapter_item_id`).String()           // 获取新章节链接
 	nv.Protagonists = func() (p []string) {
 		for _, n := range gjson.Parse(
-			result.Get(`data.roles`).String(),
+			result.Get(`roles`).String(),
 		).Array() {
 			p = append(p, n.String())
 		}
@@ -235,20 +235,20 @@ func (FQAPI) NewChapter(ctx context.Context, cpURL string) (any, error) {
 		err = status.ErrStatus(cp.URL, status.ChapterStatusException)
 		return cp, err
 	}
-	result := gjson.ParseBytes(data)
-	cp.Update = time.Unix(result.Get(`data.`+p+`.first_pass_time`).Int(),
+	result := gjson.GetBytes(data, `data`)
+	cp.Update = time.Unix(result.Get(p+`.first_pass_time`).Int(),
 		0).Local() // 获取更新时间
 	cp.Title = func() string {
-		if volumeName := result.Get(`data.` + p + `.volume_name`).String(); volumeName != `` {
+		if volumeName := result.Get(p + `.volume_name`).String(); volumeName != `` {
 			return volumeName + `
-` + result.Get(`data.`+p+`.title`).String()
+` + result.Get(p+`.title`).String()
 		}
-		return result.Get(`data.novel_data.chapter_title`).String()
+		return result.Get(`novel_data.chapter_title`).String()
 	}() // 获取章节名称
 	// 获取章节字数
 	if cp.WordNum = int(cmp.Or(
-		result.Get(`data.`+p+`.chapter_word_number`).Int(),
-		result.Get(`data.novel_data.word_number`).Int(),
+		result.Get(p+`.chapter_word_number`).Int(),
+		result.Get(`novel_data.word_number`).Int(),
 	)); cp.WordNum <= 0 {
 		log.Errorf("错误的 JSON：\n%s", data)
 		return cp, fmt.Errorf(`%w字数：%d`,
@@ -260,15 +260,15 @@ func (FQAPI) NewChapter(ctx context.Context, cpURL string) (any, error) {
 		if err != nil {
 			return cp, err
 		}
-		result = gjson.ParseBytes(data)
+		result = gjson.GetBytes(data, `data`)
 	}
 	cp.PreURL, err = getChapterURL(
-		result.Get(`data.novel_data.pre_item_id`).String()) // 获取上一章链接
+		result.Get(`novel_data.pre_item_id`).String()) // 获取上一章链接
 	if err != nil {
 		return cp, err
 	}
 	cp.NextURL, err = getChapterURL(
-		result.Get(`data.novel_data.next_item_id`).String()) // 获取下一章链接
+		result.Get(`novel_data.next_item_id`).String()) // 获取下一章链接
 	return cp, err
 }
 
