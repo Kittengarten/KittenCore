@@ -3,6 +3,7 @@ package main
 
 import (
 	// 标准库
+	"log/slog"
 	_ "net/http/pprof"
 
 	// KittenCore 的核心库
@@ -109,6 +110,7 @@ func init() {
 }
 
 func main() {
-	defer utils.HandlePanic(`主服务`)
+	defer utils.HandlePanic(slog.String(`名称`, `主服务`),
+		slog.Uint64(`序列号`, utils.GoroutineSeq.Add(1)))
 	protocol.RunBot()
 }

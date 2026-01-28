@@ -13,6 +13,7 @@ import (
 	"reflect"
 	"runtime/debug"
 	"slices"
+	"sync/atomic"
 
 	"golang.org/x/exp/constraints"
 )
@@ -225,25 +226,33 @@ func GetTypeName(value any) string {
 	return t.Name()
 }
 
-// 崩溃信息路径
-var Crash string
+// GoroutineSeq 协程序列号
+var GoroutineSeq atomic.Uint64
 
 // Go 运行一个 goroutine
 func Go(name string, f func()) {
 	go func() {
+		var (
+			n = slog.String(`名称`, name)
+			s = slog.Uint64(`序列号`, GoroutineSeq.Add(1))
+		)
 		// 处理 panic，防止程序崩溃
-		defer HandlePanic(name)
-		slog.Info(`正在启动协程……`,
-			slog.String(`名称`, name))
+		defer HandlePanic(n, s)
+		slog.Info(`正在启动协程……`, n, s)
+		defer slog.Info(`协程已结束！`, n, s)
 		f()
 	}()
 }
 
+// 崩溃信息路径
+var Crash string
+
 // HandlePanic 处理 panic
-func HandlePanic(name string) {
+func HandlePanic(name, seq slog.Attr) {
 	if err := recover(); err != nil {
 		slog.Info(`协程从 panic 恢复……`,
-			slog.String(`名称`, name),
+			name,
+			seq,
 			slog.Any(`错误`, err),
 			slog.String(`堆栈`, string(debug.Stack())),
 		)
