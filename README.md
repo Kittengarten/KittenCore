@@ -4,8 +4,6 @@
 
 ## 使用方法
 
-以 `Bot` 的昵称为开头的发言会被视为与 `Bot` 对话。
-
 由于项目中可能含有非 `ASCII` 字符文件名，可能需要执行 `git config --bool hooks.allownoascii true`。
 
 可直接使用本项目的 `makefile` 或 `make.ps1` 编译。
