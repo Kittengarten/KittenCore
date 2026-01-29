@@ -543,9 +543,15 @@ func (m *Handler) Reset() usr.Sender {
 }
 
 // SetContext 设置上下文
-func (m *Handler) SetContext(ctx context.Context) usr.Context {
-	m.Context = ctx
-	return m
+func (m *Handler) SetContext(ctx context.Context) usr.Handler {
+	// 必须重新派生一个 Handler，避免覆盖上下文
+	return &Handler{
+		ID:      m.ID,
+		Message: m.Message,
+		Context: ctx,
+		err:     m.err,
+		Ctx:     m.Ctx,
+	}
 }
 
 // CallAction 调用 cqhttp API

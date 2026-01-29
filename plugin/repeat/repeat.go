@@ -213,7 +213,7 @@ func repeat(ctx *zero.Ctx) {
 		}
 	}
 	// 发送消息
-	handler.Set(c.Message).Send()
+	handler.Set(c.Message).(*msg.Handler).Send()
 	// 清空复读计数，避免再次复读
 	c.t = 0
 }

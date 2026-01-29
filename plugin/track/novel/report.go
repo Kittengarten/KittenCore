@@ -61,27 +61,30 @@ func TryCommentUpdate(
 	utils.Go(`异步评论更新`, func() {
 		var (
 			// 独立上下文，不继承上游
-			ctx, cancel = context.WithTimeout(handler, 5*time.Minute)
+			ctx, cancel = context.WithTimeout(context.Background(), 5*time.Minute)
 			s           string
 		)
 		defer cancel()
-		retry.Do(
+		if err := retry.Do(
 			ctx,
 			retry.Default(),
 			func() (err error) {
-				s, err = Export.CommentUpdate(handler.SetContext(ctx), nv)
+				s, err = Export.CommentUpdate(ctx, nv)
 				return err
 			},
-		)
+		); err != nil {
+			log.Error(err)
+			return
+		}
 		if s == `` {
 			return
 		}
 		if err := repeat.IterS(
-			handler,
+			ctx,
 			repeat.New(0, time.Second, 2*time.Second),
 			users,
 			func(i int, u usr.QQ) error {
-				_ = handler.Quote(ids[i]).Text(s).Send(u)
+				_ = handler.SetContext(ctx).(*msg.Handler).Quote(ids[i]).Text(s).Send(u)
 				return nil
 			},
 		); err != nil {

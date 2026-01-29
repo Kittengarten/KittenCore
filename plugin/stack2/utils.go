@@ -154,7 +154,6 @@ func asyncSendEmoji(handler *msg.Handler, emojiName string) {
 		ctx, cancel :=
 			context.WithTimeout(context.Background(), time.Minute)
 		defer cancel()
-		// TODO: 泛型方法支持后，去除不必要的断言
 		if err := handler.SetContext(ctx).(*msg.Handler).SendEmojiLike(emojiName); err != nil {
 			log.Warn(err)
 		}
