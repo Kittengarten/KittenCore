@@ -144,7 +144,7 @@ func WebUIURL() string {
 func RunPProf() {
 	if botConfig.PProf.Enable {
 		utils.Go(`pprof`, func() {
-			slog.Info(`请访问：http://` + PProfURL())
+			slog.Info(`请访问：http://` + PProfURL() + `/debug/pprof/`)
 			if err := http.ListenAndServe(PProfURL(), nil); err != nil {
 				slog.Error(`pprof 服务端启动失败喵！`, slog.Any(`错误`, err))
 			}
