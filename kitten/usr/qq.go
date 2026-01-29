@@ -378,9 +378,9 @@ func (u QQ) Send(handler Handler) message.ID {
 	return message.NewMessageIDFromInteger(func() int64 {
 		switch {
 		case u.IsQQ():
-			return handler.SendPrivateMessageWithContext(u.Int(), handler.Get)
+			return handler.SendPrivateMessage(u.Int())
 		case u.IsGroup():
-			return handler.SendGroupMessageWithContext(u.Int(), handler.Get)
+			return handler.SendGroupMessage(u.Int())
 		default:
 			log.Debug(`无效的发送对象：`, u)
 			return 0

@@ -27,7 +27,7 @@ func Poke(handler *msg.Handler) message.ID {
 		select {
 		case <-times.RandDelayRange(time.Second, 2*time.Second):
 			handler.Poke()
-			handler.CallActionWithContext(
+			handler.CallAction(
 				`send_like`,
 				zero.H{
 					`user_id`: handler.Event().UserID,

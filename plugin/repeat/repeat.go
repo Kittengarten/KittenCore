@@ -121,7 +121,7 @@ func repeatInit() {
 func repeatSet(ctx *zero.Ctx) {
 	var (
 		c, cancel = context.WithTimeout(context.Background(), core.Timeout)
-		handler      = msg.NewWithContext(c, ctx)
+		handler   = msg.NewWithContext(c, ctx)
 		args      = handler.Args()
 		threshold uint64
 		chance    float64
@@ -202,7 +202,7 @@ func repeat(ctx *zero.Ctx) {
 	// 处理图片
 	var (
 		co, cancel = context.WithTimeout(context.Background(), core.Timeout)
-		handler       = msg.NewWithContext(co, ctx)
+		handler    = msg.NewWithContext(co, ctx)
 	)
 	defer cancel()
 	c.handleImage(handler)
@@ -213,7 +213,7 @@ func repeat(ctx *zero.Ctx) {
 		}
 	}
 	// 发送消息
-	handler.SendWithContext(c.Message)
+	handler.Set(c.Message).Send()
 	// 清空复读计数，避免再次复读
 	c.t = 0
 }

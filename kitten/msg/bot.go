@@ -63,13 +63,13 @@ func (m *Handler) Poke() {
 	}
 	if u, g := usr.NewQQ(m.Event().UserID), usr.NewQQGroup(m.Event().GroupID); u.IsQQ() {
 		if g.IsGroup() {
-			m.CallActionWithContext(`group_poke`, zero.H{
+			m.CallAction(`group_poke`, zero.H{
 				`group_id`: g.Int(),
 				`user_id`:  u.Int(),
 			})
 			return
 		}
-		m.CallActionWithContext(`friend_poke`, zero.H{
+		m.CallAction(`friend_poke`, zero.H{
 			`user_id`: u.Int(),
 		})
 	}

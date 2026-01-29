@@ -59,7 +59,7 @@ func (m *Handler) SetCard(h int, g ...usr.QQ) {
 // SetGroupCard 设置群名片（群备注）
 // https://github.com/botuniverse/onebot-11/blob/master/api/public.md#set_group_card-%E8%AE%BE%E7%BD%AE%E7%BE%A4%E5%90%8D%E7%89%87%E7%BE%A4%E5%A4%87%E6%B3%A8
 func (m *Handler) SetGroupCard(groupID, userID int64, card string) {
-	m.CallActionWithContext(`set_group_card`, zero.H{
+	m.CallAction(`set_group_card`, zero.H{
 		`group_id`: groupID,
 		`user_id`:  userID,
 		`card`:     card,

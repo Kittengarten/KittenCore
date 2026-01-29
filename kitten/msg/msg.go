@@ -73,7 +73,7 @@ func (m *Handler) Set(msg message.Message) usr.Handler {
 // GetStrangerInfo 获取陌生人信息
 // https://github.com/botuniverse/onebot-11/blob/master/api/public.md#get_stranger_info-%E8%8E%B7%E5%8F%96%E9%99%8C%E7%94%9F%E4%BA%BA%E4%BF%A1%E6%81%AF
 func (handler *Handler) GetStrangerInfo(userID int64, noCache bool) gjson.Result {
-	return handler.CallActionWithContext(`get_stranger_info`, zero.H{
+	return handler.CallAction(`get_stranger_info`, zero.H{
 		`user_id`:  userID,
 		`no_cache`: noCache,
 	}).Data
@@ -82,7 +82,7 @@ func (handler *Handler) GetStrangerInfo(userID int64, noCache bool) gjson.Result
 // GetGroupMemberListNoCache 无缓存获取群员列表
 // https://github.com/botuniverse/onebot-11/blob/master/api/public.md#get_group_member_list-%E8%8E%B7%E5%8F%96%E7%BE%A4%E6%88%90%E5%91%98%E5%88%97%E8%A1%A8
 func (handler *Handler) GetGroupMemberListNoCache(groupID int64) gjson.Result {
-	return handler.CallActionWithContext(`get_group_member_list`, zero.H{
+	return handler.CallAction(`get_group_member_list`, zero.H{
 		`group_id`: groupID,
 		`no_cache`: true,
 	}).Data
@@ -376,82 +376,83 @@ func (m *Handler) SendMulti(u ...usr.QQ) (id []message.ID) {
 		}
 		return id
 	}
-	// 发送对象为空，向 Handler 的来源发送
-	if !m.Check(kitten.Caller, kitten.Event) {
-		// 没有 APICaller 或 Event ，无法发送
-		log.Warn(m)
-		return nil
-	}
-	if m.Event().PostType != `message` || m.QuoteID().ID() == 0 {
-		// 不是消息引发的发送或没有回复，不予回复
-		return []message.ID{m.SendWithContext(m.Message)}
-	}
-	for _, e := range m.Message {
-		switch e.Type {
-		case seg.Text, seg.Face, seg.Image, seg.At:
-			// 消息段兼容回复，不执行操作
-		default:
-			// 消息段不兼容回复，或未经验证，跳过回复程序
-			return []message.ID{m.SendWithContext(m.Message)}
-		}
-	}
-	// 有回复
-	return []message.ID{m.SendWithContext(message.ReplyWithMessage(m.ID, m.Message...))}
+	return []message.ID{m.send()}
 }
 
-// SendWithContext 发送消息（带上下文）
+// 发送消息
 //
 //	ctx.Send 的封装
-func (handler *Handler) SendWithContext(msg any) message.ID {
-	event := handler.Event()
-	m, ok := msg.(message.Message)
-	if !ok {
-		var p *message.Message
-		p, ok = msg.(*message.Message)
-		if ok {
-			m = *p
-		}
+func (handler *Handler) send() message.ID {
+	if !handler.Check(kitten.Caller, kitten.Event) {
+		// 没有 APICaller 或 Event ，无法发送
+		log.Warn(handler)
+		return message.ID{}
 	}
-	if ok && len(m) > 0 && m[0].Type == `node` && event.DetailType != `guild` {
-		if event.GroupID != 0 {
-			return message.NewMessageIDFromInteger(handler.sendGroupForwardMessageWithContext(event.GroupID, m).Get(`message_id`).Int())
+	var (
+		event = handler.Event()
+		m     = handler.Get()
+	)
+	handler.Set(func() message.Message {
+		if event.PostType != `message` && handler.QuoteID().ID() != 0 {
+			// 不是消息引发的发送或没有回复，不予回复
+			return m
 		}
-		return message.NewMessageIDFromInteger(handler.sendPrivateForwardMessageWithContext(event.UserID, m).Get(`message_id`).Int())
+		for _, e := range m {
+			switch e.Type {
+			case seg.Text, seg.Face, seg.Image, seg.At:
+				// 消息段兼容引用，不执行操作
+			default:
+				// 消息段不兼容引用，或未经验证，跳过引用
+				return m
+			}
+		}
+		return message.ReplyWithMessage(handler.ID, m...)
+	}())
+	if len(m) > 0 && m[0].Type == `node` && event.DetailType != `guild` {
+		if event.GroupID != 0 {
+			return message.NewMessageIDFromInteger(handler.sendGroupForwardMessage().Get(`message_id`).Int())
+		}
+		return message.NewMessageIDFromInteger(handler.sendPrivateForwardMessage().Get(`message_id`).Int())
 	}
 	if event.DetailType == `guild` {
-		return message.NewMessageIDFromString(handler.sendGuildChannelMessageWithContext(event.GuildID, event.ChannelID, msg))
+		return message.NewMessageIDFromString(handler.sendGuildChannelMessage())
 	}
 	if event.GroupID != 0 {
-		return message.NewMessageIDFromInteger(handler.SendGroupMessageWithContext(event.GroupID, msg))
+		return message.NewMessageIDFromInteger(handler.SendGroupMessage(event.GroupID))
 	}
-	return message.NewMessageIDFromInteger(handler.SendPrivateMessageWithContext(event.UserID, msg))
+	return message.NewMessageIDFromInteger(handler.SendPrivateMessage(event.UserID))
 }
 
 // 发送合并转发（群，带上下文）
 // https://github.com/Mrs4s/go-cqhttp/blob/master/docs/cqhttp.md#%E5%8F%91%E9%80%81%E5%90%88%E5%B9%B6%E8%BD%AC%E5%8F%91%E7%BE%A4
-func (handler *Handler) sendGroupForwardMessageWithContext(groupID int64, message message.Message) gjson.Result {
-	return handler.CallActionWithContext(`send_group_forward_msg`, zero.H{
-		`group_id`: groupID,
-		`messages`: message,
+func (handler *Handler) sendGroupForwardMessage() gjson.Result {
+	return handler.CallAction(`send_group_forward_msg`, zero.H{
+		`group_id`: handler.Event().GroupID,
+		`messages`: handler.Get(),
 	}).Data
 }
 
 // 发送合并转发（私聊，带上下文）
 // https://github.com/Mrs4s/go-cqhttp/blob/master/docs/cqhttp.md#%E5%8F%91%E9%80%81%E5%90%88%E5%B9%B6%E8%BD%AC%E5%8F%91%E7%BE%A4
-func (handler *Handler) sendPrivateForwardMessageWithContext(userID int64, message message.Message) gjson.Result {
-	return handler.CallActionWithContext(`send_private_forward_msg`, zero.H{
-		`user_id`:  userID,
-		`messages`: message,
+func (handler *Handler) sendPrivateForwardMessage() gjson.Result {
+	return handler.CallAction(`send_private_forward_msg`, zero.H{
+		`user_id`:  handler.Event().UserID,
+		`messages`: handler.Get(),
 	}).Data
 }
 
-// 发送频道消息（带上下文）
-func (handler *Handler) sendGuildChannelMessageWithContext(guildID, channelID string, message any) string {
-	rsp := handler.CallActionWithContext(`send_guild_channel_msg`, zero.H{
-		`guild_id`:   guildID,
-		`channel_id`: channelID,
-		`message`:    message,
-	}).Data.Get(`message_id`)
+// 发送频道消息
+func (handler *Handler) sendGuildChannelMessage() string {
+	var (
+		guildID   = handler.Event().GuildID
+		channelID = handler.Event().ChannelID
+		message   = handler.Get()
+		rsp       = handler.CallAction(`send_guild_channel_msg`, zero.H{
+			`guild_id`:   guildID,
+			`channel_id`: channelID,
+			`message`:    message,
+		}).Data.Get(`message_id`)
+	)
 	if rsp.Exists() {
 		log.Skip(2).Infof(`[api] 发送频道消息(%v-%v): %v (id=%v)`, guildID, channelID, formatMessage(message), rsp.Int())
 		return rsp.String()
@@ -498,13 +499,16 @@ func formatMessage(msg any) string {
 	}
 }
 
-// SendGroupMessageWithContext 发送群消息（带上下文）
+// SendGroupMessage 发送群消息
 // https://github.com/botuniverse/onebot-11/blob/master/api/public.md#send_group_msg-%E5%8F%91%E9%80%81%E7%BE%A4%E6%B6%88%E6%81%AF
-func (handler *Handler) SendGroupMessageWithContext(groupID int64, message any) int64 {
-	rsp := handler.CallActionWithContext(`send_group_msg`, zero.H{ // 调用并保存返回值
-		`group_id`: groupID,
-		`message`:  message,
-	}).Data.Get(`message_id`)
+func (handler *Handler) SendGroupMessage(groupID int64) int64 {
+	var (
+		message = handler.Get()
+		rsp     = handler.CallAction(`send_group_msg`, zero.H{ // 调用并保存返回值
+			`group_id`: groupID,
+			`message`:  message,
+		}).Data.Get(`message_id`)
+	)
 	if rsp.Exists() {
 		log.Skip(2).Infof(`[api] 发送群消息(%v): %v (id=%v)`, groupID, formatMessage(message), rsp.Int())
 		return rsp.Int()
@@ -512,13 +516,16 @@ func (handler *Handler) SendGroupMessageWithContext(groupID int64, message any) 
 	return 0 // 无法获取返回值
 }
 
-// SendPrivateMessageWithContext 发送私聊消息（带上下文）
+// SendPrivateMessage 发送私聊消息
 // https://github.com/botuniverse/onebot-11/blob/master/api/public.md#send_private_msg-%E5%8F%91%E9%80%81%E7%A7%81%E8%81%8A%E6%B6%88%E6%81%AF
-func (handler *Handler) SendPrivateMessageWithContext(userID int64, message any) int64 {
-	rsp := handler.CallActionWithContext(`send_private_msg`, zero.H{
-		`user_id`: userID,
-		`message`: message,
-	}).Data.Get(`message_id`)
+func (handler *Handler) SendPrivateMessage(userID int64) int64 {
+	var (
+		message = handler.Get()
+		rsp     = handler.CallAction(`send_private_msg`, zero.H{
+			`user_id`: userID,
+			`message`: handler.Get(),
+		}).Data.Get(`message_id`)
+	)
 	if rsp.Exists() {
 		log.Skip(2).Infof(`[api] 发送私聊消息(%v): %v (id=%v)`, userID, formatMessage(message), rsp.Int())
 		return rsp.Int()
@@ -537,11 +544,6 @@ func (m *Handler) Reset() usr.Handler {
 
 // CallAction 调用 cqhttp API
 func (m *Handler) CallAction(action string, params zero.H) zero.APIResponse {
-	return m.Ctx.CallAction(action, params)
-}
-
-// CallActionWithContext 调用 cqhttp API（带上下文）
-func (m *Handler) CallActionWithContext(action string, params zero.H) zero.APIResponse {
 	return m.Ctx.CallActionWithContext(m, action, params)
 }
 
@@ -573,7 +575,7 @@ func Image(file string, summary ...any) message.Segment {
 // GetImage 获取图片
 // https://github.com/botuniverse/onebot-11/blob/master/api/public.md#get_image-%E8%8E%B7%E5%8F%96%E5%9B%BE%E7%89%87
 func (handler *Handler) GetImage(file string) gjson.Result {
-	return handler.CallActionWithContext(`get_image`, zero.H{
+	return handler.CallAction(`get_image`, zero.H{
 		`file`: file,
 	}).Data
 }

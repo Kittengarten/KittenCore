@@ -16,8 +16,8 @@ type (
 	}
 	// Context ZeroBot 上下文
 	Context interface {
-		// CallActionWithContext 使用 context 调用 cqhttp API
-		CallActionWithContext(action string, params zero.H) zero.APIResponse
+		// CallAction 使用 context 调用 cqhttp API
+		CallAction(action string, params zero.H) zero.APIResponse
 		// GetStrangerInfo 获取陌生人信息
 		GetStrangerInfo(userID int64, noCache bool) gjson.Result
 		// GetGroupMemberListNoCache 无缓存获取群员列表
@@ -37,10 +37,10 @@ type (
 		Send(u ...QQ) message.ID
 		// SendMulti 发送多条消息
 		SendMulti(u ...QQ) (id []message.ID)
-		// SendGroupMessageWithContext 发送群消息（带上下文）
-		SendGroupMessageWithContext(groupID int64, message any) int64
-		// SendPrivateMessageWithContext 发送私聊消息（带上下文）
-		SendPrivateMessageWithContext(userID int64, message any) int64
+		// SendGroupMessage 发送群消息
+		SendGroupMessage(groupID int64) int64
+		// SendPrivateMessage 发送私聊消息
+		SendPrivateMessage(userID int64) int64
 		// QuoteID 引用消息 ID
 		QuoteID() message.ID
 		// Reset 重置消息

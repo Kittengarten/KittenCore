@@ -48,7 +48,7 @@ func selfDaily(handler *msg.Handler, d data) bool {
 func (d *data) evaluateDaily(handler *msg.Handler) float64 {
 	var (
 		dr      = slices.Clone(*d)                   // 克隆切片，防止对后续调用造成影响
-		m, err  = dr.pre(handler)                       // 初始化自身
+		m, err  = dr.pre(handler)                    // 初始化自身
 		nre, ok = errors.AsType[*needRestError](err) // 错误是否需要休息
 	)
 	if !ok {
@@ -89,7 +89,7 @@ func selfLorry(handler *msg.Handler, d data) bool {
 func (d *data) evaluateLorry(handler *msg.Handler) float64 {
 	var (
 		dr     = slices.Clone(*d) // 克隆切片，防止对后续调用造成影响
-		m, err = dr.pre(handler)     // 初始化自身
+		m, err = dr.pre(handler)  // 初始化自身
 	)
 	if err != nil {
 		// 不能活动，什么也不做
@@ -125,7 +125,7 @@ func selfEat(handler *msg.Handler, d data) bool {
 func (d *data) evaluateEat(handler *msg.Handler) float64 {
 	var (
 		dr     = slices.Clone(*d) // 克隆切片，防止对后续调用造成影响
-		m, err = dr.pre(handler)     // 初始化自身
+		m, err = dr.pre(handler)  // 初始化自身
 	)
 	if err != nil {
 		// 不能活动，什么也不做
@@ -184,7 +184,7 @@ func selfAnalysis(handler *msg.Handler, d data) bool {
 func (d *data) evaluateIn(handler *msg.Handler) float64 {
 	var (
 		dr     = slices.Clone(*d) // 克隆切片，防止对后续调用造成影响
-		m, err = dr.pre(handler)     // 初始化自身
+		m, err = dr.pre(handler)  // 初始化自身
 	)
 	if err != nil {
 		// 不能活动，什么也不做
@@ -204,7 +204,7 @@ func (d *data) evaluateIn(handler *msg.Handler) float64 {
 		return 1
 	}
 	var (
-		sn = append(s, m)           // 用于压坏判定的队列
+		sn = append(s, m)              // 用于压坏判定的队列
 		cp = sn.chancePressed(handler) // 压坏概率
 		gp = func() float64 {
 			if m.getTypeID(handler) <= 抱枕 || s[l-1].getTypeID(handler) >= 幼年猫娘 {
@@ -264,7 +264,7 @@ func selfOC(handler *msg.Handler, d data) bool {
 func (d *data) evaluateOC(handler *msg.Handler) float64 {
 	var (
 		dr      = slices.Clone(*d)                   // 克隆切片，防止对后续调用造成影响
-		_, err  = dr.pre(handler)                       // 初始化自身
+		_, err  = dr.pre(handler)                    // 初始化自身
 		nre, ok = errors.AsType[*needRestError](err) // 错误是否需要休息
 	)
 	if !ok {
@@ -317,7 +317,7 @@ func selfDo(handler *msg.Handler, command string, f func()) bool {
 		handler.SendWithImageFail(handler.Err())
 		return true
 	}
-	handler.ID = handler.SendWithContext(p + command)
+	handler.ID = handler.Text(p + command).Send()
 	select {
 	case <-times.RandDelayRange(minDelay, maxDelay):
 		f()
