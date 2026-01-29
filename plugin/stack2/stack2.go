@@ -12,10 +12,10 @@ import (
 	"strings"
 	"time"
 
-	"github.com/Kittengarten/KittenCore/kitten/core"
 	"github.com/Kittengarten/KittenCore/kitten/core/equal"
 	"github.com/Kittengarten/KittenCore/kitten/core/fio"
 	"github.com/Kittengarten/KittenCore/kitten/core/log"
+	"github.com/Kittengarten/KittenCore/kitten/core/shttp"
 	"github.com/Kittengarten/KittenCore/kitten/core/stat"
 	"github.com/Kittengarten/KittenCore/kitten/core/times"
 	"github.com/Kittengarten/KittenCore/kitten/core/utils"
@@ -74,7 +74,7 @@ func init() {
 		Handle(func(ctx *zero.Ctx) {
 			Lock()
 			defer Unlock()
-			c, cancel := context.WithTimeout(context.Background(), core.Timeout)
+			c, cancel := context.WithTimeout(context.Background(), shttp.Timeout)
 			defer cancel()
 			switch handler := msg.NewWithContext(c, ctx); handler.Command() {
 			case cStack, cStackT0, cStackT1:
@@ -95,7 +95,7 @@ func init() {
 			}
 			Lock()
 			defer Unlock()
-			c, cancel := context.WithTimeout(context.Background(), core.Timeout)
+			c, cancel := context.WithTimeout(context.Background(), shttp.Timeout)
 			defer cancel()
 			lorryExe(msg.NewWithContext(c, ctx))
 		})
@@ -257,9 +257,9 @@ func (d *data) in(handler *msg.Handler) error {
 func (d *data) pre(handler *msg.Handler) (meow, error) {
 	var (
 		u = usr.NewQQ(handler.Event().UserID) // 叠入猫猫的 QQ
-		w int                              // 叠入猫猫的体重
-		r time.Duration                    // 剩余的休息时间
-		b bool                             // 日常任务是否完成
+		w int                                 // 叠入猫猫的体重
+		r time.Duration                       // 剩余的休息时间
+		b bool                                // 日常任务是否完成
 	)
 	if i := slices.IndexFunc(*d, func(m meow) bool {
 		now := time.Unix(handler.Event().Time, 0)
@@ -289,7 +289,7 @@ func (d *data) pre(handler *msg.Handler) (meow, error) {
 	}
 	var (
 		name = u.TitleCardOrNickName(handler) // 叠入猫猫的名称
-		m, i = d.getMeow(u)                // 获取叠入的猫猫及其索引，如果不用于叠入，则需要克隆切片
+		m, i = d.getMeow(u)                   // 获取叠入的猫猫及其索引，如果不用于叠入，则需要克隆切片
 	)
 	if i == -1 {
 		// 如果是首次叠猫猫

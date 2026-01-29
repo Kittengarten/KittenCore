@@ -150,7 +150,12 @@ func sendWithJump(handler *msg.Handler, text ...any) message.ID {
 // 异步发送表情回复
 func asyncSendEmoji(handler *msg.Handler, emojiName string) {
 	utils.Go(`叠猫猫发送表情回复`, func() {
-		if err := handler.SendEmojiLike(emojiName); err != nil {
+		// 独立上下文，不继承上游
+		ctx, cancel :=
+			context.WithTimeout(context.Background(), time.Minute)
+		defer cancel()
+		// TODO: 泛型方法支持后，去除不必要的断言
+		if err := handler.SetContext(ctx).(*msg.Handler).SendEmojiLike(emojiName); err != nil {
 			log.Warn(err)
 		}
 	})

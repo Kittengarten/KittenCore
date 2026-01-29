@@ -1,6 +1,7 @@
 package usr
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"slices"
@@ -265,7 +266,11 @@ func (g QQ) MemberList(handler Context) groupList {
 	// 如果缓存已经过期，异步（后台）更新缓存的该群成员列表
 	if time.Since(gmi.Time) > expire {
 		utils.Go(`更新群成员列表`, func() {
-			g.updateMemberList(handler)
+			// 独立上下文，不继承上游
+			ctx, cancel :=
+				context.WithTimeout(context.Background(), time.Minute)
+			defer cancel()
+			g.updateMemberList(handler.SetContext(ctx))
 		})
 	}
 	return gmi
@@ -331,7 +336,11 @@ func (u QQ) info(handler Context) qqInfo {
 	// 如果缓存已经过期，异步更新缓存的陌生人信息
 	if time.Since(si.Time) > expire {
 		utils.Go(`更新陌生人信息`, func() {
-			u.UpdateInfo(handler)
+			// 独立上下文，不继承上游
+			ctx, cancel :=
+				context.WithTimeout(context.Background(), time.Minute)
+			defer cancel()
+			u.UpdateInfo(handler.SetContext(ctx))
 		})
 	}
 	return si

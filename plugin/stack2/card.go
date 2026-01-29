@@ -1,6 +1,7 @@
 package stack2
 
 import (
+	"context"
 	"time"
 
 	"github.com/Kittengarten/KittenCore/kitten/core/equal"
@@ -14,6 +15,10 @@ var active syncx.Map[usr.QQ, time.Time] // 各群的上次活跃时间
 
 // 设置群名片
 func setCard(handler *msg.Handler, h int) {
+	// 独立的超时控制，不继承上游，以免上游提前完成导致本函数执行超时
+	var cancel context.CancelFunc
+	handler.Context, cancel = context.WithTimeout(context.Background(), time.Minute)
+	defer cancel()
 	if g := usr.NewQQGroup(handler.Event().GroupID); g.IsGroup() {
 		// 保存本群的活跃时间
 		active.Store(g, time.Unix(handler.Event().Time, 0))

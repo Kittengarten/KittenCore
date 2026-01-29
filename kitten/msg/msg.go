@@ -533,12 +533,18 @@ func (handler *Handler) SendPrivateMessage(userID int64) int64 {
 	return 0 // 无法获取返回值
 }
 
-// Reset 重置 Handler，保留 Zerobot 上下文，不保留上下文
-func (m *Handler) Reset() usr.Handler {
+// Reset 重置 Sender，保留 Zerobot 上下文，不保留上下文
+func (m *Handler) Reset() usr.Sender {
 	m.Context = context.Background()
 	m.Message = nil
 	m.ID = message.ID{}
 	m.err = nil
+	return m
+}
+
+// SetContext 设置上下文
+func (m *Handler) SetContext(ctx context.Context) usr.Context {
+	m.Context = ctx
 	return m
 }
 

@@ -59,12 +59,17 @@ func TryCommentUpdate(
 		return
 	}
 	utils.Go(`异步评论更新`, func() {
-		var s string
+		var (
+			// 独立上下文，不继承上游
+			ctx, cancel = context.WithTimeout(handler, 5*time.Minute)
+			s           string
+		)
+		defer cancel()
 		retry.Do(
-			handler,
+			ctx,
 			retry.Default(),
 			func() (err error) {
-				s, err = Export.CommentUpdate(handler, nv)
+				s, err = Export.CommentUpdate(handler.SetContext(ctx), nv)
 				return err
 			},
 		)
