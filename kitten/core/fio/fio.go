@@ -3,11 +3,10 @@ package fio
 
 import (
 	"context"
-	"crypto/sha256"
-	"crypto/sha512"
 	"encoding/hex"
 	"errors"
 	"fmt"
+	"hash"
 	"io"
 	"io/fs"
 	"log/slog"
@@ -290,44 +289,26 @@ func (p Path) Copy(src Path) (size int64, err error) {
 	return size, errors.Join(err, source.Close(), destination.Close())
 }
 
-// SHA512 ...
-type SHA512 [sha512.Size]byte
-
-// String 实现 fmt.Stringer，返回十六进制哈希值（128 位数字）
-func (s SHA512) String() string {
-	return hex.EncodeToString(s[:])
-}
-
-// SHA512 获取文件 SHA512 哈希值
-func (p Path) SHA512() (SHA512, error) {
+// Hash 获取文件哈希值
+func (p Path) Hash(h hash.Hash) ([]byte, error) {
 	if !p.Exists() {
-		return SHA512{}, os.ErrNotExist
+		return nil, os.ErrNotExist
 	}
-	b, err := p.ReadBytes()
+	f, err := p.Load(false)
 	if err != nil {
-		return SHA512{}, err
+		return nil, err
 	}
-	return SHA512(sha512.Sum512(b)), nil
+	_, err = io.Copy(h, f)
+	if err != nil {
+		return nil, errors.Join(err, f.Close())
+	}
+	return h.Sum(nil), f.Close()
 }
 
-// SHA256 ...
-type SHA256 [sha256.Size]byte
-
-// String 实现 fmt.Stringer，返回十六进制哈希值（64 位数字）
-func (s SHA256) String() string {
-	return hex.EncodeToString(s[:])
-}
-
-// SHA256 获取文件 SHA256 哈希值
-func (p Path) SHA256() (SHA256, error) {
-	if !p.Exists() {
-		return SHA256{}, os.ErrNotExist
-	}
-	b, err := p.ReadBytes()
-	if err != nil {
-		return SHA256{}, err
-	}
-	return SHA256(sha256.Sum256(b)), nil
+// HashStr 获取文件十六进制哈希值
+func (p Path) HashStr(h hash.Hash) (string, error) {
+	hash, err := p.Hash(h)
+	return hex.EncodeToString(hash), err
 }
 
 // Exists 判断文件或文件夹是否存在
