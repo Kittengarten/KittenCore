@@ -167,8 +167,8 @@ func (nv *Novel) String() string {
 }
 
 // Init 初始化小说
-func Init(ctx context.Context, p platform.Platform, nvID string) (*Novel, error) {
-	nv, err := p.Init(ctx, nvID)
+func Init(ctx context.Context, p platform.Platform, nvID string, cache bool) (*Novel, error) {
+	nv, err := p.Init(ctx, nvID, cache)
 	return Assert(nv), err
 }
 

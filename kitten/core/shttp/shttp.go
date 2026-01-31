@@ -17,7 +17,6 @@ import (
 
 	"github.com/Kittengarten/KittenCore/kitten/core/utils"
 
-	"golang.org/x/net/html"
 	"golang.org/x/net/html/charset"
 
 	trsh1 "github.com/fumiama/terasu/http"
@@ -148,12 +147,12 @@ func POSTDataURLWithContext(ctx context.Context, u fmt.Stringer, contentType str
 }
 
 // GET 获取 HTTP GET 响应体
-func GET(urlStr string) (io.ReadCloser, error) {
+func GET(urlStr string) (lenReadCloser, error) {
 	return GETWithContext(context.Background(), urlStr)
 }
 
 // GETWithContext 获取 HTTP GET 响应体（带上下文）
-func GETWithContext(ctx context.Context, urlStr string) (io.ReadCloser, error) {
+func GETWithContext(ctx context.Context, urlStr string) (lenReadCloser, error) {
 	res, err := tryTLS(
 		ctx,
 		func(context.Context, string, string, io.Reader) (*http.Response, error) {
@@ -166,7 +165,16 @@ func GETWithContext(ctx context.Context, urlStr string) (io.ReadCloser, error) {
 	if err != nil {
 		return nil, err
 	}
-	return CharsetConv(res.Header.Get(CT), res.Body)
+	cl, err := strconv.Atoi(res.Header.Get(`Content-Length`))
+	if err != nil {
+		// 网页不一定返回 Content-Length
+		slog.Debug(`获取内容长度失败`,
+			slog.String(`url`, urlStr),
+			slog.Any(`错误`, err),
+		)
+	}
+	body, err := CharsetConv(res.Header.Get(CT), res.Body)
+	return NewLenBody(body, cl), err
 }
 
 // GETData 获取 HTTP GET 数据
@@ -276,41 +284,41 @@ func tryTLS(ctx context.Context, f2, f func(context.Context, string, string, io.
 	if err != nil {
 		return res, err
 	}
-	//nolint:nestif
-	if u.Scheme == `https` {
-		switch u.Host {
-		case `multimedia.nt.qq.com.cn`:
-			// 临时启用 RSA
-			// 避免 remote error: tls: handshake failure
-			if err = SetRSA(true); err != nil {
-				return res, err
-			}
-			defer func() {
-				if errNew := SetRSA(false); err != nil {
-					err = errors.Join(err, errNew)
-				}
-			}()
-		}
-		res, err = f2(ctx, urlStr, contentType, body)
-		err = checkError(err, res, urlStr)
-		logError := func(s string) {
-			slog.Error(s,
-				slog.Any(`错误`, err),
-				slog.String(`Method`, method),
-				slog.String(CT, contentType),
-				slog.String(`URL`, urlStr),
-			)
-		}
-		if err != nil {
-			logError(`TLS HTTP/2 请求失败`)
-			res, err = f(ctx, urlStr, contentType, body)
-			err = checkError(err, res, urlStr)
-		}
-		if err == nil {
-			return res, nil
-		}
-		logError(`TLS HTTP 请求失败`)
+	if u.Scheme != `https` {
+		return doRequest(ctx, method, urlStr, contentType, body)
 	}
+	switch u.Host {
+	case `multimedia.nt.qq.com.cn`:
+		// 临时启用 RSA
+		// 避免 remote error: tls: handshake failure
+		if err = SetRSA(true); err != nil {
+			return res, err
+		}
+		defer func() {
+			if errNew := SetRSA(false); err != nil {
+				err = errors.Join(err, errNew)
+			}
+		}()
+	}
+	res, err = f2(ctx, urlStr, contentType, body)
+	err = checkError(err, res, urlStr)
+	logError := func(s string) {
+		slog.Error(s,
+			slog.Any(`错误`, err),
+			slog.String(`Method`, method),
+			slog.String(CT, contentType),
+			slog.String(`URL`, urlStr),
+		)
+	}
+	if err != nil {
+		logError(`TLS HTTP/2 请求失败`)
+		res, err = f(ctx, urlStr, contentType, body)
+		err = checkError(err, res, urlStr)
+	}
+	if err == nil {
+		return res, nil
+	}
+	logError(`TLS HTTP 请求失败`)
 	return doRequest(ctx, method, urlStr, contentType, body)
 }
 
@@ -398,14 +406,4 @@ func Clear(body io.ReadCloser) error {
 		return errors.Join(err, body.Close())
 	}
 	return body.Close()
-}
-
-// LoadURLWithContext 从指定的 URL 加载 HTML 文档
-func LoadURLWithContext(ctx context.Context, url string) (*html.Node, error) {
-	res, err := GETWithContext(ctx, url)
-	if err != nil {
-		return nil, err
-	}
-	defer Clear(res)
-	return html.Parse(res)
 }

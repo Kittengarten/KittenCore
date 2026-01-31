@@ -167,7 +167,7 @@ func init() {
 
 // 更新测试
 func updateTest(handler *msg.Handler) {
-	nv, err := getNovel(handler) // 小说实例
+	nv, err := getNovel(handler, false) // 小说实例
 	if err != nil {
 		handler.SendWithImageFail(err)
 		return
@@ -238,7 +238,7 @@ func setProtagonists(handler *msg.Handler) {
 
 // 更新预览
 func updatePreview(handler *msg.Handler) {
-	nv, err := getNovel(handler) // 小说实例
+	nv, err := getNovel(handler, false) // 小说实例
 	if err != nil {
 		handler.SendWithImageFail(err)
 		return
@@ -255,7 +255,7 @@ func updatePreview(handler *msg.Handler) {
 
 // 小说信息
 func novelInfo(handler *msg.Handler, comment bool) {
-	nv, err := getNovel(handler) // 小说实例
+	nv, err := getNovel(handler, false) // 小说实例
 	if err != nil {
 		handler.SendWithImageFail(err)
 		return
@@ -293,7 +293,7 @@ func add(handler *msg.Handler) {
 		handler.SendWithImageFail(book.ErrLoad, err)
 		return
 	}
-	nv, err := getNovel(handler) // 小说实例
+	nv, err := getNovel(handler, false) // 小说实例
 	if err != nil {
 		handler.SendWithImageFail(err)
 		return
@@ -352,7 +352,7 @@ func cancel(handler *msg.Handler) {
 		handler.SendWithImageFail(book.ErrNotConfig)
 		return
 	}
-	nv, err := getNovel(handler) // 小说实例
+	nv, err := getNovel(handler, false) // 小说实例
 	if err != nil {
 		handler.SendWithImageFail(err)
 		return
@@ -420,7 +420,7 @@ func query(handler *msg.Handler) {
 // 获取小说
 //
 //	如果传入值不为书号，则先获取书号
-func getNovel(handler *msg.Handler) (*novel.Novel, error) {
+func getNovel(handler *msg.Handler, cache bool) (*novel.Novel, error) {
 	var (
 		args = handler.Args()
 		pkey string // 平台关键词
@@ -441,14 +441,14 @@ func getNovel(handler *msg.Handler) (*novel.Novel, error) {
 		return nil, err
 	}
 	if _, err := strconv.Atoi(bkey); err == nil {
-		return novel.Init(handler, p, bkey)
+		return novel.Init(handler, p, bkey, cache)
 	}
 	// 获取小说时，参数字符串无法转换为书号，尝试作为搜索关键词
 	nvID, err := p.FindBookID(handler, search.Keyword(bkey))
 	if err != nil {
 		return nil, fmt.Errorf("关键词“%s”搜索时发生错误：\n%w", bkey, err)
 	}
-	return novel.Init(handler, p, nvID)
+	return novel.Init(handler, p, nvID, cache)
 }
 
 // 平台匹配器

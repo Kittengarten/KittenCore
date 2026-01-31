@@ -72,7 +72,7 @@ func (FQ) ChapterID(cpURL string) string {
 }
 
 // Init 小说网页信息获取
-func (f FQ) Init(ctx context.Context, cpID string) (any, error) {
+func (f FQ) Init(ctx context.Context, cpID string, cache bool) (any, error) {
 	// 初始化小说
 	nv := novel.Pool.Get().(*novel.Novel)
 	*nv = novel.Novel{}
@@ -85,7 +85,7 @@ func (f FQ) Init(ctx context.Context, cpID string) (any, error) {
 	// 获取小说网页，失败则返回
 	shttp.SetUserAgent(shttp.RandomUserAgent())
 	defer shttp.SetUserAgent(shttp.UserAgent)
-	doc, err := shttp.LoadURLWithContext(ctx, nv.URL)
+	doc, err := platform.Doc(ctx, nv.URL, cache)
 	if err != nil {
 		return nv, err
 	}

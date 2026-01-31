@@ -1,9 +1,13 @@
 package platform
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"time"
+
+	"github.com/Kittengarten/KittenCore/kitten/core/shttp"
+	"golang.org/x/net/html"
 )
 
 // 所有小说平台
@@ -33,4 +37,12 @@ func NotSupported(platform string) error {
 // ParseTime 解析时间
 func ParseTime(p Platform, str string) (time.Time, error) {
 	return time.Parse(p.Layout(), str)
+}
+
+// Doc 获取 HTML
+func Doc(ctx context.Context, urlStr string, cache bool) (*html.Node, error) {
+	if cache {
+		return shttp.UpdateURLWithContext(ctx, urlStr)
+	}
+	return shttp.LoadURLWithContext(ctx, urlStr)
 }

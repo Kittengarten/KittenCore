@@ -119,9 +119,9 @@ func (FQAPI) ChapterID(cpURL string) string {
 }
 
 // Init 小说网页信息获取
-func (f FQAPI) Init(ctx context.Context, cpID string) (any, error) {
+func (f FQAPI) Init(ctx context.Context, cpID string, cache bool) (any, error) {
 	if stat.APIHOST[stat.Fanqie] == `` {
-		return Platform.Init(ctx, cpID)
+		return Platform.Init(ctx, cpID, cache)
 	}
 	// 初始化小说
 	nv := novel.Pool.Get().(*novel.Novel)

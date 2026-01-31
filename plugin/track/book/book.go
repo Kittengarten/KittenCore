@@ -1,6 +1,7 @@
 package book
 
 import (
+	"errors"
 	"net/url"
 	"slices"
 
@@ -29,7 +30,7 @@ func (c *Books) Report(
 	cu chan Books,
 	path fio.PathRWMutex,
 ) {
-	if err:= repeat.IterS(
+	if err := repeat.IterS(
 		handler,
 		repeat.New(0, cycle, 2*cycle),
 		*c,
@@ -77,10 +78,13 @@ func (b Book) Report(
 		log.Error(`平台错误：`, err)
 		return
 	}
-	nv, err := novel.Init(handler, p, b.BookID)
+	nv, err := novel.Init(handler, p, b.BookID, true)
 	defer novel.Pool.Put(nv)
 	if err != nil {
-		log.Error(`初始化小说错误：`, err)
+		if !errors.Is(err, shttp.ErrNoUpdate) {
+			log.Error(`初始化小说错误：`, err)
+		}
+		// 无更新，跳过
 		return
 	}
 	check.RecordTime()

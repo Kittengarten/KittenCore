@@ -77,7 +77,7 @@ func (c CWM) ChapterID(cpURL string) string {
 }
 
 // Init 小说网页信息获取
-func (c CWM) Init(ctx context.Context, cpID string) (any, error) {
+func (c CWM) Init(ctx context.Context, cpID string, cache bool) (any, error) {
 	// 初始化小说
 	nv := novel.Pool.Get().(*novel.Novel)
 	*nv = novel.Novel{}
@@ -88,7 +88,7 @@ func (c CWM) Init(ctx context.Context, cpID string) (any, error) {
 	// 生成链接
 	nv.URL = URL + nv.ID
 	// 获取小说网页，失败则返回
-	doc, err := shttp.LoadURLWithContext(ctx, nv.URL)
+	doc, err := platform.Doc(ctx, nv.URL, cache)
 	if err != nil {
 		return nv, err
 	}

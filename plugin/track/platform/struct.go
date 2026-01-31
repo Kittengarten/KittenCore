@@ -17,7 +17,7 @@ type Platform interface {
 	// ChapterID 获取章号
 	ChapterID(cpURL string) string
 	// Init 初始化小说
-	Init(ctx context.Context, nvID string) (any, error)
+	Init(ctx context.Context, nvID string, cache bool) (any, error)
 	// NewChapter 初始化章节
 	NewChapter(ctx context.Context, cpURL string) (any, error)
 }
