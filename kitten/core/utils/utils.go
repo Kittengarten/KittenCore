@@ -219,7 +219,7 @@ func GetTypeName(value any) string {
 	// 获取 reflect.Type
 	t := reflect.TypeOf(value)
 	// 如果是指针类型，获取其指向的元素类型
-	if t.Kind() == reflect.Ptr {
+	if t.Kind() == reflect.Pointer {
 		t = t.Elem()
 	}
 	// 返回类型名
