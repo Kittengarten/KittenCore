@@ -106,7 +106,7 @@ func (d *data) generateAnalysis(handler *msg.Handler) (c chance, flat, img bool)
 	}
 	// 如果是非空队列
 	sn := slices.Clone(s)
-	sn = append(sn, m)           // 用于压坏判定的队列
+	sn = append(sn, m)              // 用于压坏判定的队列
 	c.p = sn.chancePressed(handler) // 压坏概率
 	gp := func() float64 {
 		if m.getTypeID(handler) <= 抱枕 ||
@@ -151,10 +151,10 @@ func chanceOutput(s string, c float64) string {
 // 计算清空猫堆的概率
 func chanceClear(handler *msg.Handler, s data, m meow) float64 {
 	var (
-		sn   = append(s, m)           // 用于压坏判定的队列
-		p, f = 1.0, 1.0               // 每次的压坏、摔下概率
+		sn   = append(s, m)              // 用于压坏判定的队列
+		p, f = 1.0, 1.0                  // 每次的压坏、摔下概率
 		p1   = sn.chancePressed(handler) // 压坏概率
-		l    = len(s)                 // 猫堆高度
+		l    = len(s)                    // 猫堆高度
 	)
 	if l == 0 {
 		// 如果猫堆本来就是空的，清空概率等于平地摔概率
@@ -266,12 +266,11 @@ func tip(handler *msg.Handler, w int, c chance) string {
 	if len(t) == 0 {
 		t = tipSlice.Kittengarten
 	}
-	GlobalMessager.Context = handler // 设置上下文
-	defer func() { GlobalMessager.Context = context.Background() }()
+	h := msg.NewWithContext(handler, globalCtx)
 	//nolint:gosec
 	return strings.NewReplacer(
 		`{player}`,
-		usr.NewQQ(GlobalMessager.Event().UserID).CallName(GlobalMessager),
+		usr.NewQQ(h.Event().UserID).CallName(h),
 	).Replace(strings.TrimSpace(t[rand.N(len(t))]))
 }
 

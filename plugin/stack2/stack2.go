@@ -48,8 +48,8 @@ const (
 	zako                                 = `zako`
 )
 
-// GlobalMessager 全局上下文，仅用于获取猫猫信息
-var GlobalMessager = &msg.Handler{Context: context.Background()}
+// 全局上下文，仅用于获取猫猫信息
+var globalCtx = new(zero.Ctx)
 
 // 叠猫猫状态
 var stackStatus status
@@ -124,7 +124,7 @@ func stackExe(handler *msg.Handler) {
 		handler.SendWithImageFail(`当前活动未开放喵！`)
 		return
 	}
-	GlobalMessager.Ctx = handler.Ctx
+	globalCtx = handler.Ctx
 	d, err := fio.LoadWithContext[data](handler, dataPath, fio.Empty)
 	if err != nil {
 		sendWithImageFail(handler, `加载叠猫猫数据文件时发生错误喵！`, err)

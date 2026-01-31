@@ -1,7 +1,6 @@
 package stack2
 
 import (
-	"context"
 	"fmt"
 	"strings"
 	"time"
@@ -74,16 +73,15 @@ func (d *data) viewImage(handler *msg.Handler) message.ID {
 	for h, m := range s {
 		values[0][h] = i2f(m.Weight)
 		str[h] = strings.ReplaceAll(func() string {
-			GlobalMessager.Context = handler // 设置上下文
-			defer func() { GlobalMessager.Context = context.Background() }()
+			h := msg.NewWithContext(handler, globalCtx)
 			if globalLocation == cockroach {
 				return fmt.Sprintf(`【%s】翼展 %.1f cm`,
-					l10n.Replace(m.getType(GlobalMessager).String()),
+					l10n.Replace(m.getType(h).String()),
 					i2f(m.Weight),
 				)
 			}
 			return fmt.Sprintf(`%s（%d）%.1f %s %s`,
-				m.TitleCardOrNickName(GlobalMessager),
+				m.TitleCardOrNickName(h),
 				m.Int(),
 				i2f(m.Weight),
 				l10n.Replace(`kg`),

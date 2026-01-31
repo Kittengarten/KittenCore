@@ -190,19 +190,16 @@ func (m meow) Format(f fmt.State, verb rune) {
 func (m meow) String() string {
 	ctx, cancel := context.WithTimeout(context.Background(), shttp.Timeout)
 	defer cancel()
-	GlobalMessager.Context = ctx // 设置上下文
-	defer func() { GlobalMessager.Context = context.Background() }()
+	h := msg.NewWithContext(ctx, globalCtx)
 	if globalLocation == cockroach {
-		return fmt.Sprintf(`【%s】	翼展 %.1f cm`, m.getType(GlobalMessager), i2f(m.Weight))
+		return fmt.Sprintf(`【%s】	翼展 %.1f cm`, m.getType(h), i2f(m.Weight))
 	}
 	return fmt.Sprintf(
 		l10n.Replace(`%s	❤	%d	❤	%.1f kg	%s`),
-		cmp.Or(m.TitleCardOrNickName(
-			GlobalMessager,
-		), m.Name),
+		cmp.Or(m.TitleCardOrNickName(h), m.Name),
 		m.Int(),
 		i2f(m.Weight),
-		m.getType(GlobalMessager),
+		m.getType(h),
 	)
 }
 

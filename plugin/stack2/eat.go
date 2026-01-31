@@ -23,7 +23,7 @@ func eatExe(handler *msg.Handler) {
 		handler.SendWithImageFail(`当前活动未开放喵！`)
 		return
 	}
-	GlobalMessager.Ctx = handler.Ctx
+	globalCtx = handler.Ctx
 	d, err := fio.LoadWithContext[data](handler, dataPath, fio.Empty)
 	if err != nil {
 		sendWithImageFail(handler, `加载叠猫猫数据文件时发生错误喵！`, err)

@@ -109,9 +109,9 @@ func init() {
 				updateTest(handler)
 			case cSetProtagonists:
 				// 设置主角
-				handler.Context, canc = context.WithTimeout(context.Background(), shttp.Timeout)
+				c, canc := context.WithTimeout(context.Background(), shttp.Timeout)
 				defer canc()
-				setProtagonists(handler)
+				setProtagonists(msg.NewWithContext(c, ctx))
 			}
 		})
 

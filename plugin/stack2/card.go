@@ -17,14 +17,15 @@ var active syncx.Map[usr.QQ, time.Time] // 各群的上次活跃时间
 func setCard(handler *msg.Handler, h int) {
 	// 独立的超时控制，不继承上游，以免上游提前完成导致本函数执行超时
 	var cancel context.CancelFunc
-	handler.Context, cancel = context.WithTimeout(context.Background(), time.Minute)
+	ctx, cancel := context.WithTimeout(context.Background(), time.Minute)
 	defer cancel()
-	if g := usr.NewQQGroup(handler.Event().GroupID); g.IsGroup() {
+	localHandler := handler.SetContext(ctx)
+	if g := usr.NewQQGroup(localHandler.Event().GroupID); g.IsGroup() {
 		// 保存本群的活跃时间
-		active.Store(g, time.Unix(handler.Event().Time, 0))
+		active.Store(g, time.Unix(localHandler.Event().Time, 0))
 	}
 	active.Range(func(g usr.QQ, t time.Time) bool {
-		handler.SetCard(func() int {
+		localHandler.(*msg.Handler).SetCard(func() int {
 			if equal.CmpDay4AM(t, time.Now()) <= 1 {
 				return h
 			}
