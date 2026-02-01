@@ -72,7 +72,7 @@ func (FQ) ChapterID(cpURL string) string {
 }
 
 // Init 小说网页信息获取
-func (f FQ) Init(ctx context.Context, cpID string, cache bool) (any, error) {
+func (f FQ) Init(ctx context.Context, cpID string, _ bool) (any, error) {
 	// 初始化小说
 	nv := novel.Pool.Get().(*novel.Novel)
 	*nv = novel.Novel{}
@@ -83,9 +83,11 @@ func (f FQ) Init(ctx context.Context, cpID string, cache bool) (any, error) {
 	// 生成链接
 	nv.URL = URL + nv.ID
 	// 获取小说网页，失败则返回
+	// 使用随机 UA
 	shttp.SetUserAgent(shttp.RandomUserAgent())
 	defer shttp.SetUserAgent(shttp.UserAgent)
-	doc, err := platform.Doc(ctx, nv.URL, cache)
+	// 番茄网页不能启用缓存，因为每次网页都会有变化
+	doc, err := platform.Doc(ctx, nv.URL, false)
 	if err != nil {
 		return nv, err
 	}

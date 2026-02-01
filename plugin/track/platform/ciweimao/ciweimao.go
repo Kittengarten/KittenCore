@@ -77,7 +77,7 @@ func (c CWM) ChapterID(cpURL string) string {
 }
 
 // Init 小说网页信息获取
-func (c CWM) Init(ctx context.Context, cpID string, cache bool) (any, error) {
+func (c CWM) Init(ctx context.Context, cpID string, _ bool) (any, error) {
 	// 初始化小说
 	nv := novel.Pool.Get().(*novel.Novel)
 	*nv = novel.Novel{}
@@ -88,7 +88,8 @@ func (c CWM) Init(ctx context.Context, cpID string, cache bool) (any, error) {
 	// 生成链接
 	nv.URL = URL + nv.ID
 	// 获取小说网页，失败则返回
-	doc, err := platform.Doc(ctx, nv.URL, cache)
+	// 刺猬猫不能启用缓存，因为每次网页都会有变化
+	doc, err := platform.Doc(ctx, nv.URL, false)
 	if err != nil {
 		return nv, err
 	}

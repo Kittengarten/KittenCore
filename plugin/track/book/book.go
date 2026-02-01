@@ -87,7 +87,7 @@ func (b Book) Report(
 		// 无更新，跳过
 		return
 	}
-	check.RecordTime()
+	check.RecordTime() // 只记录实际检测的 *novel.Novel 数量
 	if nv.Chapter.URL == `` {
 		// 如果没有获取到 URL，则跳过
 		return
