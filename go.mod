@@ -1,6 +1,6 @@
 module github.com/Kittengarten/KittenCore
 
-go 1.26rc2
+go 1.26
 
 ignore (
 	./data
@@ -11,11 +11,11 @@ ignore (
 
 require (
 	github.com/FloatTech/Plugin-Template v0.0.0-20220112034251-2d0ac4afceff
-	github.com/FloatTech/ZeroBot-Plugin v1.10.17-0.20260117133339-37dfad9a2903
+	github.com/FloatTech/ZeroBot-Plugin v1.10.18
 	github.com/FloatTech/ZeroBot-Plugin-Playground v0.0.0-20250514132903-38bc3197f052
 	github.com/FloatTech/floatbox v0.0.0-20251002074805-f95cbc7edb31
 	github.com/FloatTech/zbpctrl v1.7.1
-	github.com/FloatTech/zbputils v1.7.2-0.20260117132036-29f021ceb949
+	github.com/FloatTech/zbputils v1.7.2-0.20260131170726-494cb1776a47
 	github.com/Kittengarten/KittenAnno v1.0.2-0.20250629151602-8df874f49d06
 	github.com/RomiChan/syncx v0.0.0-20240418144900-b7402ffdebc7
 	github.com/antchfx/htmlquery v1.3.5
@@ -28,18 +28,18 @@ require (
 	github.com/google/uuid v1.6.0
 	github.com/jinzhu/gorm v1.9.16
 	github.com/makiuchi-d/gozxing v0.1.2-0.20230218072048-d8563176fedd
-	github.com/prometheus-community/pro-bing v0.7.0
+	github.com/prometheus-community/pro-bing v0.8.0
 	github.com/sahilm/fuzzy v0.1.1
 	github.com/sashabaranov/go-openai v1.41.2
 	github.com/sergi/go-diff v1.4.0
-	github.com/shirou/gopsutil/v4 v4.25.12
+	github.com/shirou/gopsutil/v4 v4.26.1
 	github.com/tidwall/gjson v1.18.0
 	github.com/tidwall/sjson v1.2.5
 	github.com/vicanso/go-charts/v2 v2.6.10
 	github.com/wdvxdr1123/ZeroBot v1.8.3-0.20260117102541-393033a35adb
 	go.uber.org/zap v1.27.1
-	golang.org/x/exp v0.0.0-20260112195511-716be5621a96
-	golang.org/x/net v0.49.0
+	golang.org/x/exp v0.0.0-20260209203927-2842357ff358
+	golang.org/x/net v0.50.0
 	gopkg.in/natefinch/lumberjack.v2 v2.2.1
 )
 
@@ -71,10 +71,11 @@ require (
 	github.com/fumiama/orbyte v0.0.0-20251002065953-3bb358367eb5 // indirect
 	github.com/fumiama/slowdo v0.0.0-20241001074058-27c4fe5259a4 // indirect
 	github.com/fumiama/unibase2n v0.0.0-20240530074540-ec743fd5a6d6 // indirect
-	github.com/gabriel-vasile/mimetype v1.4.12 // indirect
+	github.com/gabriel-vasile/mimetype v1.4.13 // indirect
 	github.com/go-ole/go-ole v1.3.0 // indirect
 	github.com/golang/groupcache v0.0.0-20241129210726-2c02b8208cf8 // indirect
 	github.com/gopxl/beep/v2 v2.1.1 // indirect
+	github.com/guohuiyuan/music-lib v1.0.3 // indirect
 	github.com/jfreymuth/oggvorbis v1.0.5 // indirect
 	github.com/jfreymuth/vorbis v1.0.2 // indirect
 	github.com/jinzhu/inflection v1.0.0 // indirect
@@ -83,7 +84,7 @@ require (
 	github.com/kylelemons/godebug v1.1.0 // indirect
 	github.com/lufia/plan9stats v0.0.0-20251013123823-9fd1530e3ec3 // indirect
 	github.com/mattn/go-isatty v0.0.20 // indirect
-	github.com/mattn/go-sqlite3 v1.14.22 // indirect
+	github.com/mattn/go-sqlite3 v1.14.34 // indirect
 	github.com/mmcdole/gofeed v1.3.0 // indirect
 	github.com/mmcdole/goxpp v1.1.1 // indirect
 	github.com/modern-go/concurrent v0.0.0-20180306012644-bacd9c7ef1dd // indirect
@@ -103,16 +104,16 @@ require (
 	github.com/tklauser/numcpus v0.11.0 // indirect
 	github.com/wcharczuk/go-chart/v2 v2.1.2 // indirect
 	github.com/yusufpapurcu/wmi v1.2.4 // indirect
-	gitlab.com/gomidi/midi/v2 v2.3.18 // indirect
+	gitlab.com/gomidi/midi/v2 v2.3.22 // indirect
 	go.uber.org/multierr v1.11.0 // indirect
-	golang.org/x/arch v0.23.0 // indirect
-	golang.org/x/image v0.35.0 // indirect
+	golang.org/x/arch v0.24.0 // indirect
+	golang.org/x/image v0.36.0 // indirect
 	golang.org/x/sync v0.19.0 // indirect
-	golang.org/x/sys v0.40.0 // indirect
-	golang.org/x/text v0.33.0 // indirect
+	golang.org/x/sys v0.41.0 // indirect
+	golang.org/x/text v0.34.0 // indirect
 	golang.org/x/xerrors v0.0.0-20240903120638-7835f813f4da // indirect
 	modernc.org/libc v1.67.7 // indirect
 	modernc.org/mathutil v1.7.1 // indirect
 	modernc.org/memory v1.11.0 // indirect
-	modernc.org/sqlite v1.44.3 // indirect
+	modernc.org/sqlite v1.45.0 // indirect
 )
