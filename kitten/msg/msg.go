@@ -172,7 +172,7 @@ func (m *Handler) Lf(n ...int) *Handler {
 // AtLf 附带 @ 并换行
 func (m *Handler) AtLf(qq ...usr.QQ) *Handler {
 	if n := *m; !hasSame(m, n.At(qq...)) {
-		return n.Lf()
+		return m.At(qq...).Lf()
 	}
 	return m
 }
@@ -180,7 +180,7 @@ func (m *Handler) AtLf(qq ...usr.QQ) *Handler {
 // AtAllLf 附带 @ 全体成员 并换行
 func (m *Handler) AtAllLf(g ...usr.QQ) *Handler {
 	if n := *m; !hasSame(m, n.AtAll(g...)) {
-		return n.Lf()
+		return m.AtAll(g...).Lf()
 	}
 	return m
 }
@@ -334,7 +334,7 @@ func (m *Handler) SendMulti(u ...usr.QQ) (id []message.ID) {
 	defer m.Reset()
 	if m.err != nil {
 		// 有错误，将其打包进消息
-		m = m.Text("\n", m.err)
+		m.Text("\n", m.err)
 	}
 	if len(m.Message) == 0 {
 		// 没有消息段，无法发送

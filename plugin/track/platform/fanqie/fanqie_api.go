@@ -3,6 +3,7 @@ package fanqie
 import (
 	"cmp"
 	"context"
+	"errors"
 	"fmt"
 	"net/url"
 	"strconv"
@@ -100,7 +101,7 @@ func (FQAPI) FindBookID(ctx context.Context, key search.Keyword) (string, error)
 	u.RawQuery = v.Encode()
 	data, err := shttp.GETDataURLWithContext(ctx, u)
 	if err != nil {
-		return ``, err
+		return ``, maskError(err)
 	}
 	if !gjson.ValidBytes(data) {
 		return ``, fmt.Errorf(`%wJSON：%s`, utils.ErrInvalidData, string(data))
@@ -144,7 +145,7 @@ func (f FQAPI) Init(ctx context.Context, cpID string, cache bool) (any, error) {
 	// 获取小说网页，失败则返回
 	data, err := shttp.GETDataURLWithContext(ctx, u)
 	if err != nil {
-		return nv, err
+		return nv, maskError(err)
 	}
 	if !gjson.ValidBytes(data) {
 		log.Errorf("无效的 JSON：\n%s", data)
@@ -213,7 +214,8 @@ func (FQAPI) NewChapter(ctx context.Context, cpURL string) (any, error) {
 		// 先从 SNSSDK API 获取
 		s, err := SNSSDKDetail(cp.URL)
 		if err == nil {
-			b, err := shttp.GETDataURLWithContext(ctx, s)
+			var b []byte
+			b, err = shttp.GETDataURLWithContext(ctx, s)
 			if err == nil {
 				// 替换 URL
 				cp.URL = s.String()
@@ -228,7 +230,7 @@ func (FQAPI) NewChapter(ctx context.Context, cpURL string) (any, error) {
 	}()
 	defer func() { cp.URL = cpURL }() // 恢复 URL
 	if err != nil {
-		return cp, err
+		return cp, maskError(err)
 	}
 	if !gjson.ValidBytes(data) {
 		log.Errorf("无效的 JSON：\n%s", data)
@@ -296,4 +298,23 @@ func ShouldUpdate(upd, rec string) bool {
 		return len(u) > len(r)
 	}
 	return u > r
+}
+
+// maskError 为了防止信息泄露，替换错误信息
+func maskError(err error, oldnew ...string) error {
+	shttpErr, ok := errors.AsType[*shttp.Error](err)
+	if !ok {
+		return err
+	}
+	var (
+		mask = []string{
+			stat.APIHOST[stat.Fanqie], `HOST`,
+		}
+		escaped = make([]string, 0, len(oldnew)+len(mask))
+	)
+	for i := 0; i+1 < len(oldnew); i += 2 {
+		escaped = append(escaped, url.QueryEscape(oldnew[i]), oldnew[i+1])
+	}
+	shttpErr.URL = strings.NewReplacer(append(escaped, mask...)...).Replace(shttpErr.URL)
+	return shttpErr
 }
