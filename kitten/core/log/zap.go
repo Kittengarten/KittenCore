@@ -19,7 +19,6 @@ func ZapInit(cfg Log, test bool) {
 			zap.Error(err)
 		}
 	}
-
 	// 日志记录器配置
 	log := zap.New(
 		zapcore.NewCore(

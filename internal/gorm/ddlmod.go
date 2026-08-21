@@ -243,7 +243,7 @@ func (d *ddl) removeConstraint(name string) bool {
 }
 
 func (d *ddl) getColumns() []string {
-	res := []string{}
+	res := make([]string, 0)
 
 	for _, f := range d.fields {
 		fUpper := strings.ToUpper(f)

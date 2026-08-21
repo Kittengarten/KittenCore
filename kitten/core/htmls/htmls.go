@@ -26,7 +26,7 @@ func ExtractText(doc *html.Node) string {
 		return ``
 	}
 	s := new(strings.Builder)
-	s.Grow(16384)
+	s.Grow(1 << 14)
 	walk(doc, func(n *html.Node) bool {
 		switch n.Data {
 		case `head`, `script`, `style`:

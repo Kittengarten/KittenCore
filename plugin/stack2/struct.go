@@ -88,11 +88,12 @@ type (
 
 	// 猫猫数据值
 	meow struct {
-		Time      time.Time   `yaml:",omitempty"` // 如果在叠猫猫中，叠入的时间；如果未在叠猫猫中，休息结束的时间
-		Daily     time.Time   `yaml:",omitempty"`
-		Name      string      `yaml:",omitempty"` // 群名片或昵称
-		usr.QQ `yaml:"id"` // QQ
-		Weight    int         // 体重（0.1 kg 数）
-		Status    bool        // 是否在叠猫猫中
+		Time     time.Time   `yaml:",omitzero"` // 如果在叠猫猫中，叠入的时间；如果未在叠猫猫中，休息结束的时间
+		Daily    time.Time   `yaml:",omitzero"`
+		Name     string      `yaml:",omitzero"` // 群名片或昵称
+		usr.QQ   `yaml:"id"` // QQ
+		Weight   int         // 体重（0.1 kg 数）
+		Status   bool        // 是否在叠猫猫中
+		Location location    `yaml:"-"` // 地区标记位
 	}
 )

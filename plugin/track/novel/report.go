@@ -15,30 +15,10 @@ import (
 	"github.com/Kittengarten/KittenCore/kitten/msg"
 	"github.com/Kittengarten/KittenCore/kitten/usr"
 	"github.com/Kittengarten/KittenCore/plugin/track/chapter"
-	"github.com/Kittengarten/KittenCore/plugin/track/platform"
 	"github.com/Kittengarten/KittenCore/plugin/track/status"
 
 	"github.com/wdvxdr1123/ZeroBot/message"
 )
-
-type (
-	// Restorer 恢复器
-	Restorer interface {
-		URLRestorer
-		PlatformRestorer
-	}
-	// URLRestorer URL 恢复器
-	URLRestorer interface {
-		RestoreURL(nv *Novel) string
-	}
-	// PlatformRestorer 平台恢复器
-	PlatformRestorer interface {
-		RestorePlatform(nv *Novel)
-	}
-)
-
-// GlobalRestorer 全局恢复器
-var GlobalRestorer Restorer
 
 var (
 	// ErrorNotImplemented 未实现喵！
@@ -53,12 +33,14 @@ func TryCommentUpdate(
 	ids []message.ID,
 	users []usr.QQ,
 	nv *Novel,
+	done chan<- struct{},
 ) {
-	if Export.Commenter == nil {
+	if Export == nil {
 		log.Error(`更新点评`, ErrorNotImplemented)
 		return
 	}
 	utils.Go(`异步评论更新`, func() {
+		defer close(done)
 		var (
 			// 独立上下文，不继承上游
 			ctx, cancel = context.WithTimeout(context.Background(), 5*time.Minute)
@@ -95,13 +77,13 @@ func TryCommentUpdate(
 
 // Update 更新信息
 func (nv *Novel) Update(ctx context.Context) string {
-	defer GlobalRestorer.RestorePlatform(nv)
 	return fmt.Sprintf(`《%s》更新了喵～
-%s%s
-更新字数：%d 字（%s）%s`,
+%s
+%s
+更新字数：%d 字（%s）%s%c`,
 		nv.Name,
 		nv.Title,
-		GlobalRestorer.RestoreURL(nv),
+		nv.Chapter.URL,
 		nv.WordNum, map[bool]string{
 			true:  `付费`,
 			false: `免费`,
@@ -114,6 +96,7 @@ func (nv *Novel) Update(ctx context.Context) string {
 			}
 			return "\n间隔时间：" + tr
 		}(),
+		nv.UpdateData,
 	)
 }
 
@@ -134,12 +117,16 @@ func (nv *Novel) todayReport(ctx context.Context) (string, error) {
 
 // 与上次更新比较
 func (nv *Novel) makeCompare(ctx context.Context) (err error) {
+	if nv.Duration != 0 {
+		// 已经完成了比较
+		return nil
+	}
 	var this, pre *chapter.Chapter
 	this = nv.Chapter
 	if this.PreURL == `` || this.PreURL == nv.URL {
 		return status.ErrStatus(nv.URL, status.OnlyAChapter)
 	}
-	if pre, err = NewChapter(ctx, nv, this.PreURL); err != nil {
+	if pre, err = NewChapter(ctx, nv, this.PreURL, ``); err != nil {
 		return err
 	}
 	nv.TodayWordNum = this.WordNum
@@ -150,7 +137,7 @@ func (nv *Novel) makeCompare(ctx context.Context) (err error) {
 		case <-times.RandDelayRange(time.Second, 2*time.Second):
 			this = pre
 			nv.TodayWordNum += this.WordNum
-			if pre, err = NewChapter(ctx, nv, this.PreURL); err != nil {
+			if pre, err = NewChapter(ctx, nv, this.PreURL, ``); err != nil {
 				return err
 			}
 		case <-ctx.Done():
@@ -161,12 +148,12 @@ func (nv *Novel) makeCompare(ctx context.Context) (err error) {
 }
 
 // NewChapter 获取章节
-func NewChapter(ctx context.Context, nv *Novel, cpURL string) (*chapter.Chapter, error) {
-	p, err := platform.Get(nv.Platform)
+func NewChapter(ctx context.Context, nv *Novel, chapURL, volumeName string) (*chapter.Chapter, error) {
+	p, err := chapter.GetChapterSource(nv.Platform)
 	if err != nil {
 		return nil, err
 	}
-	return chapter.New(ctx, p, cpURL)
+	return p.NewChapter(ctx, chapURL, volumeName)
 }
 
 // DurationConvert 距上次更新时间的时间差转换为时间间隔的结构体

@@ -26,7 +26,7 @@ type (
 )
 
 // PlatformBits 平台位数
-const PlatformBits = 32 << (^uint(0) >> 63)
+const PlatformBits = 1 << 5 << (^uint(0) >> (1<<6 - 1))
 
 var (
 	// ErrInvalidData 无效的数据喵！
@@ -112,10 +112,10 @@ func gnrShuffle(start, end, n int) Set[int] {
 	// 返回前n个元素
 	return maps.Collect(keys(nums[:n]))
 }
-func keys[Slice ~[]E, E any](s Slice) iter.Seq2[E, struct{}] {
-	return func(yield func(E, struct{}) bool) {
+func keys[Slice ~[]E, E any](s Slice) iter.Seq2[E, Object] {
+	return func(yield func(E, Object) bool) {
 		for _, e := range s {
-			if !yield(e, struct{}{}) {
+			if !yield(e, Object{}) {
 				return
 			}
 		}
@@ -262,7 +262,7 @@ func HandlePanic(name, seq slog.Attr) {
 				slog.Any(`错误`, err))
 			return
 		}
-		defer file.Close()
+		defer file.Close() //nolint:errcheck
 		if _, err := fmt.Fprintf(file, "panic: %v\n%s\n", err, string(debug.Stack())); err != nil {
 			slog.Error(`写入`, slog.String(`路径`, Crash),
 				slog.Any(`错误`, err))

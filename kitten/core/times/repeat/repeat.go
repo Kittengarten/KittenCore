@@ -27,9 +27,11 @@ func New(n int, shortest, longest time.Duration) Config {
 
 // Do 重复执行操作
 func Do(ctx context.Context, cfg Config, fn func() error) error {
-	cfg.n = max(0, cfg.n)
-	cfg.shortest = max(0, cfg.shortest)
-	cfg.longest = max(0, cfg.longest)
+	cfg = Config{
+		n:        max(0, cfg.n),
+		shortest: max(0, cfg.shortest),
+		longest:  max(0, cfg.longest),
+	}
 	t := time.NewTimer(0) // Go 1.23+，立即 Reset 不会残留一次信号
 	for i := range cfg.n {
 		select {

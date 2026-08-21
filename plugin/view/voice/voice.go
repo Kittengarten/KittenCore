@@ -20,7 +20,7 @@ const (
 func SendAlipayVoice(handler *msg.Handler) message.ID {
 	var (
 		s      = strings.TrimSpace(handler.Args())
-		i, err = strconv.ParseFloat(s, 64)
+		i, err = strconv.ParseFloat(s, 1<<6)
 	)
 	if err != nil {
 		return handler.SendWithImageFail(err)

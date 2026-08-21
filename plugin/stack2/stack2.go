@@ -118,48 +118,53 @@ func stackExe(handler *msg.Handler) {
 			err)
 		return
 	}
-	if !setGlobalLocation(loc) {
-		// 设置全局地区标记位，如当前活动未开放则返回
+	r, ok := parseLoc(loc)
+	if !ok {
+		// 当前活动未开放，返回
 		asyncSendEmoji(handler, `辣眼睛`)
 		handler.SendWithImageFail(`当前活动未开放喵！`)
 		return
 	}
 	globalCtx = handler.Ctx
-	d, err := fio.LoadWithContext[data](handler, dataPath, fio.Empty)
+	d, err := dataPath.LoadWithContext[data](handler, fio.Empty)
 	if err != nil {
-		sendWithImageFail(handler, `加载叠猫猫数据文件时发生错误喵！`, err)
+		sendWithImageFail(handler, r, `加载叠猫猫数据文件时发生错误喵！`, err)
 		return
 	}
-	stackStatus.refresh(handler, &d)
+	for i := range d {
+		// 更新叠猫猫数据中的地区标记位
+		d[i].Location = r.location
+	}
+	stackStatus.refresh(handler, d, r)
 	switch op {
 	case cIn:
-		_ = d.in(handler)
+		_ = d.in(handler, r)
 		self(handler, d)
 	case cView:
 		asyncSendEmoji(handler, `暗中观察`)
-		d.view(handler, zero.UserOrGrpAdmin(handler.Ctx))
+		d.view(handler, zero.UserOrGrpAdmin(handler.Ctx), r)
 		select {
 		case <-times.RandDelayRange(time.Second, 2*time.Second):
-			d.viewImage(handler)
+			d.viewImage(handler, r)
 			self(handler, d)
 		case <-handler.Done():
 			handler.SendWithImageFail(handler.Err())
 		}
 	case cAnalysis:
 		asyncSendEmoji(handler, `仔细分析`)
-		d.analysis(handler)
+		d.analysis(handler, r)
 		_ = selfAnalysis(handler, d)
 	case cRank:
 		asyncSendEmoji(handler, `🎉 庆祝`)
-		d.rank(handler)
+		d.rank(handler, r)
 		_ = selfRank(handler, d)
 	case cOC, cOCFox, cOCGPU, cOCCockroach:
 		asyncSendEmoji(handler, `奋斗`)
-		d.oc(handler)
+		d.oc(handler, r)
 		self(handler, d)
 	case cDaily, cDaily1:
 		asyncSendEmoji(handler, `💝 礼物`)
-		d.daily(handler)
+		d.daily(handler, r)
 		self(handler, d)
 	default:
 		asyncSendEmoji(handler, `吃糖`)
@@ -172,6 +177,12 @@ func stackExe(handler *msg.Handler) {
 				}
 				return len(u.TitleCardOrNickName(handler))
 			}()
+			sigma        = float64(stackConfig.RestHoursPerKG) * float64(time.Hour) * i2f(w)
+			lorryRestStr = fmt.Sprintf(`N(0, (%s)²)`, times.ConvertTimeDuration(
+				time.Duration(sigma*math.E)))
+			restStr = fmt.Sprintf(`N(0, (%s)²)`, times.ConvertTimeDuration(
+				time.Duration(sigma),
+			))
 		)
 		helpText := []string{help}
 		if m.getTypeID(handler) >= 小老虎 {
@@ -181,46 +192,17 @@ func stackExe(handler *msg.Handler) {
 		if m.getTypeID(handler) >= 猫车 {
 			// 猫车以上，发送撞大运帮助文本
 			helpText = append(helpText, helpLorry)
+			// 休息时长延长
+			restStr = lorryRestStr
 		}
-		sendText(handler, true, strings.NewReplacer(
-			`(抱枕突破所需体重/当前体重)`,
-			fmt.Sprintf(` %.2f%% `, 100*chanceFlat(m)),
-			`[当前猫堆高度]`,
-			strconv.Itoa(len(d.getStack())),
-			`N(0, 体重²)`,
-			fmt.Sprintf(`N(0, (%s)²)`, times.ConvertTimeDuration(
-				time.Hour*time.Duration(stackConfig.RestHoursPerKG*w)/10,
-			)),
-			`N(0, (e*体重)²)`,
-			fmt.Sprintf(`N(0, (%s)²)`, times.ConvertTimeDuration(
-				time.Duration(
-					float64(stackConfig.RestHoursPerKG)*float64(time.Hour)*math.E*i2f(w),
-				))),
-			`[最大休息时间]`,
-			times.ConvertTimeDuration(stackStatus.MaxRestTime).String(),
+		var ()
+		sendText(handler, r, true, strings.NewReplacer(
+			baseChanceStr, fmt.Sprintf(` %.2f%% `, 100*chanceFlat(m)),
+			currentHeightStr, strconv.Itoa(len(d.getStack())),
+			baseRestTimeStr, restStr,
+			lorryRestTimeStr, lorryRestStr,
+			maxRestTimeStr, times.ConvertTimeDuration(stackStatus.MaxRestTime).String(),
 		).Replace(strings.Join(helpText, "\n\n")))
-	}
-}
-
-// 设置全局地区标记位
-func setGlobalLocation(loc string) bool {
-	switch {
-	case strings.ContainsAny(loc, `狐狸`):
-		globalLocation = fox // 狐狐
-		return true
-	case strings.Contains(loc, `显卡`):
-		globalLocation = gpu // 显卡
-		return true
-	case strings.ContainsAny(loc, `蟑螂`),
-		strings.ContainsAny(loc, `蜚蠊`),
-		strings.Contains(loc, `小强`):
-		globalLocation = cockroach // 蟑螂
-		return checkCockroachDate()
-	case strings.ContainsAny(loc, `猫虎喵貓`):
-		fallthrough // 猫猫
-	default:
-		globalLocation = cat // 默认叠猫猫
-		return true
 	}
 }
 
@@ -228,23 +210,26 @@ func setGlobalLocation(loc string) bool {
 //
 //	错误已经打印，无需重复打印
 //	会修改原数据
-func (d *data) in(handler *msg.Handler) error {
+func (d *data) in(handler *msg.Handler, r ...replacer) error {
+	if len(r) == 0 {
+		r = []replacer{l10n(cat)}
+	}
 	// 初始化自身
-	k, err := d.pre(handler)
+	k, err := d.pre(handler, r...)
 	if err != nil {
 		return err
 	}
 	// 未在叠猫猫的队列
 	dn := d.getNoStack()
 	// 执行叠猫猫
-	e := d.doStack(handler, &k)
+	e := d.doStack(handler, &k, r...)
 	// 合并当前未叠猫猫与叠猫猫的队列，将叠入的猫猫追加入切片中
 	*d = slices.Concat(dn, *d, data{k})
 	// 清理过期玩家
 	d.clear(handler, false)
 	// 存储叠猫猫数据
-	if err = fio.SaveWithContext(handler, dataPath, d); err != nil {
-		sendWithImageFail(handler, `存储叠猫猫数据时发生错误喵！`, err)
+	if err = dataPath.SaveWithContext(handler, d); err != nil {
+		sendWithImageFail(handler, r[0], `存储叠猫猫数据时发生错误喵！`, err)
 		return err
 	}
 	return e
@@ -254,37 +239,40 @@ func (d *data) in(handler *msg.Handler) error {
 //
 //	如果不用于叠入，则需要克隆切片
 //	错误已经打印，无需重复打印
-func (d *data) pre(handler *msg.Handler) (meow, error) {
+func (d *data) pre(handler *msg.Handler, r ...replacer) (meow, error) {
+	if len(r) == 0 {
+		r = []replacer{l10n(cat)}
+	}
 	var (
-		u = usr.NewQQ(handler.Event().UserID) // 叠入猫猫的 QQ
-		w int                                 // 叠入猫猫的体重
-		r time.Duration                       // 剩余的休息时间
-		b bool                                // 日常任务是否完成
+		u  = usr.NewQQ(handler.Event().UserID) // 叠入猫猫的 QQ
+		w  int                                 // 叠入猫猫的体重
+		re time.Duration                       // 剩余的休息时间
+		b  bool                                // 日常任务是否完成
 	)
 	if i := slices.IndexFunc(*d, func(m meow) bool {
 		now := time.Unix(handler.Event().Time, 0)
-		r = m.Time.Sub(now)
+		re = m.Time.Sub(now)
 		w = m.Weight
 		b = equal.IsSameDate4AM(m.Daily, now)
-		return u.Int() == m.Int() && !m.Status && 0 < r
+		return u.Int() == m.Int() && !m.Status && 0 < re
 	}); i >= 0 {
-		err := needRest(r, w, i, b)
+		err := needRest(re, w, i, b)
 		if usr.Self() == u {
 			stat.Weight = w
 			return meow{}, err
 		}
-		sendWithImageFail(handler, err)
+		sendWithImageFail(handler, r[0], err)
 		return meow{}, err
 	}
 	if slices.ContainsFunc(*d, func(m meow) bool {
 		return u.Int() == m.Int() && m.Status
 	}) {
-		err := alreadyJoined()
+		err := new(alreadyJoinedError)
 		if usr.Self() == u {
 			stat.Weight = w
 			return meow{}, err
 		}
-		sendWithImageFail(handler, err)
+		sendWithImageFail(handler, r[0], err)
 		return meow{}, err
 	}
 	var (
@@ -309,7 +297,10 @@ func (d *data) pre(handler *msg.Handler) (meow, error) {
 // 执行叠猫猫，k 为叠入的猫猫
 //
 //	错误已经打印，无需重复打印
-func (d *data) doStack(handler *msg.Handler, m *meow) error {
+func (d *data) doStack(handler *msg.Handler, m *meow, r ...replacer) error {
+	if len(r) == 0 {
+		r = []replacer{l10n(cat)}
+	}
 	*d = d.getStack() // 正在叠猫猫的队列
 	var (
 		dr = slices.Clone(*d) // 叠猫猫队列的克隆
@@ -319,7 +310,7 @@ func (d *data) doStack(handler *msg.Handler, m *meow) error {
 		// 如果平地摔
 		err := stack(handler, m, l, 0, flat)
 		asyncSendEmoji(handler, `糗大了`)
-		sendWithJump(handler, err)
+		sendWithJump(handler, r[0], err)
 		return err
 	}
 	if p := d.pressResult(handler, *m); p != 0 {
@@ -329,7 +320,7 @@ func (d *data) doStack(handler *msg.Handler, m *meow) error {
 			e   = dr[:p]
 		)
 		asyncSendEmoji(handler, `晕`)
-		sendWithPressed(handler, err, &e)
+		sendWithPressed(handler, r[0], err, &e)
 		return err
 	}
 	// 如果没有猫猫被压坏，叠猫猫初步成功
@@ -340,13 +331,13 @@ func (d *data) doStack(handler *msg.Handler, m *meow) error {
 			e   = dr[l-f:]
 		)
 		asyncSendEmoji(handler, `😓 汗`)
-		sendWithZako(handler, err, &e)
+		sendWithZako(handler, r[0], err, &e)
 		return err
 	}
 	// 如果没有摔坏猫猫，叠猫猫成功
 	m.Status = true
 	asyncSendEmoji(handler, `爱心`)
-	_ = sendWithNoPressedf(handler, `叠猫猫成功，目前处于队列中第 %d 位喵～
+	_ = sendWithNoPressedf(handler, r[0], `叠猫猫成功，目前处于队列中第 %d 位喵～
 你的当前体重为 %.1f kg。`,
 		l+1,
 		i2f(m.Weight))
@@ -373,7 +364,7 @@ func (d *data) getNoStack() data {
 //	n 为结果
 //	w 为叠猫猫前的体重
 func doClear(handler *msg.Handler, l, n int, w int, m *meow, s *strings.Builder) {
-	s.Grow(256)
+	s.Grow(1 << 8)
 	s.WriteByte('\n')
 	if n == l {
 		// 清空了猫堆
@@ -411,19 +402,19 @@ func (d *data) getMeow(u usr.QQ) (meow, int) {
 	return m, i
 }
 
-// Format 实现 fmt.Formatter 返回叠猫猫字符串
+// Format 实现 fmt.Formatter，返回叠猫猫字符串
 //
 //	%s 完整字符串
-//	默认 省略过的字符串
+//	%c 省略过的字符串
 func (d *data) Format(f fmt.State, verb rune) {
 	switch verb {
 	case 's':
-		fmt.Fprint(f, d.String())
-	case '略':
-		fmt.Fprint(f, d.Str())
+		_, _ = fmt.Fprint(f, d.String())
+	case 'c':
+		_, _ = fmt.Fprint(f, d.Str())
 	default:
 		type raw data
-		fmt.Fprintf(f, fmt.FormatString(f, verb), raw(*d))
+		_, _ = fmt.Fprintf(f, fmt.FormatString(f, verb), raw(*d))
 	}
 }
 
@@ -436,7 +427,7 @@ func (d *data) String() string {
 	// 按“后来居上”排列叠猫猫队列
 	slices.Reverse(dr)
 	s := new(strings.Builder)
-	s.Grow(32 * len(dr))
+	s.Grow(len(dr) << 5)
 	for _, k := range dr {
 		fmt.Fprint(s, "\n", k)
 	}
@@ -453,7 +444,7 @@ func (d *data) Str() string {
 		s  = new(strings.Builder)
 		ok bool
 	)
-	s.Grow(32 * min(l, 20))
+	s.Grow(min(l, 20) << 5)
 	// 按“后来居上”排列叠猫猫队列
 	slices.Reverse(dr)
 	for i, k := range dr {
@@ -610,7 +601,11 @@ func exit(handler *msg.Handler, m *meow, r result, h int) {
 			rest *= float64(1-m.Weight) * math.Pow(math.E, math.E)
 			m.Weight = 1
 		}
-	case pressed, lorry, fly:
+	case lorry:
+		// 撞大运成功，体重增加值为被撞的 e 倍
+		h = f2i(math.E * i2f(h))
+		fallthrough
+	case pressed, fly:
 		if m.getTypeID(handler) < 猫车 {
 			// 被压坏、撞飞，体重 + 100g × 上方的猫猫总数
 			m.Weight = min(m.Weight, math.MaxInt-h) + h
@@ -670,11 +665,13 @@ func (d *data) median(handler *msg.Handler) {
 	slices.SortStableFunc(dr, func(m, n meow) int {
 		return cmp.Compare(m.Weight, n.Weight)
 	})
-	if l%2 != 0 {
-		stackStatus.MedianWeight = dr[l/2].Weight
+	if l&1 != 0 {
+		// 奇数
+		stackStatus.MedianWeight = dr[l>>1].Weight
 		return
 	}
-	stackStatus.MedianWeight = (dr[l/2-1].Weight + dr[l/2].Weight) / 2
+	// 偶数
+	stackStatus.MedianWeight = (dr[l>>1-1].Weight + dr[l>>1].Weight) >> 1
 }
 
 // 清理 || 忽略过期玩家，范围为休息完毕的绒布球，以及超期的奶猫
@@ -689,9 +686,9 @@ func (d *data) clear(handler *msg.Handler, ignore bool) {
 			// 如果在叠猫猫中，不处理
 			continue
 		}
-		if (*d)[i].getTypeID(handler) == 绒布球 && /* 如果是绒布球，且不在休息 */
+		if (*d)[i].getTypeID(handler) == 绒布球 && // 如果是绒布球，且不在休息
 			(*d)[i].Time.Before(time.Unix(handler.Event().Time, 0)) ||
-			(ignore || 奶猫 == (*d)[i].getTypeID(handler)) && /* 如果忽略不活跃玩家或是奶猫，且已经超期 */
+			(ignore || 奶猫 == (*d)[i].getTypeID(handler)) && // 如果忽略不活跃玩家或是奶猫，且已经超期
 				(*d)[i].Time.Add(stackStatus.MaxRestTime).Before(time.Unix(handler.Event().Time, 0)) {
 			del++ // 执行清理
 			continue

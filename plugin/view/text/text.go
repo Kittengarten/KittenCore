@@ -3,7 +3,7 @@ package text
 
 import (
 	"context"
-	"encoding/json"
+	"encoding/json/v2"
 	"fmt"
 	"io"
 	"strings"
@@ -20,23 +20,13 @@ import (
 	"github.com/wdvxdr1123/ZeroBot/message"
 )
 
-type (
-	// Checker 检查者
-	Checker interface {
-		Check(ctx context.Context, name, info string) string
-	}
-	// Sender 发送者
-	Sender interface {
-		// // 发送花语
-		// SendFlower(handler *msg.Handler) message.ID
-	}
-)
+// Checker 检查者
+type Checker interface {
+	Check(ctx context.Context, name, info string) string
+}
 
 // Export 导出接口
-var Export struct {
-	Checker // Checker 检查者
-	Sender  // Sender 发送者
-}
+var Export Checker // Checker 检查者
 
 const (
 	jiTang  = `https://api.btstu.cn/yan/api.php?charset=utf-8&encode=text` // 鸡汤
@@ -66,13 +56,13 @@ func SendKFC(handler *msg.Handler) message.ID {
 	if err != nil {
 		return handler.SendWithImageFail(err)
 	}
-	defer shttp.Clear(b)
+	defer b.Close() //nolint:errcheck
 	rsp := new(struct {
 		Code int
 		Msg  string
 		Text string
 	})
-	if err := json.NewDecoder(b).Decode(rsp); err != nil {
+	if err := json.UnmarshalRead(b, rsp); err != nil {
 		return handler.SendWithImageFail(err)
 	}
 	if rsp.Code != 200 || rsp.Msg != `获取成功` {
@@ -88,13 +78,13 @@ func SendYiYan(handler *msg.Handler) message.ID {
 	if err != nil {
 		return handler.SendWithImageFail(err)
 	}
-	defer shttp.Clear(b)
+	defer b.Close() //nolint:errcheck
 	rsp := new(struct {
 		Hitokoto string `json:"hitokoto"`
 		From     string `json:"from"`
 		FromWho  string `json:"from_who"`
 	})
-	if err := json.NewDecoder(b).Decode(rsp); err != nil {
+	if err := json.UnmarshalRead(b, rsp); err != nil {
 		return handler.SendWithImageFail(err)
 	}
 	return handler.Quote().AtLf().Text(rsp.Hitokoto, `
@@ -114,9 +104,9 @@ func SendHTML(handler *msg.Handler, url string, lf bool) message.ID {
 	if err != nil {
 		return handler.SendWithImageFail(err)
 	}
-	defer shttp.Clear(b)
+	defer b.Close() //nolint:errcheck
 	s := new(strings.Builder)
-	s.Grow(2048)
+	s.Grow(1 << 11)
 	if _, err := io.Copy(s, b); err != nil {
 		return handler.SendWithImageFail(err)
 	}

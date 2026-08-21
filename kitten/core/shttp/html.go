@@ -16,14 +16,14 @@ func LoadURLWithContext(ctx context.Context, url string) (*html.Node, error) {
 	if err != nil {
 		return nil, err
 	}
-	defer Clear(res)
+	defer res.Close() //nolint:errcheck
 	return html.Parse(res)
 }
 
 type (
 	// 最近状态
 	lastState struct {
-		hash [32]byte
+		hash [1 << 5]byte
 		cl   int
 	}
 	// 带长度的 io.ReadCloser
@@ -57,7 +57,7 @@ func UpdateURLWithContext(ctx context.Context, url string) (*html.Node, error) {
 	if err != nil {
 		return nil, err
 	}
-	defer Clear(res)
+	defer res.Close() //nolint:errcheck
 	v, ok := last.Load(url)
 	if !ok || v.cl != res.Len() {
 		// 缓存中没有，或长度不同，无需比较 hash 以及再次请求
@@ -75,12 +75,12 @@ func UpdateURLWithContext(ctx context.Context, url string) (*html.Node, error) {
 	}
 	// 哈希不同，保存新的哈希，再次请求
 	last.Store(url, cur)
-	Clear(res)
+	_ = res.Close()
 	res, err = GETWithContext(ctx, url)
 	if err != nil {
 		return nil, err
 	}
-	defer Clear(res)
+	defer res.Close() //nolint:errcheck
 	return html.Parse(res)
 }
 

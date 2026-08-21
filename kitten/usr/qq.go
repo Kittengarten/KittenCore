@@ -80,19 +80,19 @@ func (u QQ) Int() int64 {
 	}
 }
 
-// Format 实现 fmt.Formatter 返回 QQ 字符串
+// Format 实现 fmt.Formatter，返回 QQ 字符串
 //
 //	%s 十进制数字
-//	%原 原始十进制数字（群号为负）
+//	%o 原始十进制数字（群号为负）
 func (u QQ) Format(f fmt.State, verb rune) {
 	switch verb {
 	case 's':
-		fmt.Fprint(f, u.String())
-	case '原':
-		fmt.Fprint(f, u.Int())
+		_, _ = fmt.Fprint(f, u.String())
+	case 'o':
+		_, _ = fmt.Fprint(f, u.Int())
 	default:
 		type raw QQ
-		fmt.Fprintf(f, fmt.FormatString(f, verb), raw(u))
+		_, _ = fmt.Fprintf(f, fmt.FormatString(f, verb), raw(u))
 	}
 }
 
@@ -164,9 +164,9 @@ func (u QQ) CallName(handler Context) (n string) {
 	return
 }
 
-// Card 从 QQ 获取群昵称（必须是群）
+// Card 从 QQ 获取群昵称（事件必须是群）
 func (u QQ) Card(handler Context) string {
-	if !u.IsGroup() {
+	if !NewQQGroup(handler.Event().GroupID).IsGroup() {
 		return ``
 	}
 	return u.memberInfo(handler).Get(`card`).Str

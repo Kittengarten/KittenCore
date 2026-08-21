@@ -50,8 +50,8 @@ func isIdempotentMethod(method string) bool {
 	}
 }
 
-// CanRetryURLError 判断 *url.Error 是否可重试
-func CanRetryURLError(err error) bool {
+// 判断 *url.Error 是否可重试
+func canRetryURLError(err error) bool {
 	if err == nil ||
 		errors.Is(err, context.Canceled) ||
 		errors.Is(err, context.DeadlineExceeded) {
@@ -94,7 +94,7 @@ func isRetryableNetErr(err error) bool {
 func Retry(ctx context.Context, c *http.Client, req *http.Request) (res *http.Response, err error) {
 	err = retry.Do(ctx, retry.Default(), func() error {
 		res, err = c.Do(req)
-		return retry.NewError(err, CanRetryURLError(err))
+		return retry.NewError(err, canRetryURLError(err))
 	})
 	return res, err
 }

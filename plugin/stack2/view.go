@@ -16,19 +16,23 @@ import (
 )
 
 // 查看叠猫猫，不修改原数据
-func (d *data) view(handler *msg.Handler, all bool) {
+func (d *data) view(handler *msg.Handler, all bool, r ...replacer) {
+	if len(r) == 0 {
+		r = []replacer{l10n(cat)}
+	}
 	var (
 		s = d.getStack() // 获取叠猫猫队列
 		l = len(s)       // 叠猫猫队列长度（避免闭包捕获被修改后的值）
 	)
 	utils.Go(`查看叠猫猫设置群昵称`, func() { setCard(handler, l) })
-	_ = sendTextf(handler, true, `【叠猫猫队列】
+	_ = sendTextf(handler, r[0], true, `【叠猫猫队列】
 现在有 %d 只猫猫
 总重量为 %.1f kg
 ————%s`,
 		l,
 		i2f(s.totalWeight()),
 		func() any {
+			// TODO: 私聊无论如何均可以查看全部
 			if !all {
 				// 查看省略版
 				return s.Str()
@@ -48,7 +52,7 @@ func (d *data) view(handler *msg.Handler, all bool) {
 		case <-times.RandDelayRange(time.Second, 2*time.Second):
 			// 发送剩余部分的前 50 条
 			sr := s[max(0, len(s)-50):]
-			sendText(handler, false, &sr)
+			sendText(handler, r[0], false, &sr)
 			// 剩余部分的剩余部分
 			s = s[:len(s)-len(sr)]
 		case <-handler.Done():
@@ -58,7 +62,10 @@ func (d *data) view(handler *msg.Handler, all bool) {
 }
 
 // 查看叠猫猫图片
-func (d *data) viewImage(handler *msg.Handler) message.ID {
+func (d *data) viewImage(handler *msg.Handler, r ...replacer) message.ID {
+	if len(r) == 0 {
+		r = []replacer{l10n(cat)}
+	}
 	var (
 		s = d.getStack() // 获取叠猫猫队列
 		l = len(s)       // 叠猫猫队列长度
@@ -74,9 +81,9 @@ func (d *data) viewImage(handler *msg.Handler) message.ID {
 		values[0][h] = i2f(m.Weight)
 		str[h] = strings.ReplaceAll(func() string {
 			h := msg.NewWithContext(handler, globalCtx)
-			if globalLocation == cockroach {
+			if r[0].location == cockroach {
 				return fmt.Sprintf(`【%s】翼展 %.1f cm`,
-					l10n.Replace(m.getType(h).String()),
+					r[0].Replace(m.getType(h).String()),
 					i2f(m.Weight),
 				)
 			}
@@ -84,20 +91,23 @@ func (d *data) viewImage(handler *msg.Handler) message.ID {
 				m.TitleCardOrNickName(h),
 				m.Int(),
 				i2f(m.Weight),
-				l10n.Replace(`kg`),
-				l10n.Replace(m.getType(handler).String()),
+				r[0].Replace(`kg`),
+				r[0].Replace(m.getType(handler).String()),
 			)
 		}(), `	`, ``)
 	}
-	p, err := setViewChart(values, str, l)
+	p, err := setViewChart(values, str, l, r...)
 	if err != nil {
-		return sendWithImageFail(handler, err)
+		return sendWithImageFail(handler, r[0], err)
 	}
-	return sendImage(handler, p)
+	return sendImage(handler, p, r...)
 }
 
 // 设置查看图表
-func setViewChart(v [][]float64, s []string, l int) (*charts.Painter, error) {
+func setViewChart(v [][]float64, s []string, l int, r ...replacer) (*charts.Painter, error) {
+	if len(r) == 0 {
+		r = []replacer{l10n(cat)}
+	}
 	var (
 		width   = max(min(3840, 160+320*l), 960)
 		height  = max(min(2160, 45+90*l), 270)
@@ -115,8 +125,8 @@ func setViewChart(v [][]float64, s []string, l int) (*charts.Painter, error) {
 			Left:   padding,
 		}),
 		charts.PNGTypeOption(),
-		charts.TitleTextOptionFunc(l10n.Replace(`叠猫猫队列`)),
-		charts.LegendLabelsOptionFunc([]string{l10n.Replace(`体重（kg）`)}),
+		charts.TitleTextOptionFunc(r[0].Replace(`叠猫猫队列`)),
+		charts.LegendLabelsOptionFunc([]string{r[0].Replace(`体重（kg）`)}),
 		charts.YAxisDataOptionFunc(s),
 	)
 }

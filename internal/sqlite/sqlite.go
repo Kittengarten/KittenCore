@@ -555,7 +555,7 @@ func FindAll[T any](db *Sqlite, table string, condition string, questions ...any
 	if !rows.Next() {
 		return nil, ErrNullResult
 	}
-	vals := make([]*T, 1, 64)
+	vals := make([]*T, 1, 1<<6)
 	var v T
 	err = rows.Scan(addrs(&v)...)
 	if err != nil {
@@ -639,7 +639,7 @@ func QueryAll[T any](db *Sqlite, q string, questions ...any) ([]*T, error) {
 	if !rows.Next() {
 		return nil, ErrNullResult
 	}
-	vals := make([]*T, 1, 64)
+	vals := make([]*T, 1, 1<<6)
 	var v T
 	err = rows.Scan(addrs(&v)...)
 	if err != nil {
@@ -762,7 +762,7 @@ func tags(objptr any) (tags []string) {
 	elem := reflect.ValueOf(objptr).Elem()
 	flen := elem.Type().NumField()
 	tags = make([]string, flen)
-	for i := 0; i < flen; i++ {
+	for i := range flen {
 		t := elem.Type().Field(i).Tag.Get("db")
 		if t == "" {
 			t = elem.Type().Field(i).Tag.Get("json")
@@ -784,7 +784,7 @@ func kinds(objptr any) (kinds []string) {
 	}
 	flen := elem.Type().NumField()
 	kinds = make([]string, flen)
-	for i := 0; i < flen; i++ {
+	for i := range flen {
 		typ := elem.Field(i).Type().String()
 		switch typ {
 		case "bool", "*bool":
@@ -865,14 +865,14 @@ func kinds(objptr any) (kinds []string) {
 	return
 }
 
-var typstrarr = reflect.SliceOf(reflect.TypeOf(""))
+var typstrarr = reflect.SliceOf(reflect.TypeFor[string]())
 
 // values 反射 返回结构体对象的 values 数组
 func values(objptr any) (values []any) {
 	elem := reflect.ValueOf(objptr).Elem()
 	flen := elem.Type().NumField()
 	values = make([]any, flen)
-	for i := 0; i < flen; i++ {
+	for i := range flen {
 		if elem.Field(i).Type() == typstrarr { // []string
 			values[i] = elem.Field(i).Index(0).Interface() // string
 			continue
@@ -887,7 +887,7 @@ func addrs(objptr any) (addrs []any) {
 	elem := reflect.ValueOf(objptr).Elem()
 	flen := elem.Type().NumField()
 	addrs = make([]any, flen)
-	for i := 0; i < flen; i++ {
+	for i := range flen {
 		if elem.Field(i).Type() == typstrarr { // []string
 			s := reflect.ValueOf(make([]string, 1))
 			elem.Field(i).Set(s)

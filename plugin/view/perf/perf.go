@@ -57,7 +57,7 @@ var (
 		defer shttp.SetTimeout(shttp.Timeout)
 		res, err := shttp.GET(urlStr + view)
 		if err == nil {
-			defer shttp.Clear(res)
+			defer res.Close() //nolint:errcheck
 			log.Info(`本地性能 API 服务端正常，本机作为客户端工作喵！`)
 			return
 		}
@@ -84,7 +84,7 @@ var LogFile fio.Path = `C:\Program Files (x86)\MSI Afterburner\HardwareMonitorin
 func viewHandler(w http.ResponseWriter, _ *http.Request) {
 	_, err := w.Write([]byte(viewString(context.Background(), CPUTemperature(LogFile))))
 	if err != nil {
-		w.Write([]byte(err.Error()))
+		_, _ = w.Write([]byte(err.Error()))
 	}
 }
 
@@ -116,12 +116,14 @@ func level(cpu float64, mem float64, ts string) int {
 }
 
 // ViewString 返回查看字符串
+//
+// TODO: GetStatus() GetPacketStatus() 的使用
 func ViewString(ctx context.Context, name, t, w string) string {
 	info := viewString(ctx, t) + w + `
 
 ` + text.GetWTA(name)
 	return info + func() string {
-		if text.Export.Checker == nil {
+		if text.Export == nil {
 			return ``
 		}
 		return text.Export.Check(ctx, name, info)
@@ -181,7 +183,7 @@ func cpuInfo(ctx context.Context) string {
 			return err.Error()
 		}
 		s := new(strings.Builder)
-		s.Grow(32 * len(c))
+		s.Grow(len(c) << 5)
 		for _, v := range c {
 			fmt.Fprint(s, strings.TrimSpace(v.ModelName), `，`)
 		}
@@ -224,18 +226,24 @@ func getMem(ctx context.Context) *mem.VirtualMemoryStat {
 	m, err := mem.VirtualMemoryWithContext(ctx)
 	if err != nil {
 		log.Warnln(`获取内存使用失败了喵！`, err)
-		return m
+		return nil
 	}
 	return m
 }
 
 // 内存使用率 %
 func percent(m *mem.VirtualMemoryStat) float64 {
+	if m == nil {
+		return 0
+	}
 	return 100 * float64(m.Total-m.Free) / float64(m.Total)
 }
 
 // 内存使用情况
 func use(m *mem.VirtualMemoryStat) string {
+	if m == nil {
+		return ``
+	}
 	return humanize.IBytes(m.Total-m.Free) + ` / ` + humanize.IBytes(m.Total)
 }
 
@@ -245,7 +253,7 @@ func diskUsedAll(ctx context.Context) string {
 		d = getDisk(ctx)
 		s = new(strings.Builder)
 	)
-	s.Grow(32 * len(d))
+	s.Grow(len(d) << 5)
 	for i, u := range d {
 		fmt.Fprintf(s, "磁盘 %d：	%.1f%%	（%s / %s，%s）\n",
 			i, u.UsedPercent, humanize.IBytes(u.Used), humanize.IBytes(u.Total), u.Fstype)

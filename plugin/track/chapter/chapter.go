@@ -3,12 +3,10 @@ package chapter
 import (
 	"context"
 	"sync"
-
-	"github.com/Kittengarten/KittenCore/plugin/track/platform"
 )
 
-// Pool 章节池
-var Pool = sync.Pool{
+// 章节池
+var pool = sync.Pool{
 	New: func() any {
 		return new(Chapter)
 	},
@@ -19,19 +17,25 @@ func (cp *Chapter) String() string {
 	return cp.Title + "\n" + cp.URL
 }
 
-// New 初始化章节
-func New(ctx context.Context, p platform.Platform, cpURL string) (*Chapter, error) {
-	cpa, err := p.NewChapter(ctx, cpURL)
-	if err != nil {
-		return nil, err
-	}
-	return Assert(cpa), nil
+// Source 章节源
+type Source interface {
+	// NewChapter 初始化章节
+	NewChapter(ctx context.Context, chapURL, volumeName string) (*Chapter, error)
 }
 
-// Assert 断言为章节，不是章节时返回空章节
-func Assert(a any) *Chapter {
-	if cp, ok := a.(*Chapter); ok {
-		return cp
+// GetChapterSource 获取章节源
+var GetChapterSource func(platform string) (Source, error)
+
+// Get 获取章节
+func Get() *Chapter {
+	return pool.Get().(*Chapter)
+}
+
+// Put 回收章节
+func (cp *Chapter) Put() {
+	if cp == nil {
+		return
 	}
-	return new(Chapter)
+	*cp = Chapter{}
+	pool.Put(cp)
 }

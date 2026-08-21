@@ -1,14 +1,16 @@
 package book
 
 import (
+	"context"
 	"errors"
-	"net/url"
 	"slices"
+	"strconv"
+	"time"
 
+	"github.com/Kittengarten/KittenCore/kitten/core/equal"
 	"github.com/Kittengarten/KittenCore/kitten/core/fio"
 	"github.com/Kittengarten/KittenCore/kitten/core/log"
 	"github.com/Kittengarten/KittenCore/kitten/core/shttp"
-	"github.com/Kittengarten/KittenCore/kitten/core/stat"
 	"github.com/Kittengarten/KittenCore/kitten/core/times"
 	"github.com/Kittengarten/KittenCore/kitten/core/times/repeat"
 	"github.com/Kittengarten/KittenCore/kitten/core/times/stale"
@@ -16,10 +18,8 @@ import (
 	"github.com/Kittengarten/KittenCore/kitten/msg"
 	"github.com/Kittengarten/KittenCore/plugin/track/check"
 	"github.com/Kittengarten/KittenCore/plugin/track/novel"
-	"github.com/Kittengarten/KittenCore/plugin/track/platform"
-	"github.com/Kittengarten/KittenCore/plugin/track/platform/fanqie"
 
-	"github.com/tidwall/gjson"
+	"github.com/Kittengarten/KittenCore/plugin/track/platform"
 )
 
 const cycle = shttp.Timeout // 最小循环间隔 10 秒（最大可翻倍）
@@ -30,119 +30,127 @@ func (c *Books) Report(
 	cu chan Books,
 	path fio.PathRWMutex,
 ) {
+	select {
+	case <-handler.Done():
+		log.Error(handler.Err())
+		return
+	default:
+	}
 	if err := repeat.IterS(
 		handler,
 		repeat.New(0, cycle, 2*cycle),
 		*c,
 		func(i int, b Book) error {
-			b.Report(handler, cu, c, i, path)
+			b.Report(handler, c, i)
 			return nil
 		},
 	); err != nil {
 		log.Error(err)
 	}
-}
-
-// Report 执行单本书的报更
-func (b Book) Report(
-	handler *msg.Handler,
-	cu chan Books,
-	c *Books, i int,
-	path fio.PathRWMutex,
-) {
-	switch b.Platform {
-	case fanqie.Platform.String():
-		u, err := url.Parse(stat.APIHOST[stat.Fanqie])
-		if err != nil {
-			// API 无法访问，使用网页模式
-			// 接收到专用的慢速定时器信号才释放
-			log.Error(`番茄 API 解析错误：`, err)
-			<-times.RandDelayRange(60*cycle, 120*cycle)
-			break
-		}
-		res, err := shttp.GETDataURLWithContext(handler, u.JoinPath(`self-info`))
-		if err != nil {
-			// API 无法访问，使用网页模式
-			// 接收到专用的慢速定时器信号才释放
-			log.Error(`番茄 API 不可用：`, err)
-			<-times.RandDelayRange(60*cycle, 120*cycle)
-			break
-		}
-		if gjson.GetBytes(res, `message`).String() == `SUCCESS` {
-			// API 可以访问，切换为 API 模式
-			b.Platform = fanqie.API.String()
-		}
-	}
-	p, err := platform.Get(b.Platform)
-	if err != nil {
-		log.Error(`平台错误：`, err)
-		return
-	}
-	nv, err := novel.Init(handler, p, b.BookID, true)
-	defer novel.Pool.Put(nv)
-	if err != nil {
-		if !errors.Is(err, shttp.ErrNoUpdate) {
-			log.Error(`初始化小说错误：`, err)
-		}
-		// 无更新，跳过
-		return
-	}
-	check.RecordTime() // 只记录实际检测的 *novel.Novel 数量
-	if nv.Chapter.URL == `` {
-		// 如果没有获取到 URL，则跳过
-		return
-	}
-	switch b.Platform {
-	case fanqie.Platform.String(), fanqie.API.String():
-		if !fanqie.ShouldUpdate(nv.Chapter.URL, b.RecordURL) {
-			// 如果番茄（API 和 网页不同途径之间的比较）不应更新，则跳过
-			return
-		}
-	default:
-		if nv.Chapter.URL == b.RecordURL {
-			// 如果没有更新，则跳过
-			return
-		}
-	}
-	if len(nv.Protagonists) == 0 {
-		nv.Protagonists = b.Protagonists
-	}
-	// 异步发送更新消息
-	novel.TryCommentUpdate(
-		handler,
-		handler.Image(
-			fio.NewPath(nv.CoverURL),
-			fio.NewPath(nv.HeadURL),
-		).Text(nv.Update(handler)).SendMulti(b.Users...),
-		b.Users,
-		nv,
-	)
-	// 写入小说更新数据
-	(*c)[i].BookName = nv.Name
-	(*c)[i].Writer = nv.Writer
-	(*c)[i].RecordURL = nv.Chapter.URL
-	(*c)[i].UpdateTime = nv.Chapter.Update
 	// 异步保存配置
 	save := make(chan error, 1)
 	utils.Go(`保存报更配置`, func() {
 		path.Lock()
 		defer path.Unlock()
-		save <- c.SaveConfig(cu, path.Path)
+		save <- c.SaveConfig(handler, cu, path.Path, true)
 		close(save)
 	})
 	if err := <-save; err != nil {
 		log.Error(ErrSave, err)
 		return
 	}
+}
+
+// Report 执行单本书的报更
+func (b Book) Report(
+	handler *msg.Handler,
+	c *Books, i int,
+) {
+	p, err := platform.Get(b.Platform)
+	if err != nil {
+		log.Error(`平台 `, b.Platform, ` 错误：`, err)
+		return
+	}
+	nv, err := p.Init(handler, b.BookID)
+	if err != nil {
+		if !errors.Is(err, shttp.ErrNoUpdate) {
+			log.Error(`初始化 `, p, ` 小说书号 `, b.BookID, ` 错误：`, err)
+		}
+		// 无更新，跳过
+		nv.Put()
+		return
+	}
+	check.RecordTime() // 只记录实际检测的 *novel.Novel 数量
+	// 记录当日更新字数
+	(*c)[i].TodayWordNum = nv.TodayWordNum
+	if !equal.IsSameDate4AM(time.Now(), b.UpdateTime) {
+		(*c)[i].TodayWordNum = 0
+	}
+	if nv.Chapter.URL == `` ||
+		!nv.Chapter.Update.After(b.UpdateTime) {
+		// 没有获取到 URL
+		// 更新时间不在上次更新时间之后
+		// 跳过
+		nv.Put()
+		return
+	}
+	if nv.Chapter.URL == b.RecordURL {
+		// 没有更新，跳过
+		nv.Put()
+		return
+	}
+	if len(nv.Protagonists) == 0 {
+		nv.Protagonists = b.Protagonists
+	}
+	done := make(chan struct{})
+	// 异步发送更新消息
+	var paths []fio.Path
+	if nv.CoverURL != `` {
+		paths = append(paths, fio.NewPath(nv.CoverURL))
+	}
+	if nv.HeadURL != `` {
+		paths = append(paths, fio.NewPath(nv.HeadURL))
+	}
+	novel.TryCommentUpdate(
+		handler,
+		handler.Image(paths...).Text(nv.Update(handler)).SendMulti(b.Users...),
+		b.Users,
+		nv,
+		done,
+	)
+	// 写入小说更新数据
+	(*c)[i].BookName = nv.Name
+	(*c)[i].Writer = nv.Writer
+	(*c)[i].RecordURL = nv.Chapter.URL
+	(*c)[i].UpdateTime = nv.Chapter.Update
+	(*c)[i].Completed = nv.Status == novel.Completed
 	log.Info(`更新《`, nv.Name, `》成功喵！`)
+	<-done
+	nv.Put()
 }
 
 // SaveConfig 保存报更
-func (c *Books) SaveConfig(cu chan<- Books, path fio.Path) error {
+func (c *Books) SaveConfig(ctx context.Context, cu chan Books, p fio.Path, auto bool) error {
 	// 按更新时间倒序排列
 	c.sortByUpdate()
-	if err := fio.Save(path, *c); err != nil {
+	if err := p.Save(*c); err != nil {
 		return err
+	}
+	select {
+	case <-ctx.Done():
+		return ctx.Err()
+	case cu <- *c:
+	default:
+	}
+	if auto {
+		// 如果是自动保存，不尝试丢弃旧值
+		return nil
+	}
+	select {
+	case <-ctx.Done():
+		return ctx.Err()
+	case <-cu: // 丢弃旧值
+	default:
 	}
 	cu <- *c
 	return nil
@@ -157,7 +165,7 @@ func (c *Books) sortByUpdate() {
 
 // String 实现 fmt.Stringer
 func (b Book) String() string {
-	e := stale.Check(b.UpdateTime).String()
+	e := stale.Check(b.UpdateTime, b.Completed).String()
 	return e + `《` + b.BookName + `》` + `
 作者：　　	` + b.Writer + `
 平台：　　	` + b.Platform + `
@@ -167,5 +175,25 @@ func (b Book) String() string {
 			return `未知`
 		}
 		return b.UpdateTime.Format(times.LayoutHeart)
-	}()
+	}() + `
+今日字数：	` + strconv.Itoa(b.TodayWordNum) + rank(b.TodayWordNum, b.Completed)
+}
+
+func rank(todayWordNum int, completed bool) string {
+	if completed {
+		return `（已完结）`
+	}
+	tier := map[int]string{
+		10000: `（夯）`,
+		6000:  `（顶级）`,
+		4000:  `（人上人）`,
+		2000:  `（NPC）`,
+		0:     `（拉完了）`,
+	}
+	for k, v := range tier {
+		if todayWordNum >= k {
+			return v
+		}
+	}
+	return ``
 }

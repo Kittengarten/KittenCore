@@ -36,16 +36,11 @@ func substr(s string, n int) string {
 	return s
 }
 
-// Str 表示字符串的泛型约束
-type Str interface {
-	~string | ~[]rune | ~[]byte
-}
-
 // Clean 清理字符串中全部不必要内容
 //
 //	lf 控制是否换行
-func Clean[T Str](s T, lf bool) T {
-	return T(strings.TrimSpace(strings.Map(func(r rune) rune {
+func Clean(s string, lf bool) string {
+	return strings.TrimSpace(strings.Map(func(r rune) rune {
 		switch r {
 		case '\n', '\r':
 			if lf {
@@ -66,21 +61,21 @@ func Clean[T Str](s T, lf bool) T {
 			return -1
 		}
 		return r
-	}, string(s))))
+	}, s))
 }
 
 // ClearRuneBytes 移除特定长度的 UTF-8 码点
-func ClearRuneBytes[T Str](s T, n ...int) T {
-	return T(strings.Map(func(r rune) rune {
+func ClearRuneBytes(s string, n ...int) string {
+	return strings.Map(func(r rune) rune {
 		if slices.Contains(n, utf8.RuneLen(r)) {
 			return -1
 		}
 		return r
-	}, string(s)))
+	}, s)
 }
 
 // ComposeAuto 不需要提供 strings.Builder 的排版
-func ComposeAuto[T Str](s T) T {
+func ComposeAuto(s string) string {
 	b := new(strings.Builder)
 	b.Grow(len(s))
 	return Compose(b, s)
@@ -89,30 +84,31 @@ func ComposeAuto[T Str](s T) T {
 // Compose 排版
 //
 //	必须提供 strings.Builder，否则无效。应当进行预增长。
-func Compose[T Str](b *strings.Builder, s T) T {
+func Compose(b *strings.Builder, s string) string {
 	if b == nil {
 		return s
 	}
-	for line := range strings.SplitSeq(strings.TrimSpace(string(s)), "\n") {
+	for line := range strings.SplitSeq(strings.TrimSpace(s), "\n") {
 		if line = strings.TrimSpace(line); line == `` {
 			continue
 		}
 		fmt.Fprintf(b, "　　%s\n", line)
 	}
-	return T(b.String())
+	return b.String()
 }
 
 // FirstHan 获取第一段中文字符码点组成的字符串
-func FirstHan[T Str](s T) T {
+func FirstHan(s string) string {
 	return First(s, isChinese)
 }
 
 // FirstText 获取第一段常用文字（不包括标点）组成的字符串
-func FirstText[T Str](s T) T {
+func FirstText(s string) string {
 	return First(s,
 		isChinese, isJapanese, isKorean,
 		isRussian, isFrench, isArabic, isGreek,
-		isN, unicode.IsLetter)
+		isN, unicode.IsLetter,
+	)
 }
 
 // 是中文
@@ -159,26 +155,26 @@ func isN(r rune) bool {
 }
 
 // First 获取第一段满足条件的码点组成的字符串
-func First[T Str](s T, f ...func(r rune) bool) T {
-	var (
-		pre, n int
-		ok     bool
-	)
+func First(s string, f ...func(r rune) bool) string {
+	pre := -1
 ru:
-	for _, r := range string(s) {
+	for i, r := range s {
 		for _, v := range f {
 			if v(r) {
-				ok = true
-				n++
+				if pre < 0 {
+					pre = i
+				}
 				continue ru
 			}
 		}
-		if ok {
-			return T(string([]rune(string(s))[pre : pre+n]))
+		if pre >= 0 {
+			return s[pre:i]
 		}
-		pre++
 	}
-	return T(string([]rune(string(s))[pre : pre+n]))
+	if pre >= 0 {
+		return s[pre:]
+	}
+	return ``
 }
 
 // Mid 获取中间最长字符串，前缀后缀为空则忽略
@@ -241,7 +237,7 @@ func mid(pre, suf, str string, isMin bool) string {
 
 // Similarity 计算两个字符串的相似程度
 func Similarity(a, b string) float64 {
-	return (Equal(a, b) + Common(a, b)) / 2
+	return 0.5 * (Equal(a, b) + Common(a, b))
 }
 
 // Equal 计算两个字符串的未更改字符占比
@@ -348,11 +344,11 @@ func AddNumSpace(s string) string {
 	for i := range n {
 		c := s[i]
 		isDigit := c >= '0' && c <= '9'
-		if isDigit && (i == 0 || s[i-1] < '0' || s[i-1] > '9') && i > 0 {
+		if isDigit && i > 0 && (s[i-1] < '0' || s[i-1] > '9') {
 			b.WriteByte(' ')
 		}
 		b.WriteByte(c)
-		if isDigit && (i+1 >= n || s[i+1] < '0' || s[i+1] > '9') && i+1 < n {
+		if isDigit && i+1 < n && (s[i+1] < '0' || s[i+1] > '9') {
 			b.WriteByte(' ')
 		}
 	}

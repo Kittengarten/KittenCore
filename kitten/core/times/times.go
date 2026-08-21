@@ -8,14 +8,6 @@ import (
 	"time"
 )
 
-// TimeDuration 表示时间间隔的结构体
-type TimeDuration struct {
-	d int // 天
-	h int // 小时
-	m int // 分钟
-	s int // 秒
-}
-
 const (
 	Layout      = `2006.1.2 15:04:05`     // Layout 日期时间格式
 	LayoutHeart = `2006.1.2	❤	15:04:05`   // LayoutHeart 带❤的日期时间格式
@@ -23,6 +15,25 @@ const (
 	Day         = HoursPerDay * time.Hour // Day 天
 	Week        = 7 * Day                 // Week 周
 )
+
+// Location 固定时区（上海）
+var Location *time.Location
+
+func init() {
+	var err error
+	Location, err = time.LoadLocation(`Asia/Shanghai`)
+	if err != nil {
+		panic(err)
+	}
+}
+
+// TimeDuration 表示时间间隔的结构体
+type TimeDuration struct {
+	d int // 天
+	h int // 小时
+	m int // 分钟
+	s int // 秒
+}
 
 // RandDelay 随机阻塞等待
 func RandDelay(t time.Duration) <-chan time.Time {
@@ -45,6 +56,10 @@ func RandDurationRange(minDelay, maxDelay time.Duration) time.Duration {
 
 // ConvertTimeDuration 转换时间间隔
 func ConvertTimeDuration(d time.Duration) TimeDuration {
+	if d < 0 {
+		// 避免出现不正确的负数显示
+		return TimeDuration{}
+	}
 	return TimeDuration{
 		d: int(d / Day),
 		h: int(d % Day / time.Hour),

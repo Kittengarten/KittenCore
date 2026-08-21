@@ -37,7 +37,7 @@ var engine = control.AutoRegister(&ctrl.Options[*zero.Ctx]{
 	Brief:            brief,
 	Help: func() string {
 		s := new(strings.Builder)
-		s.Grow(32 * len(config.Name()))
+		s.Grow(len(config.Name()) << 5)
 		for _, n := range config.Name() {
 			fmt.Fprintln(s, config.CommandPrefix()+cView, n, `// 可获取服务器运行状况`)
 		}

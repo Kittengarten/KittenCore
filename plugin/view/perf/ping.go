@@ -32,7 +32,7 @@ func Ping(handler *msg.Handler) message.ID {
 `, pkt.IPAddr, pkt.Nbytes, pkt.Rtt.Milliseconds(), pkt.TTL)
 	}
 	r := new(strings.Builder)
-	r.Grow(32 + 32*pg.Count)
+	r.Grow((1 + pg.Count) << 5)
 	pg.OnFinish = func(st *probing.Statistics) {
 		fmt.Fprintf(r, `正在 Ping %s [%s] 具有 %d 字节的数据：
 %v

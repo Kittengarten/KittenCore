@@ -11,7 +11,6 @@ import (
 	"time"
 
 	hookcharts "github.com/Kittengarten/KittenCore/internal/hook/charts"
-	"github.com/Kittengarten/KittenCore/kitten/core/fio"
 	"github.com/Kittengarten/KittenCore/kitten/core/times"
 	"github.com/Kittengarten/KittenCore/kitten/core/utils"
 	"github.com/Kittengarten/KittenCore/kitten/msg"
@@ -53,37 +52,44 @@ var (
 )
 
 // 分析叠猫猫，不修改原数据
-func (d *data) analysis(handler *msg.Handler) {
-	if globalLocation == cockroach {
+func (d *data) analysis(handler *msg.Handler, r ...replacer) {
+	if len(r) == 0 {
+		r = []replacer{l10n(cat)}
+	}
+	if r[0].location == cockroach {
 		handler.SendWithImageFail(cockroachDoNotAnalysis)
 		return
 	}
-	c, f, img := d.generateAnalysis(handler)
+	c, f, img := d.generateAnalysis(handler, r[0])
 	if !img {
 		// 如果不需要图片，什么也不做
 		return
 	}
 	select {
 	case <-times.RandDelayRange(time.Second, 2*time.Second):
-		d.analysisImage(handler, c, f)
+		d.analysisImage(handler, c, f, r...)
 	case <-handler.Done():
 		handler.SendWithImageFail(handler.Err())
 	}
 }
 
 // 生成分析并发送文本
-func (d *data) generateAnalysis(handler *msg.Handler) (c chance, flat, img bool) {
+func (d *data) generateAnalysis(handler *msg.Handler, r ...replacer) (c chance, flat, img bool) {
+	if len(r) == 0 {
+		r = []replacer{l10n(cat)}
+	}
 	var (
 		dr = slices.Clone(*d) // 克隆切片，防止对后续调用造成影响
 		s  = dr.getStack()    // 获取叠猫猫队列
 	)
-	m, err := dr.pre(handler) // 初始化自身
+	m, err := dr.pre(handler, r...) // 初始化自身
 	if err != nil {
 		// 如果不能加入，什么也不做
 		return c, flat, img
 	}
 	// 如果能加入
 	// 猫娘少女和成年猫娘以上享有分析图片特权
+	// TODO: 私聊无论如何均拥有特权
 	img = 猫娘少女 <= m.getTypeID(handler)
 	l := len(s) // 叠猫猫队列长度
 	utils.Go(`叠猫猫分析设置群昵称`, func() { setCard(handler, l) })
@@ -92,7 +98,7 @@ func (d *data) generateAnalysis(handler *msg.Handler) (c chance, flat, img bool)
 		flat = true
 		c.f = chanceFlat(m) // 平地摔概率
 		c.s = 1 - c.f       // 成功概率
-		_ = sendTextf(handler, true, `【叠猫猫分析】
+		_ = sendTextf(handler, r[0], true, `【叠猫猫分析】
 当前体重：　	%.1f kg
 平地摔概率：	%.2f%%
 成功概率：　	%.2f%%
@@ -121,7 +127,7 @@ func (d *data) generateAnalysis(handler *msg.Handler) (c chance, flat, img bool)
 	}() // 不压坏的情况下，摔下去的概率
 	c.f = (1 - c.p) * gp // 摔下概率
 	c.s = 1 - c.p - c.f  // 成功概率
-	_ = sendTextf(handler, true, `【叠猫猫分析】
+	_ = sendTextf(handler, r[0], true, `【叠猫猫分析】
 猫堆高度：	%d
 当前体重：	%.1f kg
 %s%s%s%s%s`,
@@ -222,7 +228,7 @@ func chanceClear(handler *msg.Handler, s data, m meow) float64 {
 
 // 平地摔小贴士
 func tipFlat(ctx context.Context) string {
-	if tipSlice, err = fio.LoadWithContext[tips](ctx, tipsPath, string(tipYAML)); err != nil {
+	if tipSlice, err = tipsPath.LoadWithContext[tips](ctx, string(tipYAML)); err != nil {
 		return err.Error()
 	}
 	if l := len(tipSlice.Flat); l != 0 {
@@ -234,10 +240,10 @@ func tipFlat(ctx context.Context) string {
 
 // 叠猫猫小贴士，除平地摔以外
 func tip(handler *msg.Handler, w int, c chance) string {
-	if tipSlice, err = fio.LoadWithContext[tips](handler, tipsPath, string(tipYAML)); err != nil {
+	if tipSlice, err = tipsPath.LoadWithContext[tips](handler, string(tipYAML)); err != nil {
 		return err.Error()
 	}
-	t := make([]string, 0, 128)
+	t := make([]string, 0, 1<<7)
 	if w >= mapMeow[猫娘少女].weight {
 		t = append(t, tipSlice.Tiger...)
 	}
@@ -275,7 +281,7 @@ func tip(handler *msg.Handler, w int, c chance) string {
 }
 
 // 叠猫猫分析图片
-func (d *data) analysisImage(handler *msg.Handler, c chance, flat bool) message.ID {
+func (d *data) analysisImage(handler *msg.Handler, c chance, flat bool, r ...replacer) message.ID {
 	p, err := setAnalysisChart(
 		func() []float64 {
 			if flat {
@@ -284,15 +290,19 @@ func (d *data) analysisImage(handler *msg.Handler, c chance, flat bool) message.
 			return []float64{c.p, c.f, c.s}
 		}(),
 		flat,
+		r...,
 	)
 	if err != nil {
-		return sendWithImageFail(handler, err)
+		return sendWithImageFail(handler, r[0], err)
 	}
-	return sendImage(handler, p)
+	return sendImage(handler, p, r...)
 }
 
 // 设置分析图表
-func setAnalysisChart(v []float64, flat bool) (*charts.Painter, error) {
+func setAnalysisChart(v []float64, flat bool, r ...replacer) (*charts.Painter, error) {
+	if len(r) == 0 {
+		r = []replacer{l10n(cat)}
+	}
 	return charts.PieRender(
 		v,
 		charts.FontFamilyOptionFunc(hookcharts.FontName),
@@ -306,7 +316,7 @@ func setAnalysisChart(v []float64, flat bool) (*charts.Painter, error) {
 		}),
 		charts.PNGTypeOption(),
 		charts.TitleOptionFunc(charts.TitleOption{
-			Text:    l10n.Replace(`叠猫猫分析`),
+			Text:    r[0].Replace(`叠猫猫分析`),
 			Subtext: `概率`,
 			Left:    charts.PositionCenter,
 		}),
@@ -315,13 +325,13 @@ func setAnalysisChart(v []float64, flat bool) (*charts.Painter, error) {
 			Data: func() []string {
 				if flat {
 					return []string{
-						l10n.Replace(`平地摔`),
+						r[0].Replace(`平地摔`),
 						`成功`,
 					}
 				}
 				return []string{
-					l10n.Replace(`压坏`),
-					l10n.Replace(`摔下`),
+					r[0].Replace(`压坏`),
+					r[0].Replace(`摔下`),
 					`成功`,
 				}
 			}(),

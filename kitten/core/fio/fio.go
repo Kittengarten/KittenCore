@@ -66,31 +66,36 @@ func logError(s string, path Path, err error) {
 // Load 加载 YAML 配置文件，def 为默认值（加载不到的时候会尝试初始化）
 //
 //	即使 err == nil，加载的映射或切片也可能为 nil，需要判断
-func Load[T any, S str.Str](p Path, def S, opts ...yaml.DecodeOption) (c T, err error) {
-	return LoadWithContext[T](context.Background(), p, def, opts...)
+func (p Path) Load[T any](def string, opts ...yaml.DecodeOption) (c T, err error) {
+	return p.LoadWithContext[T](context.Background(), def, opts...)
 }
 
 // LoadWithContext 加载 YAML 配置文件（带上下文），def 为默认值（加载不到的时候会尝试初始化）
 //
 //	即使 err == nil，加载的映射或切片也可能为 nil，需要判断
-func LoadWithContext[T any, S str.Str](ctx context.Context, p Path, def S, opts ...yaml.DecodeOption) (c T, err error) {
-	if err = p.InitFileText(string(def)); err != nil {
+func (p Path) LoadWithContext[T any](ctx context.Context, def string, opts ...yaml.DecodeOption) (c T, err error) {
+	if err = p.InitFileText(def); err != nil {
 		err = fmt.Errorf(`初始化 %s 时失败喵！%w`, p, err)
 		return
 	}
-	f, err := p.Load(false)
+	f, err := p.Open(false)
 	return c, errors.Join(err, yaml.NewDecoder(f, opts...).DecodeContext(ctx, &c), f.Close())
 }
 
 // Save 保存 YAML 配置文件
-func Save[T any](p Path, c T, opts ...yaml.EncodeOption) error {
-	return SaveWithContext(context.Background(), p, c, opts...)
+func (p Path) Save[T any](c T, opts ...yaml.EncodeOption) error {
+	return p.SaveWithContext(context.Background(), c, opts...)
 }
 
 // SaveWithContext 保存 YAML 配置文件（带上下文）
-func SaveWithContext[T any](ctx context.Context, p Path, c T, opts ...yaml.EncodeOption) error {
-	f, err := p.Load(true)
-	return errors.Join(err, yaml.NewEncoder(f, opts...).EncodeContext(ctx, c), f.Close())
+func (p Path) SaveWithContext[T any](ctx context.Context, c T, opts ...yaml.EncodeOption) error {
+	f, err := p.Open(true)
+	return errors.Join(err, yaml.NewEncoder(f, append(opts,
+		yaml.OmitEmpty(),
+		yaml.IndentSequence(true),
+		yaml.UseSingleQuote(true),
+		yaml.WithSmartAnchor(),
+	)...).EncodeContext(ctx, c), f.Close())
 }
 
 // NoDuplicate 生成不重复的文件或文件夹名
@@ -236,7 +241,7 @@ func (p Path) InitFile(def ...byte) error {
 //
 //	如文件不存在会尝试新建
 func (p Path) WriteString(s string) error {
-	f, err := p.Load(true)
+	f, err := p.Open(true)
 	if err != nil {
 		return err
 	}
@@ -248,7 +253,7 @@ func (p Path) WriteString(s string) error {
 //
 //	如文件不存在会尝试新建
 func (p Path) WriteBytes(b []byte) error {
-	f, err := p.Load(true)
+	f, err := p.Open(true)
 	if err != nil {
 		return err
 	}
@@ -258,7 +263,7 @@ func (p Path) WriteBytes(b []byte) error {
 
 // ReadString 从文件一次性读取全部内容，返回字符串
 func (p Path) ReadString() (string, error) {
-	f, err := p.Load(false)
+	f, err := p.Open(false)
 	if err != nil {
 		return ``, err
 	}
@@ -275,12 +280,12 @@ func (p Path) ReadString() (string, error) {
 // Copy 复制文件
 func (p Path) Copy(src Path) (size int64, err error) {
 	// 打开源文件
-	source, err := src.Load(false)
+	source, err := src.Open(false)
 	if err != nil {
 		return
 	}
 	// 打开目标文件
-	destination, err := p.Load(true)
+	destination, err := p.Open(true)
 	if err != nil {
 		return size, source.Close()
 	}
@@ -294,7 +299,7 @@ func (p Path) Hash(h hash.Hash) ([]byte, error) {
 	if !p.Exists() {
 		return nil, os.ErrNotExist
 	}
-	f, err := p.Load(false)
+	f, err := p.Open(false)
 	if err != nil {
 		return nil, err
 	}
@@ -319,7 +324,7 @@ func (p Path) Exists() bool {
 
 // ReadBytes 从文件一次性读取全部内容，返回字节切片
 func (p Path) ReadBytes() ([]byte, error) {
-	f, err := p.Load(false)
+	f, err := p.Open(false)
 	if err != nil {
 		return nil, err
 	}
@@ -332,8 +337,8 @@ func (p Path) ReadBytes() ([]byte, error) {
 	return b, errors.Join(err, f.Close())
 }
 
-// 载入文件以供操作，当 write 为 false 时只读
-func (p Path) Load(write bool) (f *os.File, err error) {
+// 打开文件以供操作，当 write 为 false 时只读
+func (p Path) Open(write bool) (f *os.File, err error) {
 	if !write {
 		// 只读，打开文件
 		f, err = os.Open(p.String())

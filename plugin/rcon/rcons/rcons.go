@@ -33,7 +33,7 @@ var sec = regexp.MustCompile(`§.`)
 func Command(handler *msg.Handler, cp fio.PathRWMutex) message.ID {
 	cp.RLock()
 	defer cp.RUnlock()
-	config, err := fio.LoadWithContext[rcon](handler, cp.Path, fio.Empty)
+	config, err := cp.LoadWithContext[rcon](handler, fio.Empty)
 	if err != nil {
 		return handler.SendWithImageFail(`RCON 配置文件错误喵！`, err)
 	}
@@ -81,7 +81,7 @@ func Set(handler *msg.Handler, i item, cp fio.PathRWMutex) message.ID {
 	}
 	cp.Lock()
 	defer cp.Unlock()
-	config, err := fio.LoadWithContext[rcon](handler, cp.Path, fio.Empty)
+	config, err := cp.LoadWithContext[rcon](handler, fio.Empty)
 	if err != nil {
 		return handler.SendWithImageFail(`RCON 配置文件错误喵！`, err)
 	}
@@ -91,7 +91,7 @@ func Set(handler *msg.Handler, i item, cp fio.PathRWMutex) message.ID {
 	case Password:
 		config.Password = s
 	}
-	if err = fio.SaveWithContext(handler, cp.Path, config); err != nil {
+	if err = cp.SaveWithContext(handler, config); err != nil {
 		return handler.SendWithImageFail(`保存 RCON 配置文件错误喵！`, err)
 	}
 	return handler.Quote().At().Text(`RCON `, &i, `设置成功喵！`).Send()

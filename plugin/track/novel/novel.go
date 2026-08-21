@@ -4,26 +4,23 @@ import (
 	"context"
 	"fmt"
 	"slices"
+	"strconv"
 	"strings"
 	"sync"
 
 	"github.com/Kittengarten/KittenCore/kitten/core/log"
 	"github.com/Kittengarten/KittenCore/kitten/core/times"
 	"github.com/Kittengarten/KittenCore/kitten/core/utils"
-	"github.com/Kittengarten/KittenCore/plugin/track/chapter"
-	"github.com/Kittengarten/KittenCore/plugin/track/platform"
 
 	"github.com/antchfx/htmlquery"
 	"golang.org/x/net/html"
 )
 
 // Export 导出点评接口
-var Export struct {
-	Commenter // Commenter 小说点评者
-}
+var Export Commenter // Commenter 小说点评者
 
-// Pool 小说池
-var Pool = sync.Pool{
+// 小说池
+var pool = sync.Pool{
 	New: func() any {
 		return new(Novel)
 	},
@@ -116,7 +113,7 @@ func (nv *Novel) status() string {
 
 // 获取小说字数（状态）
 func (nv *Novel) wordNum() string {
-	return `字数：` + nv.TotalWordNum + nv.status()
+	return `字数：` + strconv.Itoa(nv.TotalWordNum) + nv.status()
 }
 
 // 获取小说点击
@@ -126,7 +123,8 @@ func (nv *Novel) hitNum() string {
 
 // 获取小说更新时间
 func (nv *Novel) update() string {
-	return `更新：` + nv.Chapter.Update.Format(times.LayoutHeart)
+	return fmt.Sprintf(`更新：%s%s`,
+		nv.Chapter.Update.Format(times.LayoutHeart), nv.UpdateData)
 }
 
 // 获取小说简介
@@ -134,9 +132,18 @@ func (nv *Novel) introduce() string {
 	return "简介：\n" + nv.Introduce
 }
 
+// ChapterIDSource 小说更新章号源
+type ChapterIDSource interface {
+	// ChapterID 获取小说更新章号
+	ChapterID(chapURL string) string
+}
+
+// GetChapterIDSource 获取小说更新章号源
+var GetChapterIDSource func(platform string) (ChapterIDSource, error)
+
 // ChapterID 获取小说更新章号
 func (nv *Novel) ChapterID() string {
-	p, err := platform.Get(nv.Platform)
+	p, err := GetChapterIDSource(nv.Platform)
 	if err != nil {
 		log.Error(err)
 		return ``
@@ -147,7 +154,7 @@ func (nv *Novel) ChapterID() string {
 // String 实现 fmt.Stringer
 func (nv *Novel) String() string {
 	if nv.ID == `` {
-		return `获取不到书号喵！`
+		return `获取不到小说喵！`
 	}
 	return strings.Join(slices.DeleteFunc([]string{
 		nv.platform(),
@@ -166,18 +173,10 @@ func (nv *Novel) String() string {
 	}, func(s string) bool { return s == `` }), "\n")
 }
 
-// Init 初始化小说
-func Init(ctx context.Context, p platform.Platform, nvID string, cache bool) (*Novel, error) {
-	nv, err := p.Init(ctx, nvID, cache)
-	return Assert(nv), err
-}
-
-// Assert 断言为小说，不是小说时返回空小说
-func Assert(a any) *Novel {
-	if nv, ok := a.(*Novel); ok {
-		return nv
-	}
-	return &Novel{Chapter: new(chapter.Chapter)}
+// Source 小说源
+type Source interface {
+	// Init 初始化小说
+	Init(ctx context.Context, bookID string) (*Novel, error)
 }
 
 // CheckComplete 检查数据长度，判断是否完整
@@ -195,4 +194,49 @@ func CheckComplete(name string, data []*html.Node, n int, f func()) {
 		strings.Join(utils.ConvertSlice(data,
 			func(n *html.Node) string { return htmlquery.InnerText(n) },
 		), "\n"))
+}
+
+// Get 获取小说
+func Get() *Novel {
+	return pool.Get().(*Novel)
+}
+
+// Put 回收小说
+func (nv *Novel) Put() {
+	if nv == nil {
+		return
+	}
+	if nv.Chapter != nil {
+		nv.Chapter.Put()
+	}
+	*nv = Novel{}
+	pool.Put(nv)
+}
+
+// Format 实现 fmt.Formatter，返回日均更新数据
+//
+//	%s 完整字符串
+//	%c 省略过的字符串
+func (d UpdateData) Format(f fmt.State, verb rune) {
+	if d.Status == Completed {
+		// 完结书籍不显示该数据
+		return
+	}
+	switch verb {
+	case 's': // 精简
+		_, _ = fmt.Fprintf(f, `
+日更：%d`, d.DailyWordNum)
+	case 'c': // 完整
+		_, _ = fmt.Fprintf(f, `
+一周日均：%d 字
+一月日均：%d 字
+全书日均：%d 字`,
+			d.WeekDailyWordNum,
+			d.MonthDailyWordNum,
+			d.DailyWordNum,
+		)
+	default:
+		type raw UpdateData
+		_, _ = fmt.Fprintf(f, fmt.FormatString(f, verb), raw(d))
+	}
 }

@@ -2,6 +2,7 @@ package str
 
 import (
 	"path/filepath"
+	"slices"
 	"strconv"
 	"strings"
 	"unicode"
@@ -34,8 +35,8 @@ func SplitNumber(filename string) (string, int) {
 		s   = []rune(filename)
 		end = len(s) // 记录数字的结束索引
 	)
-	for i := len(s) - 1; i >= 0; i-- {
-		if !unicode.IsDigit(s[i]) {
+	for i, v := range slices.Backward(s) {
+		if !unicode.IsDigit(v) {
 			break // 遇到非数字停止
 		}
 		end = i

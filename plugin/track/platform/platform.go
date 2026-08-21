@@ -7,6 +7,9 @@ import (
 	"time"
 
 	"github.com/Kittengarten/KittenCore/kitten/core/shttp"
+	"github.com/Kittengarten/KittenCore/kitten/core/times"
+	"github.com/Kittengarten/KittenCore/plugin/track/chapter"
+	"github.com/Kittengarten/KittenCore/plugin/track/novel"
 	"golang.org/x/net/html"
 )
 
@@ -16,6 +19,15 @@ var platforms []Platform
 // Register 注册小说平台
 func Register(p Platform) {
 	platforms = append(platforms, p)
+}
+
+func init() {
+	chapter.GetChapterSource = func(platform string) (chapter.Source, error) {
+		return Get(platform)
+	}
+	novel.GetChapterIDSource = func(platform string) (novel.ChapterIDSource, error) {
+		return Get(platform)
+	}
 }
 
 // Get 获取小说平台
@@ -36,7 +48,7 @@ func NotSupported(platform string) error {
 
 // ParseTime 解析时间
 func ParseTime(p Platform, str string) (time.Time, error) {
-	return time.Parse(p.Layout(), str)
+	return time.ParseInLocation(p.Layout(), str, times.Location)
 }
 
 // Doc 获取 HTML

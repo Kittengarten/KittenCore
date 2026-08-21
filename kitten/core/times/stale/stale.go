@@ -10,7 +10,8 @@ import (
 type Level byte
 
 const (
-	Day Level = iota
+	Completed Level = iota
+	Day
 	Week
 	Month
 	Year
@@ -20,18 +21,22 @@ const (
 // String 实现 fmt.Stringer
 func (l Level) String() string {
 	return map[Level]string{
-		Day:   `💖`,
-		Week:  `✨`,
-		Month: `🥀`,
-		Year:  `⚰`,
-		Life:  `🪦`,
+		Completed: `✅`,
+		Day:       `💖`,
+		Week:      `✨`,
+		Month:     `🥀`,
+		Year:      `⚰`,
+		Life:      `🪦`,
 	}[l]
 }
 
 // Check 检查停更等级
-func Check(last time.Time) Level {
+func Check(last time.Time, completed bool) Level {
+	if completed {
+		return Completed
+	}
 	now := time.Now()
-	if d := equal.CmpDay(last, now); d <= 1 {
+	if d := equal.CmpDay4AM(last, now); d <= 1 {
 		return Day
 	}
 	if w := equal.CmpWeek(last, now); w <= 1 {

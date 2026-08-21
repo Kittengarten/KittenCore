@@ -23,7 +23,7 @@ var ErrNotDefaultName = errors.New(`不是预设的昵称喵！`)
 func (u QQ) Name(ctx context.Context) (string, error) {
 	nameFile.RLock()
 	defer nameFile.RUnlock()
-	n, err := fio.LoadWithContext[name](ctx, nameFile.Path, fio.Blank)
+	n, err := nameFile.LoadWithContext[name](ctx, fio.Blank)
 	if err != nil {
 		return ``, err
 	}
@@ -37,10 +37,10 @@ func (u QQ) SetName(ctx context.Context, nickname string) error {
 	}
 	nameFile.Lock()
 	defer nameFile.Unlock()
-	n, err := fio.LoadWithContext[name](ctx, nameFile.Path, fio.Blank)
+	n, err := nameFile.LoadWithContext[name](ctx, fio.Blank)
 	if err != nil {
 		return err
 	}
 	n[u.Str()] = nickname
-	return fio.SaveWithContext(ctx, nameFile.Path, n)
+	return nameFile.SaveWithContext(ctx, n)
 }

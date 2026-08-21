@@ -18,28 +18,32 @@ const lorryImage = `lorry`
 
 // 撞大运执行逻辑
 func lorryExe(handler *msg.Handler) {
-	if !setGlobalLocation(handler.Args()) {
-		// 设置全局地区标记位，如当前活动未开放则返回
+	r, ok := parseLoc(handler.Args())
+	if !ok {
+		// 当前活动未开放，返回
 		asyncSendEmoji(handler, `辣眼睛`)
 		handler.SendWithImageFail(`当前活动未开放喵！`)
 		return
 	}
 	globalCtx = handler.Ctx
-	d, err := fio.LoadWithContext[data](handler, dataPath, fio.Empty)
+	d, err := dataPath.LoadWithContext[data](handler, fio.Empty)
 	if err != nil {
-		sendWithImageFail(handler, `加载叠猫猫数据文件时发生错误喵！`, err)
+		sendWithImageFail(handler, r, `加载叠猫猫数据文件时发生错误喵！`, err)
 		return
 	}
-	stackStatus.refresh(handler, &d)
-	_ = d.lorry(handler)
+	stackStatus.refresh(handler, d, r)
+	_ = d.lorry(handler, r)
 	self(handler, d)
 }
 
 // 撞大运
-func (d *data) lorry(handler *msg.Handler) message.ID {
+func (d *data) lorry(handler *msg.Handler, r ...replacer) message.ID {
+	if len(r) == 0 {
+		r = []replacer{l10n(cat)}
+	}
 	var (
 		// 初始化自身
-		m, err = d.pre(handler)
+		m, err = d.pre(handler, r...)
 		// 未在叠猫猫的队列
 		dn data
 		// 取消恢复数据状态
@@ -62,12 +66,12 @@ func (d *data) lorry(handler *msg.Handler) message.ID {
 	if m.getTypeID(handler) < 猫车 {
 		// 不是猫车，不能撞大运
 		asyncSendEmoji(handler, `NO`)
-		return sendWithImageFail(handler, `猫车以上才可以撞大运——`)
+		return sendWithImageFail(handler, r[0], `猫车以上才可以撞大运——`)
 	}
 	// 未在叠猫猫的队列
 	dn = d.getNoStack()
 	// 执行撞大运
-	if !d.doLorry(handler, &m) {
+	if !d.doLorry(handler, &m, r...) {
 		// 如果不能撞大运，依靠延迟函数恢复数据状态
 		return message.ID{}
 	}
@@ -76,14 +80,17 @@ func (d *data) lorry(handler *msg.Handler) message.ID {
 	// 清理过期玩家
 	d.clear(handler, false)
 	// 存储叠猫猫数据
-	if err := fio.SaveWithContext(handler, dataPath, d); err != nil {
-		return sendWithImageFail(handler, `存储叠猫猫数据时发生错误喵！`, err)
+	if err := dataPath.SaveWithContext(handler, d); err != nil {
+		return sendWithImageFail(handler, r[0], `存储叠猫猫数据时发生错误喵！`, err)
 	}
 	return message.ID{}
 }
 
 // 执行撞大运
-func (d *data) doLorry(handler *msg.Handler, m *meow) bool {
+func (d *data) doLorry(handler *msg.Handler, m *meow, r ...replacer) bool {
+	if len(r) == 0 {
+		r = []replacer{l10n(cat)}
+	}
 	*d = d.getStack() // 正在叠猫猫的队列
 	var (
 		dr = slices.Clone(*d) // 叠猫猫队列的克隆
@@ -92,11 +99,11 @@ func (d *data) doLorry(handler *msg.Handler, m *meow) bool {
 	if l == 0 {
 		// 没有猫猫
 		asyncSendEmoji(handler, `哦`)
-		sendWithImageFail(handler, `猫堆中没有猫猫可以撞——`)
+		sendWithImageFail(handler, r[0], `猫堆中没有猫猫可以撞——`)
 		return false
 	}
 	s := new(strings.Builder)
-	s.Grow(256)
+	s.Grow(1 << 8)
 	if !d.checkLorry(*m) {
 		// 撞大运失败
 		// 猫车进入休息
@@ -106,7 +113,7 @@ func (d *data) doLorry(handler *msg.Handler, m *meow) bool {
 			times.ConvertTimeDuration(m.Time.Sub(time.Unix(handler.Event().Time, 0))))
 		doClear(handler, l, 0, m.Weight, m, s)
 		s.WriteRune('🚚')
-		sendWithZako(handler, s)
+		sendWithZako(handler, r[0], s)
 		return true
 	}
 	// 撞大运成功
@@ -125,7 +132,7 @@ func (d *data) doLorry(handler *msg.Handler, m *meow) bool {
 	for range l {
 		s.WriteRune('😿')
 	}
-	sendWithImageLorry(handler, s, &dr)
+	sendWithImageLorry(handler, r[0], s, &dr)
 	return true
 }
 

@@ -22,8 +22,8 @@ func (p Path) DownloadImage(ctx context.Context, url string) (int64, error) {
 	if err != nil {
 		return 0, err
 	}
-	defer shttp.Clear(b)
-	f, err := p.Load(true)
+	defer b.Close() //nolint:errcheck
+	f, err := p.Open(true)
 	if err != nil {
 		return 0, err
 	}
@@ -33,7 +33,7 @@ func (p Path) DownloadImage(ctx context.Context, url string) (int64, error) {
 
 // ImageToDataURL 将图片路径转为 Data URL（base64 编码），可能为空
 func (p Path) ImageToDataURL() (u string) {
-	f, err := p.Load(false)
+	f, err := p.Open(false)
 	if err != nil {
 		logError(`打开图片失败了喵！`, p, err)
 		return ``
@@ -65,7 +65,7 @@ func (p Path) ImageToDataURL() (u string) {
 		case `.svg`:
 			return `image/svg+xml`
 		default:
-			data, err := io.ReadAll(io.LimitReader(f, 512))
+			data, err := io.ReadAll(io.LimitReader(f, 1<<9))
 			if err != nil {
 				logError(`读取图片失败了喵！`, p, err)
 				return ``

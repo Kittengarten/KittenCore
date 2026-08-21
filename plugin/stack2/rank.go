@@ -23,7 +23,10 @@ type quantity struct {
 }
 
 // 叠猫猫排行榜，不修改原数据
-func (d *data) rank(handler *msg.Handler) {
+func (d *data) rank(handler *msg.Handler, r ...replacer) {
+	if len(r) == 0 {
+		r = []replacer{l10n(cat)}
+	}
 	// 不活跃的猫猫不参与排行，但数据保留
 	d.clear(handler, true)
 	// 将猫猫按体重顺序排序
@@ -34,16 +37,18 @@ func (d *data) rank(handler *msg.Handler) {
 		return cmp.Compare(n.Int(), m.Int())
 	})
 	var (
-		c = len(*d) // 猫猫总数
-		r = slices.IndexFunc(*d, func(m meow) bool {
+		c  = len(*d) // 猫猫总数
+		ra = slices.IndexFunc(*d, func(m meow) bool {
 			return handler.Event().UserID == m.Int()
 		}) // 发起查询的猫猫排名
 	)
 	if c == 0 {
-		sendWithImageFail(handler, `还没有猫猫喵！`)
+		sendWithImageFail(handler, r[0], `还没有猫猫喵！`)
+		return
 	}
-	if r == -1 {
-		sendWithImageFail(handler, `你太久或者从来没有加入过喵！`)
+	if ra == -1 {
+		sendWithImageFail(handler, r[0], `你太久或者从来没有加入过喵！`)
+		return
 	}
 	var (
 		w = make([]int, c) // 保存累计重量的切片
@@ -80,7 +85,7 @@ func (d *data) rank(handler *msg.Handler) {
 		wi += i * v
 	}
 	s := (*d)[c-10:] // 叠猫猫排行
-	_ = sendTextf(handler, true, `【叠猫猫排行】
+	_ = sendTextf(handler, r[0], true, `【叠猫猫排行】
 你的当前体重为 %.1f kg
 在 %d 只猫猫中排行第 %d 名
 所有猫猫当前的总重量为 %.1f kg%s
@@ -93,8 +98,8 @@ func (d *data) rank(handler *msg.Handler) {
 抱枕：　　	%d	只
 奶猫：　　	%d	只
 绒布球：　	%d	只`,
-		i2f((*d)[r].Weight),
-		c, c-r,
+		i2f((*d)[ra].Weight),
+		c, c-ra,
 		i2f(a),
 		func() string {
 			if !zero.UserOrGrpAdmin(handler.Ctx) {
@@ -115,14 +120,17 @@ func (d *data) rank(handler *msg.Handler) {
 	)
 	select {
 	case <-times.RandDelayRange(time.Second, 2*time.Second):
-		d.rankImage(handler, q)
+		d.rankImage(handler, q, r...)
 	case <-handler.Done():
 		handler.SendWithImageFail(handler.Err())
 	}
 }
 
 // 叠猫猫排行图片
-func (d *data) rankImage(handler *msg.Handler, q quantity) message.ID {
+func (d *data) rankImage(handler *msg.Handler, q quantity, r ...replacer) message.ID {
+	if len(r) == 0 {
+		r = []replacer{l10n(cat)}
+	}
 	p, err := setRankChart([]float64{
 		float64(q.绒布球),
 		float64(q.奶猫),
@@ -132,15 +140,18 @@ func (d *data) rankImage(handler *msg.Handler, q quantity) message.ID {
 		float64(q.猫娘),
 		float64(q.老虎),
 		float64(len(*d) - q.绒布球 - q.奶猫 - q.抱枕 - q.小可爱 - q.大可爱 - q.猫娘 - q.老虎),
-	})
+	}, r...)
 	if err != nil {
-		return sendWithImageFail(handler, err)
+		return sendWithImageFail(handler, r[0], err)
 	}
-	return sendImage(handler, p)
+	return sendImage(handler, p, r...)
 }
 
 // 设置排行图表
-func setRankChart(v []float64) (*charts.Painter, error) {
+func setRankChart(v []float64, r ...replacer) (*charts.Painter, error) {
+	if len(r) == 0 {
+		r = []replacer{l10n(cat)}
+	}
 	return charts.PieRender(
 		v,
 		charts.FontFamilyOptionFunc(hookcharts.FontName),
@@ -154,21 +165,21 @@ func setRankChart(v []float64) (*charts.Painter, error) {
 		}),
 		charts.PNGTypeOption(),
 		charts.TitleOptionFunc(charts.TitleOption{
-			Text:    l10n.Replace(`叠猫猫排行`),
+			Text:    r[0].Replace(`叠猫猫排行`),
 			Subtext: `数量`,
 			Left:    charts.PositionCenter,
 		}),
 		charts.LegendOptionFunc(charts.LegendOption{
 			Orient: charts.OrientVertical,
 			Data: []string{
-				l10n.Replace(`绒布球`),
-				l10n.Replace(`奶猫`),
-				l10n.Replace(`抱枕`),
-				l10n.Replace(`小可爱`),
-				l10n.Replace(`大可爱`),
-				l10n.Replace(`猫娘`),
-				l10n.Replace(`老虎`),
-				l10n.Replace(`猫车以上`),
+				r[0].Replace(`绒布球`),
+				r[0].Replace(`奶猫`),
+				r[0].Replace(`抱枕`),
+				r[0].Replace(`小可爱`),
+				r[0].Replace(`大可爱`),
+				r[0].Replace(`猫娘`),
+				r[0].Replace(`老虎`),
+				r[0].Replace(`猫车以上`),
 			},
 			Left: charts.PositionLeft,
 		}),

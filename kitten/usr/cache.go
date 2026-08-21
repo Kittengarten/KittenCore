@@ -1,12 +1,14 @@
 package usr
 
 import (
-	"encoding/json"
+	"encoding/json/jsontext"
+	"encoding/json/v2"
 	"errors"
 	"log"
 	"time"
 
 	"github.com/Kittengarten/KittenCore/kitten/core/fio"
+	"github.com/Kittengarten/KittenCore/kitten/core/mode"
 	"github.com/Kittengarten/KittenCore/kitten/core/utils"
 
 	"github.com/RomiChan/syncx"
@@ -50,6 +52,9 @@ var (
 )
 
 func init() {
+	if mode.Test() {
+		return
+	}
 	if err := errors.Join(loadInfo(), loadMember()); err != nil {
 		log.Panic(err)
 	}
@@ -89,19 +94,19 @@ func load(p fio.Path, v any) error {
 	if err := p.InitFileText(fio.Blank); err != nil {
 		return err
 	}
-	f, err := p.Load(false)
+	f, err := p.Open(false)
 	if err != nil {
 		return err
 	}
-	defer f.Close()
-	return json.NewDecoder(f).Decode(v)
+	defer f.Close() //nolint:errcheck
+	return json.UnmarshalRead(f, v)
 }
 
 func saveInfo() error {
 	infoDump := make(map[QQ]qqInfoDisk)
 	strangerInfo.Range(func(k QQ, v qqInfo) bool {
 		infoDump[k] = qqInfoDisk{
-			Raw:  v.Result.Raw,
+			Raw:  v.Raw,
 			Time: v.Time,
 		}
 		return true
@@ -124,12 +129,10 @@ func saveMember() error {
 }
 
 func save(p fio.Path, v any) error {
-	f, err := p.Load(true)
+	f, err := p.Open(true)
 	if err != nil {
 		return err
 	}
-	defer f.Close()
-	enc := json.NewEncoder(f)
-	enc.SetIndent(``, `  `)
-	return enc.Encode(v)
+	defer f.Close() //nolint:errcheck
+	return json.MarshalEncode(jsontext.NewEncoder(f, jsontext.Multiline(true)), v)
 }

@@ -42,6 +42,7 @@ func View(handler *msg.Handler, service string, logFilePath fio.Path) message.ID
 		return
 	}(); who {
 	case zero.BotConfig.NickName[0]:
+		// TODO: 使用一整张图片返回
 		ct := perf.CPUTemperature(logFilePath)
 		return handler.Quote().AtLf().
 			Image(fio.NewPath(service, strconv.Itoa(perf.Level(handler, ct))+`.png`)).

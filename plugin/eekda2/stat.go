@@ -20,8 +20,8 @@ func getStat(ctx *zero.Ctx) {
 	defer statPath.RUnlock()
 	var (
 		co, cancel = context.WithTimeout(context.Background(), core.Timeout)
-		handler       = msg.NewWithContext(co, ctx)
-		s, err     = fio.LoadWithContext[stat](handler, statPath.Path, fio.Empty)
+		handler    = msg.NewWithContext(co, ctx)
+		s, err     = statPath.LoadWithContext[stat](handler, fio.Empty)
 	)
 	defer cancel()
 	if err != nil {
@@ -34,7 +34,7 @@ func getStat(ctx *zero.Ctx) {
 		handler.DoNotKnow()
 		return
 	}
-	c, err := fio.LoadWithContext[config](handler, todayPath.Path, fio.Empty)
+	c, err := todayPath.LoadWithContext[config](handler, fio.Empty)
 	if err != nil {
 		handler.SendWithImageFail(err)
 	}
@@ -57,7 +57,7 @@ func getStat(ctx *zero.Ctx) {
 
 // 统计被吃次数
 func doStat(handler *msg.Handler, td today) {
-	s, err := fio.LoadWithContext[stat](handler, statPath.Path, fio.Empty)
+	s, err := statPath.LoadWithContext[stat](handler, fio.Empty)
 	if err != nil {
 		handler.SendWithImageFail(err)
 	}
@@ -91,7 +91,7 @@ func doStat(handler *msg.Handler, td today) {
 	// 排序
 	s.sort()
 	// 写入文件
-	if err := fio.SaveWithContext(handler, statPath.Path, s); err != nil {
+	if err := statPath.SaveWithContext(handler, s); err != nil {
 		handler.SendWithImageFail(err)
 	}
 }
@@ -100,15 +100,11 @@ func doStat(handler *msg.Handler, td today) {
 func (s *stat) sort() {
 	// 统计数据按总被吃次数排序
 	slices.SortStableFunc(*s, func(i, j food) int {
-		if sum := cmp.Compare(i.cmpStat().sum, j.cmpStat().sum); sum != 0 {
-			return sum
-		}
-		// 如果总数相等，比较集齐五餐的数量
-		if min := cmp.Compare(i.cmpStat().min, j.cmpStat().min); min != 0 {
-			return min
-		}
-		// 如果集齐五餐的数量相等，比较单次最高
-		return cmp.Compare(i.cmpStat().max, j.cmpStat().max)
+		return cmp.Or(
+			cmp.Compare(i.cmpStat().sum, j.cmpStat().sum), // 比较总数
+			cmp.Compare(i.cmpStat().min, j.cmpStat().min), // 如果总数相等，比较集齐五餐的数量
+			cmp.Compare(i.cmpStat().max, j.cmpStat().max), // 如果集齐五餐的数量相等，比较单次最高
+		)
 	})
 }
 

@@ -49,8 +49,10 @@ func CmpDay4AM(t1, t2 time.Time) int {
 
 // CmpDay 比较天数差值 t2 - t1
 func CmpDay(t1, t2 time.Time) int {
-	y1, m1, d1 := t1.Local().Date()
-	y2, m2, d2 := t2.Local().Date()
+	var (
+		y1, m1, d1 = t1.Local().Date()
+		y2, m2, d2 = t2.Local().Date()
+	)
 	return int(
 		time.Date(y2, m2, d2,
 			0, 0, 0, 0, time.Local).
@@ -75,8 +77,10 @@ func CmpWeek(t1, t2 time.Time) int {
 
 // CmpMonth 比较月数差值 t2 - t1
 func CmpMonth(t1, t2 time.Time) int {
-	y1, m1, _ := t1.Local().Date()
-	y2, m2, _ := t2.Local().Date()
+	var (
+		y1, m1, _ = t1.Local().Date()
+		y2, m2, _ = t2.Local().Date()
+	)
 	return (y2-y1)*12 + int(m2) - int(m1)
 }
 

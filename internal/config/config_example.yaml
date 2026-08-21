@@ -7,6 +7,7 @@ super_users: # 亲妈账号
   - 1919810
 command_prefix: / # 指令前缀
 add_space_after_at: true # 是否在 At 消息后没有空格时自动添加空格
+set_force_base64_file: false # 是否强制使用 base64 发送文件
 path: data/res/ # 资源文件路径
 protocol: # 协议
   type: forward # 协议类型，forward/reverse/http

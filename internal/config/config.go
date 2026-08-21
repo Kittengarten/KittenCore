@@ -40,7 +40,7 @@ func init() {
 	}
 	var err error
 	// 配置文件初始化
-	if botConfig, err = fio.Load[config](fio.NewPath(file), defaultConfig); err != nil {
+	if botConfig, err = fio.NewPath(file).Load[config](defaultConfig); err != nil {
 		log.Fatalln(err, `请按 YAML 格式配置`, file, `后重新启动喵！`)
 	}
 	defer corelog.ZapInit(botConfig.Log, mode.Test())
@@ -128,6 +128,11 @@ func CommandPrefix() string {
 // AddSpaceAfterAt 获取是否添加空格
 func AddSpaceAfterAt() bool {
 	return botConfig.AddSpaceAfterAt
+}
+
+// SetForceBase64File 获取是否强制使用 Base64 发送文件
+func SetForceBase64File() bool {
+	return botConfig.SetForceBase64File
 }
 
 // ImagePath 获取图片路径

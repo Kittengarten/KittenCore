@@ -33,6 +33,8 @@ const (
 	ChapterStatusException
 	// VIPChapterException 付费状态异常
 	VIPChapterException
+	// RequestAPIException 请求 API 异常
+	RequestAPIException
 )
 
 // ErrStatus *statusErr 的构造函数，状态错误
@@ -52,6 +54,7 @@ func (e *Error) Error() string {
 		ChapterURLException:    e.url + ` 不是正常的章节链接喵！`,
 		ChapterStatusException: `章节 ` + e.url + ` 状态异常喵！`,
 		VIPChapterException:    `章节 ` + e.url + ` 付费状态异常喵！`,
+		RequestAPIException:    `请求 API ` + e.url + ` 异常喵！`,
 	}; statusErrs[e.Status] != `` {
 		return statusErrs[e.Status]
 	}

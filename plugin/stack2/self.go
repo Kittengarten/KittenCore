@@ -38,7 +38,7 @@ func selfDaily(handler *msg.Handler, d data) bool {
 	handler.Event().UserID = usr.Self().Int()
 	//nolint:gosec
 	if rand.Float64() >= d.evaluateDaily(handler) {
-		// 以 评估 的概率，触发喵喵使用 /叠猫猫 日常
+		// 以评估的概率，触发喵喵使用 /叠猫猫 日常
 		return false
 	}
 	return selfDo(handler, cStack+cMeow+` `+cDaily, func() { d.daily(handler) })
@@ -68,7 +68,7 @@ func (d *data) evaluateDaily(handler *msg.Handler) float64 {
 	return float64(len(d.getStack())) /
 		max(100, float64(nre.Duration)) /
 		min(1, float64(times.DailyDeadline(4, 0, 0, 0))/
-			float64(time.Hour)/4)
+			float64(time.Hour<<2))
 }
 
 // 自动撞大运
@@ -287,8 +287,8 @@ func (d *data) evaluateOC(handler *msg.Handler) float64 {
 		// 体重不足，则不能加速，什么也不做
 		return 0
 	}
-	// 加速的权重为 (ln(当前体重（0.1 kg 数） ÷ 加速的小时数) - e) ÷ e^e
-	return math.Log(float64((*d)[nre.i].Weight)/float64(hours)-math.E) / math.Pow(math.E, math.E)
+	// 加速的权重为 (ln(当前体重（0.1 kg 数） ÷ 加速的小时数) - e - 1/e) ÷ e^e
+	return (math.Log(float64((*d)[nre.i].Weight)/float64(hours)) - math.E - 1/math.E) / math.Pow(math.E, math.E)
 }
 
 // 自动排行

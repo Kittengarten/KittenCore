@@ -12,8 +12,8 @@ var recorder = struct {
 	sync.Mutex             // Mutex 互斥锁
 	times      []time.Time // Times 检测时间
 }{
-	Mutex: sync.Mutex{},  // Mutex 互斥锁
-	times: []time.Time{}, // Times 检测时间
+	Mutex: sync.Mutex{},               // Mutex 互斥锁
+	times: make([]time.Time, 0, 1<<6), // Times 检测时间
 }
 
 // RecordTime 记录检测时间

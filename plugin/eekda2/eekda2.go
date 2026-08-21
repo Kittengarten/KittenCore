@@ -72,8 +72,8 @@ func todayMeal(ctx *zero.Ctx) {
 	defer todayPath.Unlock()
 	var (
 		co, cancel = context.WithTimeout(context.Background(), core.Timeout)
-		c, err     = fio.LoadWithContext[config](co, todayPath.Path, fio.Empty)
-		handler       = msg.NewWithContext(co, ctx)
+		c, err     = todayPath.LoadWithContext[config](co, fio.Empty)
+		handler    = msg.NewWithContext(co, ctx)
 	)
 	defer cancel()
 	if err != nil {
@@ -116,7 +116,7 @@ func todayMeal(ctx *zero.Ctx) {
 			Group: []usr.QQ{g},
 		})
 		// 写入文件
-		if err := fio.SaveWithContext(co, todayPath.Path, c); err != nil {
+		if err := todayPath.SaveWithContext(co, c); err != nil {
 			handler.SendWithImageFail(err)
 			return
 		}
@@ -140,7 +140,7 @@ func todayMeal(ctx *zero.Ctx) {
 		// 注册
 		c[ci].Group = append(c[ci].Group, g)
 		// 写入文件
-		if err := fio.SaveWithContext(co, todayPath.Path, c); err != nil {
+		if err := todayPath.SaveWithContext(co, c); err != nil {
 			handler.SendWithImageFail(err)
 			return
 		}
@@ -170,7 +170,7 @@ func todayMeal(ctx *zero.Ctx) {
 			})
 		}
 		// 写入文件
-		if err := fio.SaveWithContext(co, todayPath.Path, c); err != nil {
+		if err := todayPath.SaveWithContext(co, c); err != nil {
 			handler.SendWithImageFail(err)
 			return
 		}
@@ -186,7 +186,7 @@ func todayMeal(ctx *zero.Ctx) {
 		// 今天没有生成，执行生成
 		var (
 			// 群员列表
-			list = make([]gjson.Result, 0, 128)
+			list = make([]gjson.Result, 0, 1<<7)
 			// 时钟
 			t = time.NewTicker(time.Second)
 		)
@@ -216,7 +216,7 @@ func todayMeal(ctx *zero.Ctx) {
 		// 写入时间
 		c[ci].Time = time.Unix(handler.Event().Time, 0)
 		// 写入文件
-		if err := fio.SaveWithContext(co, todayPath.Path, c); err != nil {
+		if err := todayPath.SaveWithContext(co, c); err != nil {
 			handler.SendWithImageFail(err)
 			return
 		}

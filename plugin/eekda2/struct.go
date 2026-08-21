@@ -25,11 +25,11 @@ type (
 	config []today
 	// 今天吃什么
 	today struct {
-		Time             time.Time              // 更新时间
-		ID               string                 // 角色名
-		Group            []usr.QQ            // 该角色对应的群号
-		Meal             [mealsPerDay]usr.QQ // 今天的每一餐
-		*msg.Handler `yaml:"-"`             // 待发送的消息
+		Time         time.Time           // 更新时间
+		ID           string              // 角色名
+		Group        []usr.QQ            // 该角色对应的群号
+		Meal         [mealsPerDay]usr.QQ // 今天的每一餐
+		*msg.Handler `yaml:"-"`          // 待发送的消息
 	}
 )
 
@@ -48,7 +48,7 @@ type (
 	stat []food
 	// 食物数据
 	food struct {
-		Stat      map[string][mealsPerDay]int // 每个角色的个人统计数据
+		Stat   map[string][mealsPerDay]int // 每个角色的个人统计数据
 		usr.QQ `yaml:"id"`                 // QQ
 	}
 )
@@ -59,7 +59,7 @@ func (fd *food) String() string {
 		s  = new(strings.Builder)
 		lf bool
 	)
-	s.Grow(128 * len(fd.Stat))
+	s.Grow(len(fd.Stat) << 7)
 	for id, v := range fd.Stat {
 		if lf {
 			s.WriteByte('\n')

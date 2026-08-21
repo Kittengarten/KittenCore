@@ -15,23 +15,28 @@ import (
 	"github.com/Kittengarten/KittenCore/kitten/core/utils"
 	"github.com/Kittengarten/KittenCore/kitten/msg"
 
+	"golang.org/x/exp/constraints"
+
 	"github.com/wdvxdr1123/ZeroBot/message"
 )
 
 // 缓存刷新
-func (b *status) refresh(handler *msg.Handler, d *data) {
-	stackStatus, err = fio.LoadWithContext[status](handler, bufferPath, fio.Blank)
+func (b *status) refresh(handler *msg.Handler, d data, r ...replacer) {
+	if len(r) == 0 {
+		r = []replacer{l10n(cat)}
+	}
+	stackStatus, err = bufferPath.LoadWithContext[status](handler, fio.Blank)
 	if err != nil {
-		sendWithImageFail(handler, `读取叠猫猫缓存时发生错误喵！`, err)
+		sendWithImageFail(handler, r[0], `读取叠猫猫缓存时发生错误喵！`, err)
 		return
 	}
 	// 计算猫池中位数重量
 	d.median(handler)
 	// 计算最大休息时间
-	stackStatus.MaxRestTime = min(math.MaxInt64/dailyRatio, times.Day*
-		time.Duration(stackConfig.MinRestHours*stackStatus.MedianWeight))
-	if err := fio.SaveWithContext(handler, bufferPath, stackStatus); err != nil {
-		sendWithImageFail(handler, `叠猫猫缓存时发生错误喵！`, err)
+	stackStatus.MaxRestTime = stackStatus.MaxRestTime>>1 + // 与旧数据求平均值，相当于 0.5 倍比例控制，避免结果震荡
+		times.Day*time.Duration(stackConfig.MinRestHours*stackStatus.MedianWeight)>>1
+	if err := bufferPath.SaveWithContext(handler, stackStatus); err != nil {
+		sendWithImageFail(handler, r[0], `叠猫猫缓存时发生错误喵！`, err)
 	}
 }
 
@@ -85,66 +90,64 @@ func (m meowTypeID) String() string {
 }
 
 // 返回服从正态分布 N(0, σ²) 的随机数的绝对值，相当于此分布的右半边
-func normal(σ float64) float64 {
+func normal[T constraints.Float | constraints.Integer](σ T) T {
 	//nolint:gosec
-	return σ * math.Abs(rand.NormFloat64())
+	return T(float64(σ) * math.Abs(rand.NormFloat64()))
 }
 
 // 发送本地化文本
-func sendText(handler *msg.Handler, lf bool, text ...any) message.ID {
+func sendText(handler *msg.Handler, r replacer, lf bool, text ...any) message.ID {
 	if lf {
-		return handler.Quote().AtLf().Text(rangeAssertion(text)...).Send()
+		return handler.Quote().AtLf().
+			Text(rangeAssertion(r, text...)...).Send()
 	}
-	return handler.Quote().At().Text(rangeAssertion(text)...).Send()
+	return handler.Quote().At().
+		Text(rangeAssertion(r, text...)...).Send()
 }
 
 // 发送本地化格式化文本
-func sendTextf(handler *msg.Handler, lf bool, format string, a ...any) message.ID {
+func sendTextf(handler *msg.Handler, r replacer, lf bool, format string, a ...any) message.ID {
 	if lf {
-		return handler.Quote().AtLf().Textf(
-			l10n.Replace(format),
-			rangeAssertion(a)...,
-		).Send()
+		return handler.Quote().AtLf().
+			Textf(r.Replace(format), rangeAssertion(r, a...)...).Send()
 	}
-	return handler.Quote().At().Textf(
-		l10n.Replace(format),
-		rangeAssertion(a)...,
-	).Send()
+	return handler.Quote().At().
+		Textf(r.Replace(format), rangeAssertion(r, a...)...).Send()
 }
 
 // 发送带有撞大运图片的本地化文字消息
-func sendWithImageLorry(handler *msg.Handler, text ...any) message.ID {
+func sendWithImageLorry(handler *msg.Handler, r replacer, text ...any) message.ID {
 	return handler.Quote().AtLf().Image(fio.NewPath(imagePath, lorryImage)).
-		Text(rangeAssertion(text)...).Send()
+		Text(rangeAssertion(r, text...)...).Send()
 }
 
 // 发送带有失败图片的本地化文字消息
-func sendWithImageFail(handler *msg.Handler, text ...any) message.ID {
-	return handler.SendWithImageFail(rangeAssertion(text)...)
+func sendWithImageFail(handler *msg.Handler, r replacer, text ...any) message.ID {
+	return handler.SendWithImageFail(rangeAssertion(r, text...)...)
 }
 
 // 发送带有杂鱼图片的本地化文字消息
-func sendWithZako(handler *msg.Handler, text ...any) message.ID {
+func sendWithZako(handler *msg.Handler, r replacer, text ...any) message.ID {
 	return handler.Quote().AtLf().Image(fio.NewPath(zako)).
-		Text(rangeAssertion(text)...).Send()
+		Text(rangeAssertion(r, text...)...).Send()
 }
 
 // 发送带有压扁图片的本地化文字消息
-func sendWithPressed(handler *msg.Handler, text ...any) message.ID {
+func sendWithPressed(handler *msg.Handler, r replacer, text ...any) message.ID {
 	return handler.Quote().AtLf().Image(fio.NewPath(imagePath, `压扁.gif`)).
-		Text(rangeAssertion(text)...).Send()
+		Text(rangeAssertion(r, text...)...).Send()
 }
 
 // 发送带有没压扁图片的本地化格式文字消息
-func sendWithNoPressedf(handler *msg.Handler, format string, text ...any) message.ID {
+func sendWithNoPressedf(handler *msg.Handler, r replacer, format string, text ...any) message.ID {
 	return handler.Quote().AtLf().Image(fio.NewPath(imagePath, `没压扁.png`)).
-		Textf(format, rangeAssertion(text)...).Send()
+		Textf(r.Replace(format), rangeAssertion(r, text...)...).Send()
 }
 
 // 发送带有跳跃图片的本地化格式文字消息
-func sendWithJump(handler *msg.Handler, text ...any) message.ID {
+func sendWithJump(handler *msg.Handler, r replacer, text ...any) message.ID {
 	return handler.Quote().AtLf().Image(fio.NewPath(imagePath, `跳.gif`)).
-		Text(rangeAssertion(text)...).Send()
+		Text(rangeAssertion(r, text...)...).Send()
 }
 
 // 异步发送表情回复
@@ -161,28 +164,30 @@ func asyncSendEmoji(handler *msg.Handler, emojiName string) {
 }
 
 // 遍历断言
-func rangeAssertion(a []any) []any {
-	for k, v := range a {
+func rangeAssertion(r replacer, a ...any) []any {
+	for i, v := range a {
 		switch v := v.(type) {
 		case error:
-			a[k] = l10n.Replace(v.Error())
+			a[i] = r.Replace(v.Error())
 		case fmt.Stringer:
-			a[k] = l10n.Replace(v.String())
+			a[i] = r.Replace(v.String())
 		case string:
-			a[k] = l10n.Replace(v)
+			a[i] = r.Replace(v)
 		}
 	}
 	return a
 }
 
 // Format 实现 fmt.Formatter
+//
+//	%s、%v 均对应 %s
 func (m meow) Format(f fmt.State, verb rune) {
 	switch verb {
-	case 's', 'v': // 需要 %v 以屏蔽底层的 usr.QQ 的格式
-		fmt.Fprint(f, m.String())
+	case 's', 'v': // 需要改写 %v 以屏蔽底层的 usr.QQ 的格式
+		_, _ = fmt.Fprint(f, m.String())
 	default:
 		type raw meow
-		fmt.Fprintf(f, fmt.FormatString(f, verb), raw(m))
+		_, _ = fmt.Fprintf(f, fmt.FormatString(f, verb), raw(m))
 	}
 }
 
@@ -191,11 +196,11 @@ func (m meow) String() string {
 	ctx, cancel := context.WithTimeout(context.Background(), shttp.Timeout)
 	defer cancel()
 	h := msg.NewWithContext(ctx, globalCtx)
-	if globalLocation == cockroach {
+	if m.Location == cockroach {
 		return fmt.Sprintf(`【%s】	翼展 %.1f cm`, m.getType(h), i2f(m.Weight))
 	}
 	return fmt.Sprintf(
-		l10n.Replace(`%s	❤	%d	❤	%.1f kg	%s`),
+		`%s	❤	%d	❤	%.1f kg	%s`,
 		cmp.Or(m.TitleCardOrNickName(h), m.Name),
 		m.Int(),
 		i2f(m.Weight),

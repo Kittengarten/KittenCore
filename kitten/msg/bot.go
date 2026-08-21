@@ -27,8 +27,8 @@ import (
 )
 
 const (
-	Private = `private`
-	Group   = `group`
+	Private = `private` // Private 私聊
+	Group   = `group`   // Group 群聊
 )
 
 var (
@@ -39,15 +39,15 @@ var (
 )
 
 // SendEmojiLike 发送表情回复（只接受首个参数），参数为空则发送随机表情
-func (m *Handler) SendEmojiLike(emoji ...string) error {
-	if u := usr.NewQQGroup(m.Event().GroupID); !u.IsGroup() {
+func (handler *Handler) SendEmojiLike(emoji ...string) error {
+	if u := usr.NewQQGroup(handler.Event().GroupID); !u.IsGroup() {
 		if u == 0 {
 			// 忽略私聊
 			return nil
 		}
 		return fmt.Errorf(`%w%s`, ErrGroupInvalid, u)
 	}
-	return m.SetMessageEmojiLike(m.Event().MessageID, func() rune {
+	return handler.SetMessageEmojiLike(handler.Event().MessageID, func() rune {
 		if len(emoji) == 0 {
 			return qqemoji.Random()
 		}
@@ -56,32 +56,32 @@ func (m *Handler) SendEmojiLike(emoji ...string) error {
 }
 
 // Poke 戳一戳
-func (m *Handler) Poke() {
-	if !m.Check(kitten.Caller, kitten.Event) {
+func (handler *Handler) Poke() {
+	if !handler.Check(kitten.Caller, kitten.Event) {
 		// 没有 APICaller 或 kitten.Event ，无法发送
 		return
 	}
-	if u, g := usr.NewQQ(m.Event().UserID), usr.NewQQGroup(m.Event().GroupID); u.IsQQ() {
+	if u, g := usr.NewQQ(handler.Event().UserID), usr.NewQQGroup(handler.Event().GroupID); u.IsQQ() {
 		if g.IsGroup() {
-			m.CallAction(`group_poke`, zero.H{
+			handler.CallAction(`group_poke`, zero.H{
 				`group_id`: g.Int(),
 				`user_id`:  u.Int(),
 			})
 			return
 		}
-		m.CallAction(`friend_poke`, zero.H{
+		handler.CallAction(`friend_poke`, zero.H{
 			`user_id`: u.Int(),
 		})
 	}
 }
 
 // Object 获取发送对象
-func (m *Handler) Object() (usr.QQ, error) {
-	if !m.Check(kitten.Event) {
+func (handler *Handler) Object() (usr.QQ, error) {
+	if !handler.Check(kitten.Event) {
 		// 没有事件，无法获取
 		return 0, ErrNoEvent
 	}
-	switch event := m.Event(); event.DetailType {
+	switch event := handler.Event(); event.DetailType {
 	case Private:
 		// 私聊
 		return usr.NewQQ(event.UserID), nil
@@ -100,12 +100,12 @@ func (m *Handler) Object() (usr.QQ, error) {
 }
 
 // QQ 获取发送者
-func (m *Handler) QQ() (usr.QQ, error) {
-	if !m.Check(kitten.Event) {
+func (handler *Handler) QQ() (usr.QQ, error) {
+	if !handler.Check(kitten.Event) {
 		// 没有事件，无法获取
 		return 0, ErrNoEvent
 	}
-	u := usr.NewQQ(m.Event().UserID)
+	u := usr.NewQQ(handler.Event().UserID)
 	if u.IsQQ() {
 		return u, nil
 	}
@@ -113,20 +113,20 @@ func (m *Handler) QQ() (usr.QQ, error) {
 }
 
 // Check 检查上下文的项目是否均有效且不为空
-func (m *Handler) Check(i ...kitten.Item) bool {
-	if m.Ctx == nil {
+func (handler *Handler) Check(i ...kitten.Item) bool {
+	if handler.Ctx == nil {
 		// 没有上下文，无法获取
 		return false
 	}
 	for _, v := range i {
 		switch v {
 		case kitten.Caller:
-			c := reflect.ValueOf(m.Ctx).Elem().FieldByName(`caller`)
+			c := reflect.ValueOf(handler.Ctx).Elem().FieldByName(`caller`)
 			if !c.IsValid() || c.IsNil() {
 				return false
 			}
 		case kitten.Event:
-			if m.Event() == nil {
+			if handler.Event() == nil {
 				// 非消息的上下文，直接返回
 				// 不需要 Error 等级，以免污染日志
 				log.Info(ErrNoEvent)
@@ -141,51 +141,51 @@ func (m *Handler) Check(i ...kitten.Item) bool {
 }
 
 // Matched 获取上下文中的匹配项
-func (m *Handler) Matched() string {
-	return State[string](m, `matched`)
+func (handler *Handler) Matched() string {
+	return State[string](handler, `matched`)
 }
 
 // RegexMatched 获取上下文中的正则匹配项
-func (m *Handler) RegexMatched() []string {
-	return State[[]string](m, `regex_matched`)
+func (handler *Handler) RegexMatched() []string {
+	return State[[]string](handler, `regex_matched`)
 }
 
 // Prefix 获取上下文中的前缀
-func (m *Handler) Prefix() string {
-	return State[string](m, `prefix`)
+func (handler *Handler) Prefix() string {
+	return State[string](handler, `prefix`)
 }
 
 // Suffix 获取上下文中的后缀
-func (m *Handler) Suffix() string {
-	return State[string](m, `suffix`)
+func (handler *Handler) Suffix() string {
+	return State[string](handler, `suffix`)
 }
 
 // Keyword 获取上下文中的关键词
-func (m *Handler) Keyword() string {
-	return State[string](m, `keyword`)
+func (handler *Handler) Keyword() string {
+	return State[string](handler, `keyword`)
 }
 
 // Command 获取上下文中的命令
-func (m *Handler) Command() string {
-	return State[string](m, `command`)
+func (handler *Handler) Command() string {
+	return State[string](handler, `command`)
 }
 
 // Args 获取上下文中的参数
-func (m *Handler) Args() string {
-	return State[string](m, `args`)
+func (handler *Handler) Args() string {
+	return State[string](handler, `args`)
 }
 
 // ArgsSlice 获取上下文中的参数切片
-func (m *Handler) ArgsSlice() []string {
-	return slices.DeleteFunc(strings.Split(m.Args(), ` `),
+func (handler *Handler) ArgsSlice() []string {
+	return slices.DeleteFunc(strings.Split(handler.Args(), ` `),
 		func(s string) bool {
 			return s == ``
 		})
 }
 
 // ImageURL 获取上下文中的图片链接
-func (m *Handler) ImageURL() []string {
-	return State[[]string](m, `image_url`)
+func (handler *Handler) ImageURL() []string {
+	return State[[]string](handler, `image_url`)
 }
 
 const (
@@ -194,32 +194,32 @@ const (
 )
 
 // SendWithImageFail 发送带有失败图片的文字消息
-func (m *Handler) SendWithImageFail(text ...any) message.ID {
-	return m.Quote().AtLf().Image(no).Text(text...).Send()
+func (handler *Handler) SendWithImageFail(text ...any) message.ID {
+	return handler.Quote().AtLf().Image(no).Text(text...).Send()
 }
 
 // SendWithImageFailf 发送带有失败图片的格式化文字消息
-func (m *Handler) SendWithImageFailf(format string, a ...any) message.ID {
-	return m.Quote().AtLf().Image(no).Textf(format, a...).Send()
+func (handler *Handler) SendWithImageFailf(format string, a ...any) message.ID {
+	return handler.Quote().AtLf().Image(no).Textf(format, a...).Send()
 }
 
 // DoNotKnow 喵喵不知道哦
-func (m *Handler) DoNotKnow() message.ID {
+func (handler *Handler) DoNotKnow() message.ID {
 	var (
 		handleErr = func(err error) message.ID {
 			log.Error(err)
-			return m.Quote().AtLf().Image(ha).Text(config.DefaultName(), `不知道哦`).Send()
+			return handler.Quote().AtLf().Image(ha).Text(config.DefaultName(), `不知道哦`).Send()
 		}
-		o, err = m.Object()
+		o, err = handler.Object()
 	)
 	if err != nil {
 		return handleErr(err)
 	}
-	n, err := o.Name(m)
+	n, err := o.Name(handler)
 	if err != nil {
 		return handleErr(err)
 	}
-	return m.Quote().AtLf().Image(ha).Text(n, `不知道哦`).Send()
+	return handler.Quote().AtLf().Image(ha).Text(n, `不知道哦`).Send()
 }
 
 // @ 全体成员，带有检查功能
@@ -318,12 +318,12 @@ const (
 )
 
 // Age 获取年龄，self 为 true 则获取自己的年龄，否则获取对方的年龄
-func (m *Handler) Age(self obj) int64 {
-	if m == nil {
+func (handler *Handler) Age(self obj) int64 {
+	if handler == nil {
 		return 0
 	}
 	if self {
-		return usr.Self().Age(m)
+		return usr.Self().Age(handler)
 	}
-	return usr.NewQQ(m.Event().UserID).Age(m)
+	return usr.NewQQ(handler.Event().UserID).Age(handler)
 }

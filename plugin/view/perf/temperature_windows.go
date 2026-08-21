@@ -10,11 +10,12 @@ import (
 
 // CPUTemperature Windows 系统下获取 CPU 温度，通过微星小飞机（需要自行安装配置，并确保温度在其 log 中的位置）
 func CPUTemperature(l fio.Path) (t string) {
+	// TODO: 解决初次调用时获取不到数据的问题
 	if err := l.Delete(); err != nil {
 		return err.Error()
 	}
 	time.Sleep(time.Second)
-	file, err := l.Load(false)
+	file, err := l.Open(false)
 	if err != nil {
 		return err.Error()
 	}

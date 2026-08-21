@@ -7,6 +7,7 @@ import (
 	_ "net/http/pprof"
 
 	// KittenCore 的核心库
+	"github.com/Kittengarten/KittenCore/internal/config"
 	"github.com/Kittengarten/KittenCore/internal/protocol"
 	"github.com/Kittengarten/KittenCore/kitten/core/utils"
 
@@ -74,12 +75,12 @@ import (
 	_ "github.com/FloatTech/ZeroBot-Plugin/plugin/music"             // 点歌
 	_ "github.com/FloatTech/ZeroBot-Plugin/plugin/nbnhhsh"           // 拼音首字母缩写释义工具
 	_ "github.com/FloatTech/ZeroBot-Plugin/plugin/omikuji"           // 浅草寺求签
+	_ "github.com/FloatTech/ZeroBot-Plugin/plugin/pig"               // 来份猪猪
 	_ "github.com/FloatTech/ZeroBot-Plugin/plugin/poker"             // 抽扑克
 	_ "github.com/FloatTech/ZeroBot-Plugin/plugin/qzone"             // qq 空间表白墙
 	_ "github.com/FloatTech/ZeroBot-Plugin/plugin/realcugan"         // realcugan 清晰术
 	_ "github.com/FloatTech/ZeroBot-Plugin/plugin/reborn"            // 投胎
 	_ "github.com/FloatTech/ZeroBot-Plugin/plugin/robbery"           // 打劫群友的 ATRI 币
-	_ "github.com/FloatTech/ZeroBot-Plugin/plugin/rsshub"            // RSSHub订阅姬
 	_ "github.com/FloatTech/ZeroBot-Plugin/plugin/runcode"           // 在线运行代码
 	_ "github.com/FloatTech/ZeroBot-Plugin/plugin/saucenao"          // 以图搜图
 	_ "github.com/FloatTech/ZeroBot-Plugin/plugin/setutime"          // 来份涩图
@@ -107,6 +108,7 @@ import (
 func init() {
 	// 启用 WebUI，不需要使用可以注释
 	// go webctrl.RunGui(kitten.WebUIURL())
+	utils.Crash = config.Get().Crash
 }
 
 func main() {

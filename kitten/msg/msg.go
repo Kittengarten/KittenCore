@@ -7,7 +7,7 @@ import (
 	"crypto/md5"
 	"encoding/base64"
 	"encoding/hex"
-	"encoding/json"
+	"encoding/json/v2"
 	"errors"
 	"fmt"
 	"regexp"
@@ -19,6 +19,7 @@ import (
 	"github.com/Kittengarten/KittenCore/kitten/core/equal"
 	"github.com/Kittengarten/KittenCore/kitten/core/fio"
 	"github.com/Kittengarten/KittenCore/kitten/core/log"
+	"github.com/Kittengarten/KittenCore/kitten/core/times"
 	"github.com/Kittengarten/KittenCore/kitten/core/times/repeat"
 	"github.com/Kittengarten/KittenCore/kitten/msg/mio"
 	"github.com/Kittengarten/KittenCore/kitten/msg/seg"
@@ -29,6 +30,71 @@ import (
 	zero "github.com/wdvxdr1123/ZeroBot"
 	"github.com/wdvxdr1123/ZeroBot/message"
 )
+
+func init() {
+	// 设置是否强制使用 Base64 发送文件
+	message.SetForceBase64File(config.SetForceBase64File())
+}
+
+// SendSplit 将消息拆分为多条，并逐条发送
+//
+//	鉴于使用场景，仅支持单发送对象
+func (handler *Handler) SendSplit(u ...usr.QQ) message.ID {
+	const limit = 4
+	if len(handler.Message) > limit {
+		// 消息条数过多，退化至普通发送
+		return handler.Send()
+	}
+	log.Infof("原始消息：%#v", handler.Message)
+	var id message.ID
+	for _, msg := range handler.Message {
+		select {
+		case <-times.RandDelayRange(time.Second, 2*time.Second):
+			switch msg.Type {
+			case seg.Quote, seg.At:
+				continue
+			}
+			if msg.Type != seg.Text {
+				if id == (message.ID{}) {
+					id = handler.Remove().Quote().AtLf().Seg(msg).Send(u...)
+					continue
+				}
+				handler.Remove().Seg(msg).Send(u...)
+				continue
+			}
+			var lines []string
+			for line := range strings.Lines(msg.Data[`text`]) {
+				l := strings.TrimSpace(line)
+				if l == `` {
+					continue
+				}
+				lines = append(lines, l)
+			}
+			if len(lines) > limit {
+				// 纯文本消息条数过多，退化至普通发送
+				if id == (message.ID{}) {
+					id = handler.Remove().Quote().At().Seg(msg).Send(u...)
+					continue
+				}
+				handler.Remove().Seg(msg).Send(u...)
+				continue
+			}
+			for _, line := range lines {
+				if id == (message.ID{}) {
+					id = handler.Remove().Quote().At().Text(line).Send(u...)
+					continue
+				}
+				handler.Remove().Text(line).Send(u...)
+				continue
+			}
+			return id
+		case <-handler.Done():
+			// 不继承上下文，否则会直接超时、无法发送
+			return New(handler.Ctx).Quote().AtLf().Text(handler.Err()).Send(u...)
+		}
+	}
+	return message.ID{}
+}
 
 // Handler 消息处理器，收取消息并发送
 type Handler struct {
@@ -50,24 +116,24 @@ func NewWithContext(c context.Context, ctx *zero.Ctx) *Handler {
 }
 
 // Event 返回当前 ZeroBot 上下文的事件
-func (m *Handler) Event() *zero.Event {
-	return m.Ctx.Event
+func (handler *Handler) Event() *zero.Event {
+	return handler.Ctx.Event
 }
 
 // QuoteID 引用消息 ID
-func (m *Handler) QuoteID() message.ID {
-	return m.ID
+func (handler *Handler) QuoteID() message.ID {
+	return handler.ID
 }
 
 // Get 待发送的消息
-func (m *Handler) Get() message.Message {
-	return m.Message
+func (handler *Handler) Get() message.Message {
+	return handler.Message
 }
 
 // Set 设置待发送的消息
-func (m *Handler) Set(msg message.Message) usr.Handler {
-	m.Message = msg
-	return m
+func (handler *Handler) Set(msg message.Message) usr.Handler {
+	handler.Message = msg
+	return handler
 }
 
 // GetStrangerInfo 获取陌生人信息
@@ -88,106 +154,106 @@ func (handler *Handler) GetGroupMemberListNoCache(groupID int64) gjson.Result {
 	}).Data
 }
 
-// 设置回复消息 ID
-func (m *Handler) id(id message.ID) *Handler {
-	m.ID = id
-	return m
+// 设置引用消息 ID
+func (handler *Handler) id(id message.ID) *Handler {
+	handler.ID = id
+	return handler
 }
 
 // Quote 引用消息，id 为引用的消息 ID（仅限一个）
 //
 //	如引用消息为空则引用本消息的触发来源消息
 //	已经设置过引用消息 ID 时，会被参数覆盖，不提供参数时无效
-func (m *Handler) Quote(id ...message.ID) *Handler {
+func (handler *Handler) Quote(id ...message.ID) *Handler {
 	if len(id) > 0 {
 		// 正常引用
-		return m.id(cmp.Or(id...))
+		return handler.id(cmp.Or(id...))
 	}
 	// 已经设置过引用消息 ID
-	if m.ID != (message.ID{}) {
-		return m
+	if handler.ID != (message.ID{}) {
+		return handler
 	}
 	// 引用本消息的触发来源消息
-	if !m.Check(kitten.Event) {
+	if !handler.Check(kitten.Event) {
 		log.Warn(ErrNoEvent)
-		return m
+		return handler
 	}
-	if m.Event().MessageID == nil {
-		return m
+	if handler.Event().MessageID == nil {
+		return handler
 	}
-	switch id := m.Event().MessageID.(type) {
+	switch id := handler.Event().MessageID.(type) {
 	case int64:
-		return m.id(message.NewMessageIDFromInteger(id))
+		return handler.id(message.NewMessageIDFromInteger(id))
 	case string:
-		return m.id(message.NewMessageIDFromString(id))
+		return handler.id(message.NewMessageIDFromString(id))
 	default:
-		if m.Event().PostType == `message` {
-			log.Infof(`引用消息 ID 断言不成功：%+v`, m.Event)
+		if handler.Event().PostType == `message` {
+			log.Infof(`引用消息 ID 断言不成功：%+v`, handler.Event)
 		}
-		return m
+		return handler
 	}
 }
 
 // At 附带 @，u 为 @ 对象，如 @ 对象为空则 @ Handler 的来源
-func (m *Handler) At(u ...usr.QQ) *Handler {
-	if m.Event().DetailType == Private {
+func (handler *Handler) At(u ...usr.QQ) *Handler {
+	if handler.Event().DetailType == Private {
 		// 私聊中的 @ 无效
-		return m
+		return handler
 	}
 	if len(u) == 0 {
 		// 如果@ 对象为空，则 @ Handler 的来源
-		return m.Seg(message.At(m.Event().UserID))
+		return handler.Seg(message.At(handler.Event().UserID))
 	}
 	for _, i := range u {
 		// @ 对象
 		if i.IsQQ() {
-			m.Seg(i.At())
+			handler.Seg(i.At())
 		}
 	}
-	return m
+	return handler
 }
 
 // AtAll 附带 @ 全体成员
-func (m *Handler) AtAll(g ...usr.QQ) *Handler {
-	if seg := atAll(m, g...); seg.Type != `` {
-		return m.Seg(seg)
+func (handler *Handler) AtAll(g ...usr.QQ) *Handler {
+	if seg := atAll(handler, g...); seg.Type != `` {
+		return handler.Seg(seg)
 	}
-	return m
+	return handler
 }
 
 // Text 附带文本
-func (m *Handler) Text(text ...any) *Handler {
-	m.Seg(Text(text...))
-	return m
+func (handler *Handler) Text(text ...any) *Handler {
+	handler.Seg(Text(text...))
+	return handler
 }
 
 // Lf 附带换行
-func (m *Handler) Lf(n ...int) *Handler {
+func (handler *Handler) Lf(n ...int) *Handler {
 	if len(n) == 0 {
-		return m.Text("\n")
+		return handler.Text("\n")
 	}
-	return m.Text(strings.Repeat("\n", cmp.Or(n...)))
+	return handler.Text(strings.Repeat("\n", cmp.Or(n...)))
 }
 
 // AtLf 附带 @ 并换行
-func (m *Handler) AtLf(qq ...usr.QQ) *Handler {
-	if n := *m; !hasSame(m, n.At(qq...)) {
-		return m.At(qq...).Lf()
+func (handler *Handler) AtLf(qq ...usr.QQ) *Handler {
+	if n := *handler; !hasSame(handler, n.At(qq...)) {
+		return handler.At(qq...).Lf()
 	}
-	return m
+	return handler
 }
 
 // AtAllLf 附带 @ 全体成员 并换行
-func (m *Handler) AtAllLf(g ...usr.QQ) *Handler {
-	if n := *m; !hasSame(m, n.AtAll(g...)) {
-		return m.AtAll(g...).Lf()
+func (handler *Handler) AtAllLf(g ...usr.QQ) *Handler {
+	if n := *handler; !hasSame(handler, n.AtAll(g...)) {
+		return handler.AtAll(g...).Lf()
 	}
-	return m
+	return handler
 }
 
 // 比较待发送的消息是否相等
-func hasSame(m ...*Handler) bool {
-	return equal.IsSameFunc(equalContained, m...)
+func hasSame(handlers ...*Handler) bool {
+	return equal.IsSameFunc(equalContained, handlers...)
 }
 
 // 比较含有的两个消息段切片是否相等
@@ -242,9 +308,9 @@ func equalSegment(a, b message.Segment) bool {
 }
 
 // Textf 附带格式化文本
-func (m *Handler) Textf(format string, a ...any) *Handler {
-	m.Seg(Textf(format, a...))
-	return m
+func (handler *Handler) Textf(format string, a ...any) *Handler {
+	handler.Seg(Textf(format, a...))
+	return handler
 }
 
 // Imager 图片接口
@@ -257,53 +323,53 @@ type Imager interface {
 // 或相对 | 绝对路径文件中保存的相对 | 绝对路径，
 //
 // 或网络路径中附带图片
-func (m *Handler) Image(name ...fio.Path) *Handler {
+func (handler *Handler) Image(name ...fio.Path) *Handler {
 	for _, n := range name {
 		if n == `` {
 			continue
 		}
 		img, err := config.ImagePath().Image(n)
 		if err != nil {
-			m.err = errors.Join(m.err, fmt.Errorf(`附带图片错误：%w`, err))
-			img, err = config.ImagePath().Image(fio.NewPath(`error.png`))
+			handler.err = errors.Join(handler.err, fmt.Errorf(`附带图片错误：%w`, err))
+			img, err = config.ImagePath().Image(`error`)
 			if err != nil {
-				m.err = errors.Join(m.err, fmt.Errorf(`附带图片错误：%w`, err))
+				handler.err = errors.Join(handler.err, fmt.Errorf(`附带图片错误：%w`, err))
 			}
 		}
-		m.Seg(img)
+		handler.Seg(img)
 	}
-	return m
+	return handler
 }
 
 // Record 附带语音，支持网络路径
 //
 //	只支持附带一条语音
-func (m *Handler) Record(name ...string) *Handler {
+func (handler *Handler) Record(name ...string) *Handler {
 	if len(name) == 0 {
 		// 未附带语音
-		return m
+		return handler
 	}
-	for _, s := range m.Message {
+	for _, s := range handler.Message {
 		if s.Type == seg.Record {
 			// 已经有语音
-			return m
+			return handler
 		}
 	}
 	if n := cmp.Or(name...); n != `` {
-		return m.Seg(message.Record(n))
+		return handler.Seg(message.Record(n))
 	}
-	return m
+	return handler
 }
 
 // Location 附带位置
-func (m *Handler) Location(title, content, lat, lon string) *Handler {
-	for _, s := range m.Message {
+func (handler *Handler) Location(title, content, lat, lon string) *Handler {
+	for _, s := range handler.Message {
 		if s.Type == seg.Location {
 			// 已经有位置
-			return m
+			return handler
 		}
 	}
-	return m.Seg(message.Segment{
+	return handler.Seg(message.Segment{
 		Type: seg.Location,
 		Data: map[string]string{
 			`title`:   title,
@@ -315,68 +381,68 @@ func (m *Handler) Location(title, content, lat, lon string) *Handler {
 }
 
 // Message 附带消息段
-func (m *Handler) Seg(seg ...message.Segment) *Handler {
-	m.Message = append(m.Message, seg...)
-	return m
+func (handler *Handler) Seg(seg ...message.Segment) *Handler {
+	handler.Message = append(handler.Message, seg...)
+	return handler
 }
 
 // Send 发送消息，u 为可选的发送对象，如 u 为空则发送给上下文的来源
-func (m *Handler) Send(u ...usr.QQ) message.ID {
-	if ids := m.SendMulti(u...); len(ids) != 0 {
+func (handler *Handler) Send(u ...usr.QQ) message.ID {
+	if ids := handler.SendMulti(u...); len(ids) != 0 {
 		// 返回第一个 ID
 		return ids[0]
 	}
 	return message.ID{}
 }
 
-// SendMulti 发送多条消息
-func (m *Handler) SendMulti(u ...usr.QQ) (id []message.ID) {
-	defer m.Reset()
-	if m.err != nil {
+// SendMulti 向不同的接收者群发同一条消息
+func (handler *Handler) SendMulti(u ...usr.QQ) (id []message.ID) {
+	defer handler.Reset()
+	if handler.err != nil {
 		// 有错误，将其打包进消息
-		m.Text("\n", m.err)
+		handler.Text("\n", handler.err)
 	}
-	if len(m.Message) == 0 {
+	if len(handler.Message) == 0 {
 		// 没有消息段，无法发送
-		return nil
+		return
 	}
 	// 判断 At 后是否添加空格
 	if config.AddSpaceAfterAt() {
 		var (
-			l      = len(m.Message) // 消息段长度
+			l      = len(handler.Message) // 消息段长度
 			newMsg = make(message.Message, 0, l+1)
 		)
-		for i, msg := range m.Message {
+		for i, msg := range handler.Message {
 			newMsg = append(newMsg, msg)
 			if i < l-1 && msg.Type == seg.At &&
-				(m.Message[i+1].Type != seg.Text ||
-					!strings.HasPrefix(m.Message[i+1].Data[seg.Text], ` `) &&
-						!strings.HasPrefix(m.Message[i+1].Data[seg.Text], `　`) &&
-						!strings.HasPrefix(m.Message[i+1].Data[seg.Text], "\n")) {
+				(handler.Message[i+1].Type != seg.Text ||
+					!strings.HasPrefix(handler.Message[i+1].Data[seg.Text], ` `) &&
+						!strings.HasPrefix(handler.Message[i+1].Data[seg.Text], `　`) &&
+						!strings.HasPrefix(handler.Message[i+1].Data[seg.Text], "\n")) {
 				newMsg = append(newMsg, message.Text(` `))
 			}
 		}
-		m.Message = newMsg
+		handler.Message = newMsg
 	}
 	if len(u) != 0 {
 		// 发送对象不为空，向发送对象发送
 		if err := repeat.IterS(
-			m,
+			handler,
 			repeat.New(0, time.Second, 2*time.Second),
 			u,
 			func(_ int, o usr.QQ) error {
 				switch {
 				case o.IsGroup(), o.IsQQ():
-					id = append(id, o.Send(m))
+					id = append(id, o.Send(handler))
 				}
 				return nil
 			},
 		); err != nil {
 			log.Error(err)
 		}
-		return id
+		return
 	}
-	return []message.ID{m.send()}
+	return []message.ID{handler.send()}
 }
 
 // 发送消息
@@ -393,8 +459,8 @@ func (handler *Handler) send() message.ID {
 		m     = handler.Get()
 	)
 	handler.Set(func() message.Message {
-		if event.PostType != `message` && handler.QuoteID().ID() != 0 {
-			// 不是消息引发的发送或没有回复，不予回复
+		if event.PostType != `message` || handler.QuoteID().ID() == 0 {
+			// 不是消息引发的发送或没有引用，跳过引用
 			return m
 		}
 		for _, e := range m {
@@ -416,6 +482,12 @@ func (handler *Handler) send() message.ID {
 	}
 	if event.DetailType == `guild` {
 		return message.NewMessageIDFromString(handler.sendGuildChannelMessage())
+	}
+	switch event.MessageType {
+	case Group:
+		return message.NewMessageIDFromInteger(handler.SendGroupMessage(event.GroupID))
+	case Private:
+		return message.NewMessageIDFromInteger(handler.SendPrivateMessage(event.UserID))
 	}
 	if event.GroupID != 0 {
 		return message.NewMessageIDFromInteger(handler.SendGroupMessage(event.GroupID))
@@ -475,7 +547,7 @@ func formatMessage(msg any) string {
 		return m.String()
 	default:
 		s := new(strings.Builder)
-		if err := json.NewEncoder(s).Encode(m); err != nil {
+		if err := json.MarshalWrite(s, m); err != nil {
 			return err.Error()
 		}
 		return base64Reg.ReplaceAllStringFunc(s.String(), func(s string) string {
@@ -534,29 +606,34 @@ func (handler *Handler) SendPrivateMessage(userID int64) int64 {
 }
 
 // Reset 重置 Sender，保留 Zerobot 上下文，不保留上下文
-func (m *Handler) Reset() usr.Sender {
-	m.Context = context.Background()
-	m.Message = nil
-	m.ID = message.ID{}
-	m.err = nil
-	return m
+func (handler *Handler) Reset() usr.Sender {
+	handler.Context = context.Background()
+	return handler.Remove()
+}
+
+// Remove 删除待发送的消息
+func (handler *Handler) Remove() *Handler {
+	handler.Message = nil
+	handler.ID = message.ID{}
+	handler.err = nil
+	return handler
 }
 
 // SetContext 设置上下文
-func (m *Handler) SetContext(ctx context.Context) usr.Handler {
+func (handler *Handler) SetContext(ctx context.Context) usr.Handler {
 	// 必须重新派生一个 Handler，避免覆盖上下文
 	return &Handler{
-		ID:      m.ID,
-		Message: m.Message,
+		ID:      handler.ID,
+		Message: handler.Message,
 		Context: ctx,
-		err:     m.err,
-		Ctx:     m.Ctx,
+		err:     handler.err,
+		Ctx:     handler.Ctx,
 	}
 }
 
 // CallAction 调用 cqhttp API
-func (m *Handler) CallAction(action string, params zero.H) zero.APIResponse {
-	return m.Ctx.CallActionWithContext(m, action, params)
+func (handler *Handler) CallAction(action string, params zero.H) zero.APIResponse {
+	return handler.CallActionWithContext(handler, action, params)
 }
 
 // Textf 格式化构建 message.Segment 文本，格式同 fmt.Sprintf
@@ -571,7 +648,7 @@ func Text(text ...any) message.Segment {
 }
 
 // 检查切片的每个元素是否为错误，如果为非空错误则记录日志
-func checkErr(v []any) {
+func checkErr(v ...any) {
 	for _, i := range v {
 		if err, ok := i.(error); ok && err != nil {
 			log.Error(err)

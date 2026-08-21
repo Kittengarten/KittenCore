@@ -109,7 +109,7 @@ func repeatInit() {
 		log.Error(`复读姬配置文件初始化错误喵！`, err)
 		return
 	}
-	repeatConfig, err := fio.Load[cfg](cfgPath.Path, s.String()) // 复读姬配置文件
+	repeatConfig, err := cfgPath.Load[cfg](s.String()) // 复读姬配置文件
 	if err != nil {
 		log.Error(`复读姬配置文件错误喵！`, err)
 		return
@@ -148,7 +148,7 @@ func repeatSet(ctx *zero.Ctx) {
 	}
 	cfgPath.Lock()
 	defer cfgPath.Unlock()
-	if err = fio.SaveWithContext(handler, cfgPath.Path, cfg{
+	if err = cfgPath.SaveWithContext(handler, cfg{
 		Threshold: threshold,
 		Chance:    chance,
 	}); err != nil {

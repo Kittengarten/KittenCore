@@ -1,9 +1,13 @@
-go 1.26
+go 1.27
 
 use (
 	.
 	./internal/config/prio
+	./internal/go-yaml/v3
+	./internal/go-yaml/v4
 	./internal/gorm
 	./internal/sqlite
+	./internal/uuid
+	./internal/yaml
 	./internal/zap
 )
