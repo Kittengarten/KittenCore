@@ -84,15 +84,15 @@ func (u QQ) Int() int64 {
 //
 //	%s 十进制数字
 //	%o 原始十进制数字（群号为负）
-func (u QQ) Format(f fmt.State, verb rune) {
+func (u QQ) Format(state fmt.State, verb rune) {
 	switch verb {
 	case 's':
-		_, _ = fmt.Fprint(f, u.String())
+		_, _ = fmt.Fprint(state, u.String())
 	case 'o':
-		_, _ = fmt.Fprint(f, u.Int())
+		_, _ = fmt.Fprint(state, u.Int())
 	default:
 		type raw QQ
-		_, _ = fmt.Fprintf(f, fmt.FormatString(f, verb), raw(u))
+		_, _ = fmt.Fprintf(state, fmt.FormatString(state, verb), raw(u))
 	}
 }
 

@@ -1,9 +1,16 @@
 package stack2
 
 import (
+	"cmp"
+	"context"
+	"fmt"
 	"math"
+	"slices"
+	"strings"
 	"time"
 
+	"github.com/Kittengarten/KittenCore/kitten/core/shttp"
+	"github.com/Kittengarten/KittenCore/kitten/msg"
 	"github.com/Kittengarten/KittenCore/kitten/usr"
 )
 
@@ -97,3 +104,132 @@ type (
 		Location location    `yaml:"-"` // 地区标记位
 	}
 )
+
+// Format 实现 fmt.Formatter，返回叠猫猫字符串
+//
+//	%s 完整字符串
+//	%c 省略过的字符串
+func (d *data) Format(state fmt.State, verb rune) {
+	switch verb {
+	case 'v':
+		if state.Flag('+') || state.Flag('#') {
+			d.format(state, verb)
+			return
+		}
+		_, _ = fmt.Fprint(state, d.String())
+	case 's':
+		_, _ = fmt.Fprint(state, d.String())
+	case 'c':
+		_, _ = fmt.Fprint(state, d.Str())
+	default:
+		d.format(state, verb)
+	}
+}
+
+func (d *data) format(state fmt.State, verb rune) {
+	type raw *data
+	_, _ = fmt.Fprintf(state, fmt.FormatString(state, verb), raw(d))
+}
+
+// String 实现 fmt.Stringer
+//
+//	从叠猫猫队列生成完整字符串（开头有一次换行）
+func (d *data) String() string {
+	// 克隆一份防止修改源数据
+	dr := slices.Clone(*d)
+	// 按“后来居上”排列叠猫猫队列
+	slices.Reverse(dr)
+	s := new(strings.Builder)
+	s.Grow(len(dr) << 5)
+	for _, k := range dr {
+		fmt.Fprint(s, "\n", k)
+	}
+	return s.String()
+}
+
+// 从叠猫猫队列生成省略过的字符串
+//
+//	队列高度不超过 20 时，无需省略
+func (d *data) Str() string {
+	var (
+		dr = slices.Clone(*d) // 克隆一份防止修改源数据
+		l  = len(dr)          // 叠猫猫队列高度
+		s  = new(strings.Builder)
+		ok bool
+	)
+	s.Grow(min(l, 20) << 5)
+	// 按“后来居上”排列叠猫猫队列
+	slices.Reverse(dr)
+	for i, k := range dr {
+		if l > 20 && 5 <= i && i < l-5 {
+			// 当高度 > 20 时，跳过中间的猫猫，只取上下 5 只
+			if ok {
+				continue
+			}
+			s.WriteString("\n…………\n")
+			for range l - 10 {
+				s.WriteRune('🐱')
+			}
+			s.WriteString("\n…………")
+			ok = true
+			continue
+		}
+		s.WriteByte('\n')
+		fmt.Fprint(s, k)
+	}
+	return s.String()
+}
+
+// Format 实现 fmt.Formatter
+func (m meow) Format(state fmt.State, verb rune) {
+	switch verb {
+	case 'v':
+		if state.Flag('+') || state.Flag('#') {
+			m.format(state, verb)
+			return
+		}
+		_, _ = fmt.Fprint(state, m.String())
+	case 's':
+		_, _ = fmt.Fprint(state, m.String())
+	default:
+		m.format(state, verb)
+	}
+}
+
+func (m meow) format(state fmt.State, verb rune) {
+	// 改写类型以屏蔽内嵌 usr.QQ 的格式
+	_, _ = fmt.Fprintf(state, fmt.FormatString(state, verb), struct {
+		Time     time.Time
+		Daily    time.Time
+		Name     string
+		QQ       int64
+		Weight   int
+		Status   bool
+		Location location
+	}{
+		Time:     m.Time,
+		Daily:    m.Daily,
+		Name:     m.Name,
+		QQ:       int64(m.QQ),
+		Weight:   m.Weight,
+		Status:   m.Status,
+		Location: m.Location,
+	})
+}
+
+// String 实现 fmt.Stringer
+func (m meow) String() string {
+	ctx, cancel := context.WithTimeout(context.Background(), shttp.Timeout)
+	defer cancel()
+	h := msg.NewWithContext(ctx, globalCtx)
+	if m.Location == cockroach {
+		return fmt.Sprintf(`【%s】	翼展 %.1f cm`, m.getType(h), i2f(m.Weight))
+	}
+	return fmt.Sprintf(
+		`%s	❤	%d	❤	%.1f kg	%s`,
+		cmp.Or(m.TitleCardOrNickName(h), m.Name),
+		m.Int(),
+		i2f(m.Weight),
+		m.getType(h),
+	)
+}

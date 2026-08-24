@@ -151,6 +151,27 @@ func (nv *Novel) ChapterID() string {
 	return p.ChapterID(nv.Chapter.URL)
 }
 
+// Format 实现 fmt.Formatter
+func (nv *Novel) Format(state fmt.State, verb rune) {
+	switch verb {
+	case 'v':
+		if state.Flag('+') || state.Flag('#') {
+			nv.format(state, verb)
+			return
+		}
+		_, _ = fmt.Fprint(state, nv.String())
+	case 's':
+		_, _ = fmt.Fprint(state, nv.String())
+	default:
+		nv.format(state, verb)
+	}
+}
+
+func (nv *Novel) format(state fmt.State, verb rune) {
+	type raw *Novel
+	_, _ = fmt.Fprintf(state, fmt.FormatString(state, verb), raw(nv))
+}
+
 // String 实现 fmt.Stringer
 func (nv *Novel) String() string {
 	if nv.ID == `` {
@@ -217,26 +238,54 @@ func (nv *Novel) Put() {
 //
 //	%s 完整字符串
 //	%c 省略过的字符串
-func (d UpdateData) Format(f fmt.State, verb rune) {
-	if d.Status == Completed {
-		// 完结书籍不显示该数据
-		return
-	}
+func (d UpdateData) Format(state fmt.State, verb rune) {
 	switch verb {
+	case 'v':
+		if state.Flag('+') || state.Flag('#') {
+			d.format(state, verb)
+			return
+		}
+		if d.Status == Completed {
+			// 完结书籍不显示该数据
+			return
+		}
+		_, _ = fmt.Fprint(state, d.String())
 	case 's': // 精简
-		_, _ = fmt.Fprintf(f, `
-日更：%d`, d.DailyWordNum)
+		if d.Status == Completed {
+			// 完结书籍不显示该数据
+			return
+		}
+		_, _ = fmt.Fprint(state, d.Str())
 	case 'c': // 完整
-		_, _ = fmt.Fprintf(f, `
+		if d.Status == Completed {
+			// 完结书籍不显示该数据
+			return
+		}
+		_, _ = fmt.Fprint(state, d.String())
+	default:
+		d.format(state, verb)
+	}
+}
+
+func (d UpdateData) format(state fmt.State, verb rune) {
+	type raw UpdateData
+	_, _ = fmt.Fprintf(state, fmt.FormatString(state, verb), raw(d))
+}
+
+// Str 返回省略过的字符串
+func (d UpdateData) Str() string {
+	return fmt.Sprintf(`
+日更：%d`, d.DailyWordNum)
+}
+
+// String 实现 fmt.Stringer
+func (d UpdateData) String() string {
+	return fmt.Sprintf(`
 一周日均：%d 字
 一月日均：%d 字
 全书日均：%d 字`,
-			d.WeekDailyWordNum,
-			d.MonthDailyWordNum,
-			d.DailyWordNum,
-		)
-	default:
-		type raw UpdateData
-		_, _ = fmt.Fprintf(f, fmt.FormatString(f, verb), raw(d))
-	}
+		d.WeekDailyWordNum,
+		d.MonthDailyWordNum,
+		d.DailyWordNum,
+	)
 }

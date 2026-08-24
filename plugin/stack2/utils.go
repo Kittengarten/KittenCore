@@ -1,7 +1,6 @@
 package stack2
 
 import (
-	"cmp"
 	"context"
 	"fmt"
 	"math"
@@ -10,7 +9,6 @@ import (
 
 	"github.com/Kittengarten/KittenCore/kitten/core/fio"
 	"github.com/Kittengarten/KittenCore/kitten/core/log"
-	"github.com/Kittengarten/KittenCore/kitten/core/shttp"
 	"github.com/Kittengarten/KittenCore/kitten/core/times"
 	"github.com/Kittengarten/KittenCore/kitten/core/utils"
 	"github.com/Kittengarten/KittenCore/kitten/msg"
@@ -176,36 +174,6 @@ func rangeAssertion(r replacer, a ...any) []any {
 		}
 	}
 	return a
-}
-
-// Format 实现 fmt.Formatter
-//
-//	%s、%v 均对应 %s
-func (m meow) Format(f fmt.State, verb rune) {
-	switch verb {
-	case 's', 'v': // 需要改写 %v 以屏蔽底层的 usr.QQ 的格式
-		_, _ = fmt.Fprint(f, m.String())
-	default:
-		type raw meow
-		_, _ = fmt.Fprintf(f, fmt.FormatString(f, verb), raw(m))
-	}
-}
-
-// String 实现 fmt.Stringer
-func (m meow) String() string {
-	ctx, cancel := context.WithTimeout(context.Background(), shttp.Timeout)
-	defer cancel()
-	h := msg.NewWithContext(ctx, globalCtx)
-	if m.Location == cockroach {
-		return fmt.Sprintf(`【%s】	翼展 %.1f cm`, m.getType(h), i2f(m.Weight))
-	}
-	return fmt.Sprintf(
-		`%s	❤	%d	❤	%.1f kg	%s`,
-		cmp.Or(m.TitleCardOrNickName(h), m.Name),
-		m.Int(),
-		i2f(m.Weight),
-		m.getType(h),
-	)
 }
 
 // 整数体重转换为浮点（千克数）

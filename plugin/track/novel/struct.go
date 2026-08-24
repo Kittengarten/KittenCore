@@ -56,7 +56,9 @@ type (
 		DailyWordNum      int    // DailyWordNum 全书每日平均字数
 		time.Duration            // Duration 距离上次更新的时间差
 	}
+)
 
+type (
 	// Commenter 小说点评者
 	Commenter interface {
 		// CommentNovel 评论小说信息

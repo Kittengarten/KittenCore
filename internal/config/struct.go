@@ -1,9 +1,7 @@
 package config
 
 import (
-	"encoding/json/v2"
 	"fmt"
-	"strings"
 
 	"github.com/Kittengarten/KittenCore/kitten/core/fio"
 	"github.com/Kittengarten/KittenCore/kitten/core/log"
@@ -43,17 +41,31 @@ type (
 )
 
 // Format 实现 fmt.Formatter
-//
-//	任何动词均对应 %s
-func (c config) Format(f fmt.State, _ rune) {
-	_, _ = fmt.Fprint(f, c.String())
-}
-
-// String 实现 fmt.Stringer
-func (c config) String() string {
-	s := new(strings.Builder)
-	if err := json.MarshalWrite(s, c); err != nil {
-		return err.Error()
-	}
-	return s.String()
+func (c config) Format(state fmt.State, verb rune) {
+	// 改写类型以屏蔽内嵌 fio.Path 的格式
+	_, _ = fmt.Fprintf(state, fmt.FormatString(state, verb), struct {
+		Protocol
+		CommandPrefix string
+		Path          string
+		WebUI         Server
+		PProf         Server
+		NickName      []string
+		SuperUsers    []int64
+		log.Log
+		SelfID             int64
+		AddSpaceAfterAt    bool
+		SetForceBase64File bool
+	}{
+		c.Protocol,
+		c.CommandPrefix,
+		string(c.Path),
+		c.WebUI,
+		c.PProf,
+		c.NickName,
+		c.SuperUsers,
+		c.Log,
+		c.SelfID,
+		c.AddSpaceAfterAt,
+		c.SetForceBase64File,
+	})
 }

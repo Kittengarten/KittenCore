@@ -223,8 +223,7 @@ func (handler *Handler) AtAll(g ...usr.QQ) *Handler {
 
 // Text 附带文本
 func (handler *Handler) Text(text ...any) *Handler {
-	handler.Seg(Text(text...))
-	return handler
+	return handler.Seg(Text(text...))
 }
 
 // Lf 附带换行
