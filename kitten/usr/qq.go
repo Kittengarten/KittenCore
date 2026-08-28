@@ -86,7 +86,7 @@ func (u QQ) Int() int64 {
 //	%o 原始十进制数字（群号为负）
 func (u QQ) Format(state fmt.State, verb rune) {
 	switch verb {
-	case 's':
+	case 's', 'v':
 		_, _ = fmt.Fprint(state, u.String())
 	case 'o':
 		_, _ = fmt.Fprint(state, u.Int())
