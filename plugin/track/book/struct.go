@@ -20,7 +20,7 @@ type (
 		BookName     string    // BookName 报更书名
 		Writer       string    // Writer 小说作者
 		RecordURL    string    `yaml:",omitzero"` // RecordURL 上次更新链接
-		TodayWordNum int       `yaml:",omitzero"` // TodayWordNum 今日字数
+		TodayWordNum uint64    `yaml:",omitzero"` // TodayWordNum 今日字数
 		Completed    bool      `yaml:",omitzero"` // Completed 是否已完结
 	}
 )

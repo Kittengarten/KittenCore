@@ -14,6 +14,8 @@ const (
 	HoursPerDay = 24                      // HoursPerDay 每天小时数
 	Day         = HoursPerDay * time.Hour // Day 天
 	Week        = 7 * Day                 // Week 周
+	Year        = (365*4 + 1) * Day / 4   // Year 年
+	Month       = Year / 12               // Month 月
 )
 
 // Location 固定时区（上海）

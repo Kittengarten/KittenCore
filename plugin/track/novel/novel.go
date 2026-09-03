@@ -3,10 +3,12 @@ package novel
 import (
 	"context"
 	"fmt"
+	"math"
 	"slices"
 	"strconv"
 	"strings"
 	"sync"
+	"time"
 
 	"github.com/Kittengarten/KittenCore/kitten/core/log"
 	"github.com/Kittengarten/KittenCore/kitten/core/times"
@@ -98,9 +100,18 @@ func (nv *Novel) tags() string {
 	return s.String()
 }
 
+// 计算小说数据评分
+func (nv *Novel) score() string {
+	n := max(20_000, float64(nv.TotalWordNum))
+	return fmt.Sprintf(`评分：%.2f / 10`,
+		10+max(0, min(4, math.Log10(float64(nv.DailyWordNum))))/2-
+			max(0, math.Log10(float64(time.Since(nv.Chapter.Update)/times.Year)))+
+			2*math.Log10(float64(nv.Collection)*float64(nv.HitNum)/math.Pow(n, 2)))
+}
+
 // 获取小说收藏
 func (nv *Novel) collection() string {
-	return `收藏：` + nv.Collection
+	return `收藏：` + strconv.FormatUint(nv.Collection, 10)
 }
 
 // 获取小说状态
@@ -113,12 +124,12 @@ func (nv *Novel) status() string {
 
 // 获取小说字数（状态）
 func (nv *Novel) wordNum() string {
-	return `字数：` + strconv.Itoa(nv.TotalWordNum) + nv.status()
+	return `字数：` + strconv.FormatUint(nv.TotalWordNum, 10) + nv.status()
 }
 
 // 获取小说点击
 func (nv *Novel) hitNum() string {
-	return `点击：` + nv.HitNum
+	return `点击：` + strconv.FormatUint(nv.HitNum, 10)
 }
 
 // 获取小说更新时间
@@ -186,6 +197,7 @@ func (nv *Novel) String() string {
 		nv.URL,
 		nv.themes(),
 		nv.tags(),
+		nv.score(),
 		nv.collection(),
 		nv.wordNum(),
 		nv.hitNum(),

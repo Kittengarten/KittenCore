@@ -32,8 +32,8 @@ type (
 	Data struct {
 		Right        []string // Right 版权状态
 		Protagonists []string // Protagonists 主角
-		Collection   string   // Collection 小说收藏
-		HitNum       string   // HitNum 小说点击
+		Collection   uint64   // Collection 小说收藏
+		HitNum       uint64   // HitNum 小说点击
 	}
 
 	// Info 小说信息
@@ -48,13 +48,13 @@ type (
 	// UpdateData 更新数据
 	UpdateData struct {
 		Status            string // Status 小说状态
-		TotalWordNum      int    // TotalWordNum 小说字数
-		Times             int    // Times 当日更新次数
-		TodayWordNum      int    // TodayWordNum 当日更新字数
-		WeekDailyWordNum  int    // WeekDailyWordNum 七日平均字数
-		MonthDailyWordNum int    // MonthDailyWordNum 三十日平均字数
-		DailyWordNum      int    // DailyWordNum 全书每日平均字数
+		TotalWordNum      uint64 // TotalWordNum 小说字数
+		TodayWordNum      uint64 // TodayWordNum 当日更新字数
+		WeekDailyWordNum  uint64 // WeekDailyWordNum 七日平均字数
+		MonthDailyWordNum uint64 // MonthDailyWordNum 三十日平均字数
+		DailyWordNum      uint64 // DailyWordNum 全书每日平均字数
 		time.Duration            // Duration 距离上次更新的时间差
+		Times             uint   // Times 当日更新次数
 	}
 )
 

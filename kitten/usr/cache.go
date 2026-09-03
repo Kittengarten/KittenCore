@@ -56,6 +56,7 @@ func init() {
 		return
 	}
 	if err := errors.Join(loadInfo(), loadMember()); err != nil {
+		// TODO: 检测到错误则重建，而不是 panic
 		log.Panic(err)
 	}
 }

@@ -176,14 +176,14 @@ func (b Book) String() string {
 		}
 		return b.UpdateTime.Format(times.LayoutHeart)
 	}() + `
-今日字数：	` + strconv.Itoa(b.TodayWordNum) + rank(b.TodayWordNum, b.Completed)
+今日字数：	` + strconv.FormatUint(b.TodayWordNum, 10) + rank(b.TodayWordNum, b.Completed)
 }
 
-func rank(todayWordNum int, completed bool) string {
+func rank(todayWordNum uint64, completed bool) string {
 	if completed {
 		return `（已完结）`
 	}
-	tier := map[int]string{
+	tier := map[uint64]string{
 		10000: `（夯）`,
 		6000:  `（顶级）`,
 		4000:  `（人上人）`,

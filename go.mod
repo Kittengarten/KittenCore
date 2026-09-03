@@ -30,20 +30,20 @@ require (
 	github.com/sahilm/fuzzy v0.1.3
 	github.com/sashabaranov/go-openai v1.42.0
 	github.com/sergi/go-diff v1.4.0
-	github.com/shirou/gopsutil/v4 v4.26.7
+	github.com/shirou/gopsutil/v4 v4.26.8
 	github.com/tidwall/gjson v1.19.0
 	github.com/tidwall/sjson v1.2.5
 	github.com/vicanso/go-charts/v2 v2.6.10
 	github.com/wdvxdr1123/ZeroBot v1.8.3-0.20260407110317-d207de3b6c79
 	go.uber.org/zap v1.28.0
-	golang.org/x/exp v0.0.0-20260813180055-c1d0aacb2297
+	golang.org/x/exp v0.0.0-20260824195058-e88cd73687aa
 	golang.org/x/net v0.58.0
 	gopkg.in/natefinch/lumberjack.v2 v2.2.1
 )
 
 require (
 	github.com/FloatTech/AnimeAPI v1.7.1-0.20260408142737-1e9f2594e3cd // indirect
-	github.com/FloatTech/gg v1.1.4-0.20260404155637-671db2feeebb // indirect
+	github.com/FloatTech/gg v1.1.4-0.20260516155800-c96aede202e4 // indirect
 	github.com/FloatTech/rendercard v0.2.4-0.20260404155919-1fede0bcd22b // indirect
 	github.com/FloatTech/sqlite v1.7.2 // indirect
 	github.com/FloatTech/ttl v0.0.0-20260412050038-bd89b9d66fcd // indirect
@@ -53,7 +53,7 @@ require (
 	github.com/corona10/goimagehash v1.1.1-0.20240121134706-d8115886f360 // indirect
 	github.com/disintegration/imaging v1.6.2 // indirect
 	github.com/ebitengine/oto/v3 v3.4.1 // indirect
-	github.com/ebitengine/purego v0.10.2 // indirect
+	github.com/ebitengine/purego v0.11.0 // indirect
 	github.com/ericpauley/go-quantize v0.0.0-20200331213906-ae555eb2afa4 // indirect
 	github.com/fumiama/ahsai v0.1.1 // indirect
 	github.com/fumiama/cron v1.3.0 // indirect
@@ -83,7 +83,7 @@ require (
 	github.com/kr/pretty v0.3.1 // indirect
 	github.com/lufia/plan9stats v0.0.0-20260802145828-341c2f0c90b5 // indirect
 	github.com/mattn/go-isatty v0.0.24 // indirect
-	github.com/mattn/go-sqlite3 v1.14.49 // indirect
+	github.com/mattn/go-sqlite3 v1.14.50 // indirect
 	github.com/mroth/weightedrand v1.0.0 // indirect
 	github.com/ncruces/go-strftime v1.0.0 // indirect
 	github.com/nfnt/resize v0.0.0-20180221191011-83c6a9932646 // indirect
@@ -110,8 +110,8 @@ require (
 	golang.org/x/xerrors v0.0.0-20240903120638-7835f813f4da // indirect
 	gopkg.in/check.v1 v1.0.0-20201130134442-10cb98267c6c // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
-	modernc.org/libc v1.75.4 // indirect
+	modernc.org/libc v1.75.7 // indirect
 	modernc.org/mathutil v1.7.1 // indirect
 	modernc.org/memory v1.12.1 // indirect
-	modernc.org/sqlite v1.57.0 // indirect
+	modernc.org/sqlite v1.58.0 // indirect
 )

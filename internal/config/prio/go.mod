@@ -6,7 +6,7 @@ require github.com/FloatTech/zbputils v1.7.2-0.20260510095247-3e9f8cf88d2d
 
 require (
 	github.com/FloatTech/floatbox v0.0.0-20260408141530-dc0fdf584f62 // indirect
-	github.com/FloatTech/gg v1.1.4-0.20260404155637-671db2feeebb // indirect
+	github.com/FloatTech/gg v1.1.4-0.20260516155800-c96aede202e4 // indirect
 	github.com/FloatTech/rendercard v0.2.4-0.20260404155919-1fede0bcd22b // indirect
 	github.com/FloatTech/sqlite v1.7.2 // indirect
 	github.com/FloatTech/ttl v0.0.0-20260412050038-bd89b9d66fcd // indirect
@@ -14,7 +14,7 @@ require (
 	github.com/RomiChan/syncx v0.0.0-20240418144900-b7402ffdebc7 // indirect
 	github.com/disintegration/imaging v1.6.2 // indirect
 	github.com/dustin/go-humanize v1.0.1 // indirect
-	github.com/ebitengine/purego v0.10.2 // indirect
+	github.com/ebitengine/purego v0.11.0 // indirect
 	github.com/ericpauley/go-quantize v0.0.0-20200331213906-ae555eb2afa4 // indirect
 	github.com/fumiama/cron v1.3.0 // indirect
 	github.com/fumiama/go-base16384 v1.7.1 // indirect
@@ -41,10 +41,10 @@ require (
 	golang.org/x/sys v0.47.0 // indirect
 	golang.org/x/text v0.41.0 // indirect
 	golang.org/x/tools v0.49.0 // indirect
-	modernc.org/libc v1.75.4 // indirect
+	modernc.org/libc v1.75.7 // indirect
 	modernc.org/mathutil v1.7.1 // indirect
 	modernc.org/memory v1.12.1 // indirect
-	modernc.org/sqlite v1.57.0 // indirect
+	modernc.org/sqlite v1.58.0 // indirect
 )
 
 retract v0.3.1
