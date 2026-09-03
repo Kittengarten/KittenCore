@@ -47,7 +47,7 @@ type (
 
 	// UpdateData 更新数据
 	UpdateData struct {
-		Status            string // Status 小说状态
+		Status                   // Status 小说状态
 		TotalWordNum      uint64 // TotalWordNum 小说字数
 		TodayWordNum      uint64 // TodayWordNum 当日更新字数
 		WeekDailyWordNum  uint64 // WeekDailyWordNum 七日平均字数
@@ -56,6 +56,9 @@ type (
 		time.Duration            // Duration 距离上次更新的时间差
 		Times             uint   // Times 当日更新次数
 	}
+
+	// Status 小说状态
+	Status string
 )
 
 type (
@@ -73,9 +76,9 @@ type (
 
 const (
 	// Completed 已完结
-	Completed = `已完结`
+	Completed Status = `已完结`
 	// Ongoing 连载中
-	Ongoing = `连载中`
+	Ongoing Status = `连载中`
 	// Inactive 断更
-	Inactive = `断更`
+	Inactive Status = `断更`
 )

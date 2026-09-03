@@ -119,7 +119,7 @@ func (nv *Novel) status() string {
 	if nv.Status == `` {
 		return ``
 	}
-	return `（` + nv.Status + `）`
+	return `（` + nv.Status.String() + `）`
 }
 
 // 获取小说字数（状态）
@@ -300,4 +300,9 @@ func (d UpdateData) String() string {
 		d.MonthDailyWordNum,
 		d.DailyWordNum,
 	)
+}
+
+// String 实现 fmt.Stringer
+func (s Status) String() string {
+	return string(s)
 }
