@@ -150,7 +150,7 @@ func sendWithJump(handler *msg.Handler, r replacer, text ...any) message.ID {
 
 // 发送枯燥图片
 func sendBoring(handler *msg.Handler) message.ID {
-	return handler.Image(fio.NewPath(imagePath, `老实叠猫猫，很枯燥吧.png`)).Send()
+	return handler.Image(fio.NewPath(imagePath, `老实叠猫猫很枯燥吧.png`)).Send()
 }
 
 // 异步发送表情回复
