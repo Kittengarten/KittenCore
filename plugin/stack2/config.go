@@ -27,18 +27,18 @@ const (
 var (
 	// 叠猫猫配置文件
 	stackConfig, err = fio.NewPath(`data`, `Stack2`, `config.yaml`).
-		Load[cfg](func() string {
-			s := new(strings.Builder)
-			s.Grow(61)
-			if err := yaml.NewEncoder(s).Encode(cfg{
-				RestHoursPerKG: 1,
-				MinRestHours:   1,
-				OCMinRestHours: 24,
-			}); err != nil {
-				log.Panic(err)
-			}
-			return s.String()
-		}())
+				Load[cfg](func() string {
+		s := new(strings.Builder)
+		s.Grow(61)
+		if err := yaml.NewEncoder(s).Encode(cfg{
+			RestHoursPerKG: 1,
+			MinRestHours:   1,
+			OCMinRestHours: 24,
+		}); err != nil {
+			log.Panic(err)
+		}
+		return s.String()
+	}())
 	// 指令前缀
 	p = config.CommandPrefix()
 	// 帮助文本
@@ -80,12 +80,12 @@ var (
 		p, cLorry,
 		stackConfig.MinRestHours)
 	// 注册插件
-	engine = control.AutoRegister(&ctrl.Options[*zero.Ctx]{
+	engine = control.AutoRegister(new(ctrl.Options[*zero.Ctx]{
 		DisableOnDefault: false,
 		Brief:            brief,
 		Help:             help,
 		PublicDataFolder: `Stack2`,
-	})
+	}))
 	// 图片路径
 	imagePath = fio.NewPath(replyServiceName)
 	// 数据路径

@@ -16,12 +16,10 @@ import (
 
 	"github.com/Kittengarten/KittenCore/internal/config"
 	"github.com/Kittengarten/KittenCore/kitten"
-	"github.com/Kittengarten/KittenCore/kitten/core/equal"
 	"github.com/Kittengarten/KittenCore/kitten/core/fio"
 	"github.com/Kittengarten/KittenCore/kitten/core/log"
 	"github.com/Kittengarten/KittenCore/kitten/core/times"
 	"github.com/Kittengarten/KittenCore/kitten/core/times/repeat"
-	"github.com/Kittengarten/KittenCore/kitten/msg/mio"
 	"github.com/Kittengarten/KittenCore/kitten/msg/seg"
 	"github.com/Kittengarten/KittenCore/kitten/usr"
 
@@ -34,6 +32,46 @@ import (
 func init() {
 	// 设置是否强制使用 Base64 发送文件
 	message.SetForceBase64File(config.SetForceBase64File())
+}
+
+// Handler 消息处理器，收取消息并发送
+type Handler struct {
+	message.ID            // 引用消息 ID
+	message.Message       // 待发送的消息
+	context.Context       // 上下文
+	err             error // 错误（不使用内嵌，避免 Handler 实现 error）
+	*zero.Ctx             // Zerobot 上下文
+}
+
+// New 创建消息处理器
+func New(ctx *zero.Ctx) *Handler {
+	return new(Handler{Ctx: ctx, Context: context.Background()})
+}
+
+// NewWithContext 创建消息处理器（带上下文）
+func NewWithContext(c context.Context, ctx *zero.Ctx) *Handler {
+	return new(Handler{Ctx: ctx, Context: c})
+}
+
+// Event 返回当前 ZeroBot 上下文的事件
+func (handler *Handler) Event() *zero.Event {
+	return handler.Ctx.Event
+}
+
+// QuoteID 引用消息 ID
+func (handler *Handler) QuoteID() message.ID {
+	return handler.ID
+}
+
+// Get 待发送的消息
+func (handler *Handler) Get() message.Message {
+	return handler.Message
+}
+
+// Set 设置待发送的消息
+func (handler *Handler) Set(msg message.Message) usr.Handler {
+	handler.Message = msg
+	return handler
 }
 
 // SendSplit 将消息拆分为多条，并逐条发送
@@ -59,7 +97,7 @@ func (handler *Handler) SendSplit(u ...usr.QQ) message.ID {
 					id = handler.Remove().Quote().AtLf().Seg(msg).Send(u...)
 					continue
 				}
-				handler.Remove().Seg(msg).Send(u...)
+				_ = handler.Remove().Seg(msg).Send(u...)
 				continue
 			}
 			var lines []string
@@ -76,7 +114,7 @@ func (handler *Handler) SendSplit(u ...usr.QQ) message.ID {
 					id = handler.Remove().Quote().At().Seg(msg).Send(u...)
 					continue
 				}
-				handler.Remove().Seg(msg).Send(u...)
+				_ = handler.Remove().Seg(msg).Send(u...)
 				continue
 			}
 			for _, line := range lines {
@@ -84,7 +122,7 @@ func (handler *Handler) SendSplit(u ...usr.QQ) message.ID {
 					id = handler.Remove().Quote().At().Text(line).Send(u...)
 					continue
 				}
-				handler.Remove().Text(line).Send(u...)
+				_ = handler.Remove().Text(line).Send(u...)
 				continue
 			}
 			return id
@@ -94,46 +132,6 @@ func (handler *Handler) SendSplit(u ...usr.QQ) message.ID {
 		}
 	}
 	return message.ID{}
-}
-
-// Handler 消息处理器，收取消息并发送
-type Handler struct {
-	message.ID            // 引用消息 ID
-	message.Message       // 待发送的消息
-	context.Context       // 上下文
-	err             error // 错误（不使用内嵌，避免 Handler 实现 error）
-	*zero.Ctx             // Zerobot 上下文
-}
-
-// New 创建消息处理器
-func New(ctx *zero.Ctx) *Handler {
-	return &Handler{Ctx: ctx, Context: context.Background()}
-}
-
-// NewWithContext 创建消息处理器（带上下文）
-func NewWithContext(c context.Context, ctx *zero.Ctx) *Handler {
-	return &Handler{Ctx: ctx, Context: c}
-}
-
-// Event 返回当前 ZeroBot 上下文的事件
-func (handler *Handler) Event() *zero.Event {
-	return handler.Ctx.Event
-}
-
-// QuoteID 引用消息 ID
-func (handler *Handler) QuoteID() message.ID {
-	return handler.ID
-}
-
-// Get 待发送的消息
-func (handler *Handler) Get() message.Message {
-	return handler.Message
-}
-
-// Set 设置待发送的消息
-func (handler *Handler) Set(msg message.Message) usr.Handler {
-	handler.Message = msg
-	return handler
 }
 
 // GetStrangerInfo 获取陌生人信息
@@ -174,6 +172,11 @@ func (handler *Handler) Quote(id ...message.ID) *Handler {
 		return handler
 	}
 	// 引用本消息的触发来源消息
+	return handler.setID()
+}
+
+// 将引用消息 ID 设置为触发来源
+func (handler *Handler) setID() *Handler {
 	if !handler.Check(kitten.Event) {
 		log.Warn(ErrNoEvent)
 		return handler
@@ -207,7 +210,7 @@ func (handler *Handler) At(u ...usr.QQ) *Handler {
 	for _, i := range u {
 		// @ 对象
 		if i.IsQQ() {
-			handler.Seg(i.At())
+			_ = handler.Seg(i.At())
 		}
 	}
 	return handler
@@ -250,71 +253,9 @@ func (handler *Handler) AtAllLf(g ...usr.QQ) *Handler {
 	return handler
 }
 
-// 比较待发送的消息是否相等
-func hasSame(handlers ...*Handler) bool {
-	return equal.IsSameFunc(equalContained, handlers...)
-}
-
-// 比较含有的两个消息段切片是否相等
-func equalContained(a, b *Handler) bool {
-	return isEqual(a.Message, b.Message)
-}
-
-// 比较多个消息段是否相等
-func IsSameSegment(s ...message.Segment) bool {
-	return equal.IsSameFunc(equalSegment, s...)
-}
-
-// 比较多个消息段切片是否相等
-func IsSame(m ...message.Message) bool {
-	return equal.IsSameFunc(isEqual, m...)
-}
-
-// 比较两个消息段切片是否相等
-func isEqual(a, b message.Message) bool {
-	if len(a) != len(b) {
-		// 如果两个消息段切片的长度不同，则不相等
-		return false
-	}
-	for i, seg := range a {
-		if !equalSegment(seg, b[i]) {
-			return false
-		}
-	}
-	return true
-}
-
-// 比较两个消息段是否相等
-func equalSegment(a, b message.Segment) bool {
-	if a.Type != b.Type {
-		// 如果两个消息段类型不同，则不相等
-		return false
-	}
-	// 按类型的特殊比较路径
-	switch a.Type {
-	case seg.Image:
-		// 图片，比较文件或路径
-		return mio.GetImagePath(a) != `` && mio.GetImagePath(a) == mio.GetImagePath(b) ||
-			mio.GetImageURL(a) != `` && mio.GetImageURL(a) == mio.GetImageURL(b)
-	case seg.Record, seg.Video, seg.Anonymous, seg.Share, seg.Contact,
-		seg.Location, seg.Music, seg.Forward, seg.Node, seg.XML, seg.JSON:
-		// 忽略的类型，视为不相等
-		return false
-	default:
-		// 直接比较数据
-		return equal.IsSameMap(a.Data, b.Data)
-	}
-}
-
 // Textf 附带格式化文本
 func (handler *Handler) Textf(format string, a ...any) *Handler {
-	handler.Seg(Textf(format, a...))
-	return handler
-}
-
-// Imager 图片接口
-type Imager interface {
-	Image() (string, error)
+	return handler.Seg(Textf(format, a...))
 }
 
 // Image 从图片的相对 | 绝对路径（文件夹），
@@ -335,7 +276,7 @@ func (handler *Handler) Image(name ...fio.Path) *Handler {
 				handler.err = errors.Join(handler.err, fmt.Errorf(`附带图片错误：%w`, err))
 			}
 		}
-		handler.Seg(img)
+		_ = handler.Seg(img)
 	}
 	return handler
 }
@@ -399,7 +340,7 @@ func (handler *Handler) SendMulti(u ...usr.QQ) (id []message.ID) {
 	defer handler.Reset()
 	if handler.err != nil {
 		// 有错误，将其打包进消息
-		handler.Text("\n", handler.err)
+		_ = handler.Text("\n", handler.err)
 	}
 	if len(handler.Message) == 0 {
 		// 没有消息段，无法发送
@@ -444,6 +385,23 @@ func (handler *Handler) SendMulti(u ...usr.QQ) (id []message.ID) {
 	return []message.ID{handler.send()}
 }
 
+// SendMono 发送消息给单个对象
+//
+//	仅用于接口实现，调用时使用 handler.Send()
+func (handler *Handler) SendMono(u usr.QQ) message.ID {
+	return message.NewMessageIDFromInteger(func() int64 {
+		switch {
+		case u.IsQQ():
+			return handler.SendPrivateMessage(u.Int[int64]())
+		case u.IsGroup():
+			return handler.SendGroupMessage(u.Int[int64]())
+		default:
+			log.Debug(`无效的发送对象：`, u)
+			return 0
+		}
+	}())
+}
+
 // 发送消息
 //
 //	ctx.Send 的封装
@@ -457,7 +415,7 @@ func (handler *Handler) send() message.ID {
 		event = handler.Event()
 		m     = handler.Get()
 	)
-	handler.Set(func() message.Message {
+	_ = handler.Set(func() message.Message {
 		if event.PostType != `message` || handler.QuoteID().ID() == 0 {
 			// 不是消息引发的发送或没有引用，跳过引用
 			return m
@@ -580,11 +538,12 @@ func (handler *Handler) SendGroupMessage(groupID int64) int64 {
 			`message`:  message,
 		}).Data.Get(`message_id`)
 	)
-	if rsp.Exists() {
-		log.Skip(2).Infof(`[api] 发送群消息(%v): %v (id=%v)`, groupID, formatMessage(message), rsp.Int())
-		return rsp.Int()
+	if !rsp.Exists() {
+		return 0
 	}
-	return 0 // 无法获取返回值
+	log.Skip(2).Infof(`[api] 发送群消息(%v): %v (id=%v)`, groupID, formatMessage(message), rsp.Int())
+	return rsp.Int()
+
 }
 
 // SendPrivateMessage 发送私聊消息
@@ -597,11 +556,11 @@ func (handler *Handler) SendPrivateMessage(userID int64) int64 {
 			`message`: handler.Get(),
 		}).Data.Get(`message_id`)
 	)
-	if rsp.Exists() {
-		log.Skip(2).Infof(`[api] 发送私聊消息(%v): %v (id=%v)`, userID, formatMessage(message), rsp.Int())
-		return rsp.Int()
+	if !rsp.Exists() {
+		return 0
 	}
-	return 0 // 无法获取返回值
+	log.Skip(2).Infof(`[api] 发送私聊消息(%v): %v (id=%v)`, userID, formatMessage(message), rsp.Int())
+	return rsp.Int()
 }
 
 // Reset 重置 Sender，保留 Zerobot 上下文，不保留上下文
@@ -621,13 +580,13 @@ func (handler *Handler) Remove() *Handler {
 // SetContext 设置上下文
 func (handler *Handler) SetContext(ctx context.Context) usr.Handler {
 	// 必须重新派生一个 Handler，避免覆盖上下文
-	return &Handler{
+	return new(Handler{
 		ID:      handler.ID,
 		Message: handler.Message,
 		Context: ctx,
 		err:     handler.err,
 		Ctx:     handler.Ctx,
-	}
+	})
 }
 
 // CallAction 调用 cqhttp API

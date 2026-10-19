@@ -8,10 +8,12 @@ import (
 
 	"github.com/Kittengarten/KittenCore/kitten/core/times"
 	"github.com/Kittengarten/KittenCore/kitten/msg"
+
+	"github.com/wdvxdr1123/ZeroBot/message"
 )
 
 // 加速叠猫猫，会修改原数据
-func (d *data) oc(handler *msg.Handler, r ...replacer) {
+func (d *data) oc(handler *msg.Handler, r ...replacer) message.ID {
 	if len(r) == 0 {
 		r = []replacer{l10n(cat)}
 	}
@@ -22,26 +24,22 @@ func (d *data) oc(handler *msg.Handler, r ...replacer) {
 	if !ok {
 		// 当前不在休息，不需要加速，恢复后返回
 		*d = slices.Concat(*d, data{m})
-		sendWithImageFail(handler, r[0], `当前不在休息，不能进行锻炼喵！`)
-		return
+		return sendWithImageFail(handler, r[0], `当前不在休息，不能进行锻炼喵！`)
 	}
 	if (*d)[nre.i].getTypeID(handler) < 大老虎 {
 		// 不是大老虎以上，不能加速，直接返回
-		sendWithImageFail(handler, r[0], `大老虎以上才可以锻炼——`)
-		return
+		return sendWithImageFail(handler, r[0], `大老虎以上才可以锻炼——`)
 	}
 	hours := int(math.RoundToEven(
 		float64(nre.Duration-time.Hour*time.Duration(stackConfig.OCMinRestHours)) /
 			float64(time.Hour))) // 加速的小时数
 	if hours <= 0 {
 		// 加速的小时数不大于 0，则不能加速，直接返回
-		sendWithImageFail(handler, r[0], `剩余休息时间过短，不能锻炼喵！`)
-		return
+		return sendWithImageFail(handler, r[0], `剩余休息时间过短，不能锻炼喵！`)
 	}
 	if (*d)[nre.i].Weight-hours < 1 {
 		// 体重不足，则不能加速，直接返回
-		sendWithImageFail(handler, r[0], `猫猫体重不足，锻炼失败喵！`)
-		return
+		return sendWithImageFail(handler, r[0], `猫猫体重不足，锻炼失败喵！`)
 	}
 	// 加速的代价
 	(*d)[nre.i].Weight -= hours
@@ -53,9 +51,9 @@ func (d *data) oc(handler *msg.Handler, r ...replacer) {
 	d.clear(handler, false)
 	// 存储叠猫猫数据
 	if err := dataPath.SaveWithContext(handler, d); err != nil {
-		sendWithImageFail(handler, r[0], `存储叠猫猫数据时发生错误喵！`, err)
+		return sendWithImageFail(handler, r[0], `存储叠猫猫数据时发生错误喵！`, err)
 	}
-	_ = sendTextf(handler, r[0], true, `锻炼成功喵！
+	return sendTextf(handler, r[0], true, `锻炼成功喵！
 你剩余的休息时间变为 %s喵！
 你的体重减少至 %.1f kg 喵！`,
 		times.ConvertTimeDuration(after.Time.Sub(time.Unix(handler.Event().Time, 0))),

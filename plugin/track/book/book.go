@@ -53,7 +53,6 @@ func (c *Books) Report(
 		path.Lock()
 		defer path.Unlock()
 		save <- c.SaveConfig(handler, cu, path.Path, true)
-		close(save)
 	})
 	if err := <-save; err != nil {
 		log.Error(ErrSave, err)

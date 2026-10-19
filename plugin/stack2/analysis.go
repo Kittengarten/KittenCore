@@ -52,24 +52,23 @@ var (
 )
 
 // 分析叠猫猫，不修改原数据
-func (d *data) analysis(handler *msg.Handler, r ...replacer) {
+func (d *data) analysis(handler *msg.Handler, r ...replacer) message.ID {
 	if len(r) == 0 {
 		r = []replacer{l10n(cat)}
 	}
 	if r[0].location == cockroach {
-		handler.SendWithImageFail(cockroachDoNotAnalysis)
-		return
+		return handler.SendWithImageFail(cockroachDoNotAnalysis)
 	}
 	c, f, img := d.generateAnalysis(handler, r[0])
 	if !img {
-		// 如果不需要图片，什么也不做
-		return
+		// 如果不需要图片
+		return sendBoring(handler)
 	}
 	select {
 	case <-times.RandDelayRange(time.Second, 2*time.Second):
-		d.analysisImage(handler, c, f, r...)
+		return d.analysisImage(handler, c, f, r...)
 	case <-handler.Done():
-		handler.SendWithImageFail(handler.Err())
+		return handler.SendWithImageFail(handler.Err())
 	}
 }
 

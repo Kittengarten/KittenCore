@@ -25,7 +25,7 @@ func View(handler *msg.Handler, service string, logFilePath fio.Path) message.ID
 	switch name, who := func() (name, who string) {
 		o, err := handler.Object()
 		if err != nil {
-			handler.Quote().AtLf().Text(err).Send()
+		_ = handler.Quote().AtLf().Text(err).Send()
 			return
 		}
 		name = str.Clean(handler.Args(), false)
@@ -34,7 +34,7 @@ func View(handler *msg.Handler, service string, logFilePath fio.Path) message.ID
 			if name == n {
 				who = zero.BotConfig.NickName[0]
 				if err = o.SetName(handler, name); err != nil {
-					handler.Quote().AtLf().Text(err).Send()
+				_ = handler.Quote().AtLf().Text(err).Send()
 					return
 				}
 			}

@@ -41,7 +41,7 @@ const (
 	replyServiceName = `track` // 插件名
 	brief            = `小说报更`
 	configFile       = `config.yaml` // 配置文件名
-	pf               = `[平台]`        // [#平台] 不使用 API
+	pf               = `[平台]`
 	ag               = `[关键词|书号]`
 	cNovel           = `小说`
 	cNovelComment    = `点评小说`
@@ -66,15 +66,12 @@ var (
 ` + p + cUpdateTest + ` ` + pf + ` ` + ag + ` // 可测试报更功能
 ` + p + cSetProtagonists + ` ` + pf + ` ` + ag + ` [主角1] [主角2] ... // 可设置小说主角`
 	// 注册插件
-	engine = func() *control.Engine {
-		// 不能使用测试模式，空 Engine 会导致 panic
-		return control.AutoRegister(&ctrl.Options[*zero.Ctx]{
-			DisableOnDefault:  false,
-			Brief:             brief,
-			Help:              help,
-			PrivateDataFolder: replyServiceName,
-		}).ApplySingle(ctxext.DefaultSingle)
-	}()
+	engine = control.AutoRegister(new(ctrl.Options[*zero.Ctx]{
+		DisableOnDefault:  false,
+		Brief:             brief,
+		Help:              help,
+		PrivateDataFolder: replyServiceName,
+	})).ApplySingle(ctxext.DefaultSingle)
 )
 
 var (
@@ -161,12 +158,12 @@ func init() {
 func updateTest(handler *msg.Handler) {
 	nv, err := getNovel(handler) // 小说实例
 	if err != nil {
-		handler.SendWithImageFail(err)
+		_ = handler.SendWithImageFail(err)
 		return
 	}
 	o, err := handler.Object()
 	if err != nil {
-		handler.SendWithImageFail(err)
+		_ = handler.SendWithImageFail(err)
 		return
 	}
 	novel.TryCommentUpdate(
@@ -188,51 +185,49 @@ func updateTest(handler *msg.Handler) {
 func setProtagonists(handler *msg.Handler) {
 	args := handler.ArgsSlice()
 	if len(args) < 3 {
-		handler.SendWithImageFail(`请输入主角名喵！`)
+		_ = handler.SendWithImageFail(`请输入主角名喵！`)
 		return
 	}
-	p, err := getPlatform(args[0])
+	p, err := GetPlatform(args[0])
 	if err != nil {
-		handler.SendWithImageFail(err)
+		_ = handler.SendWithImageFail(err)
 		return
 	}
 	bookID := args[1]
 	if _, err := strconv.Atoi(bookID); err != nil {
 		// 参数字符串无法转换为书号，尝试作为搜索关键词
 		if bookID, err = p.FindBookID(handler, search.Keyword(bookID)); err != nil {
-			handler.SendWithImageFail(`关键词“`, bookID, "”搜索错误喵！", err)
+			_ = handler.SendWithImageFail(`关键词“`, bookID, `”搜索错误喵！`, err)
 			return
 		}
 	}
-	handler.Quote().AtLf().Text(`平台：`, p, "\n书号：", bookID).Send()
+	_ = handler.Quote().AtLf().Text(`平台：`, p, "\n书号：", bookID).Send()
 	configPath.Lock()
 	defer configPath.Unlock()
 	c, err := configPath.LoadWithContext[book.Books](handler, fio.Empty) // 报更配置
 	if err != nil {
-		handler.SendWithImageFail(book.ErrLoad, err)
+		_ = handler.SendWithImageFail(book.ErrLoad, err)
 		return
 	}
 	// 本书索引
-	i := slices.IndexFunc(c, func(b book.Book) bool {
-		return p.String() == b.Platform && bookID == b.BookID
-	})
+	i := slices.IndexFunc(c, equalNovel(p.String(), bookID))
 	if i == -1 {
-		handler.SendWithImageFail(`本书未配置报更喵！`)
+		_ = handler.SendWithImageFail(`本书未配置报更喵！`)
 		return
 	}
 	c[i].Protagonists = args[2:]
 	if err := c.SaveConfig(handler, cu, configPath.Path, false); err != nil {
-		handler.SendWithImageFail(`设置`, strings.Join(args[2:], `、`), `为主角时`, book.ErrSave, err)
+		_ = handler.SendWithImageFail(`设置`, strings.Join(args[2:], `、`), `为主角时`, book.ErrSave, err)
 		return
 	}
-	handler.Quote().AtLf().Text(`设置`, strings.Join(args[2:], `、`), `为主角成功喵！`).Send()
+	_ = handler.Quote().AtLf().Text(`设置`, strings.Join(args[2:], `、`), `为主角成功喵！`).Send()
 }
 
 // 小说信息
 func novelInfo(handler *msg.Handler, comment bool) {
 	nv, err := getNovel(handler) // 小说实例
 	if err != nil {
-		handler.SendWithImageFail(err)
+		_ = handler.SendWithImageFail(err)
 		return
 	}
 	defer nv.Put()
@@ -240,34 +235,32 @@ func novelInfo(handler *msg.Handler, comment bool) {
 	defer configPath.RUnlock()
 	c, err := configPath.LoadWithContext[book.Books](handler, fio.Empty) // 报更配置
 	if err != nil {
-		handler.SendWithImageFail(book.ErrLoad, err)
+		_ = handler.SendWithImageFail(book.ErrLoad, err)
 		return
 	}
 	// 本书索引
-	if i := slices.IndexFunc(c, func(b book.Book) bool {
-		return equal(nv, b)
-	}); i != -1 {
+	if i := slices.IndexFunc(c, equal(nv)); i != -1 {
 		nv.Protagonists = c[i].Protagonists
 	}
-	handler.Quote().AtLf().
+	_ = handler.Quote().AtLf().
 		Image(fio.NewPath(nv.CoverURL)).
 		Text(nv)
 	if comment && novel.Export != nil {
-		handler.Text(novel.Export.CommentNovel(handler, nv))
+		_ = handler.Text(novel.Export.CommentNovel(handler, nv))
 	}
-	handler.Send()
+	_ = handler.Send()
 }
 
 // 添加报更
 func add(handler *msg.Handler) {
 	o, err := handler.Object() // 发送对象
 	if err != nil {
-		handler.SendWithImageFail(err)
+		_ = handler.SendWithImageFail(err)
 		return
 	}
 	nv, err := getNovel(handler) // 小说实例
 	if err != nil {
-		handler.SendWithImageFail(err)
+		_ = handler.SendWithImageFail(err)
 		return
 	}
 	defer nv.Put()
@@ -275,13 +268,11 @@ func add(handler *msg.Handler) {
 	defer configPath.Unlock()
 	c, err := configPath.LoadWithContext[book.Books](handler, fio.Empty) // 报更配置
 	if err != nil {
-		handler.SendWithImageFail(book.ErrLoad, err)
+		_ = handler.SendWithImageFail(book.ErrLoad, err)
 		return
 	}
 	// 本书索引
-	if i := slices.IndexFunc(c, func(b book.Book) bool {
-		return equal(nv, b)
-	}); i == -1 {
+	if i := slices.IndexFunc(c, equal(nv)); i == -1 {
 		// 没有该小说，进行添加
 		c = append(c, book.Book{
 			Platform: nv.Platform,
@@ -294,7 +285,7 @@ func add(handler *msg.Handler) {
 		// 已经有该小说
 		if slices.Contains(c[i].Users, o) {
 			// 已有该用户，无需添加
-			handler.SendWithImageFail(`《`, nv.Name, `》已经添加报更了喵！`)
+			_ = handler.SendWithImageFail(`《`, nv.Name, `》已经添加报更了喵！`)
 			return
 		}
 		// 尚无该用户，需要添加
@@ -302,22 +293,22 @@ func add(handler *msg.Handler) {
 		slices.Sort(c[i].Users)
 	}
 	if err := c.SaveConfig(handler, cu, configPath.Path, false); err != nil {
-		handler.SendWithImageFail(`《`, nv.Name, `》添加报更时`, book.ErrSave, err)
+		_ = handler.SendWithImageFail(`《`, nv.Name, `》添加报更时`, book.ErrSave, err)
 		return
 	}
-	handler.Quote().AtLf().Text(`《`, nv.Name, `》添加报更成功喵！`).Send()
+	_ = handler.Quote().AtLf().Text(`《`, nv.Name, `》添加报更成功喵！`).Send()
 }
 
 // 取消报更
 func cancel(handler *msg.Handler) {
 	o, err := handler.Object() // 发送对象
 	if err != nil {
-		handler.SendWithImageFail(err)
+		_ = handler.SendWithImageFail(err)
 		return
 	}
 	nv, err := getNovel(handler) // 小说实例
 	if err != nil {
-		handler.SendWithImageFail(err)
+		_ = handler.SendWithImageFail(err)
 		return
 	}
 	defer nv.Put()
@@ -325,25 +316,23 @@ func cancel(handler *msg.Handler) {
 	defer configPath.Unlock()
 	c, err := configPath.LoadWithContext[book.Books](handler, fio.Empty) // 报更配置
 	if err != nil {
-		handler.SendWithImageFail(book.ErrLoad, err)
+		_ = handler.SendWithImageFail(book.ErrLoad, err)
 		return
 	}
 	if len(c) == 0 {
-		handler.SendWithImageFail(book.ErrNotConfig)
+		_ = handler.SendWithImageFail(book.ErrNotConfig)
 		return
 	}
 	// 本书索引
-	i := slices.IndexFunc(c, func(b book.Book) bool {
-		return equal(nv, b)
-	})
+	i := slices.IndexFunc(c, equal(nv))
 	if i == -1 {
-		handler.SendWithImageFail(`《`, nv.Name, `》未在追更喵！`)
+		_ = handler.SendWithImageFail(`《`, nv.Name, `》未在追更喵！`)
 		return
 	}
 	// 用户索引
 	uid := slices.Index(c[i].Users, o)
 	if uid == -1 {
-		handler.SendWithImageFail(`《`, nv.Name, `》未在追更喵！`)
+		_ = handler.SendWithImageFail(`《`, nv.Name, `》未在追更喵！`)
 		return
 	}
 	// 移除在当前发送对象的报更
@@ -352,28 +341,28 @@ func cancel(handler *msg.Handler) {
 		c = slices.Delete(c, i, i+1)
 	}
 	if err := c.SaveConfig(handler, cu, configPath.Path, false); err != nil {
-		handler.SendWithImageFail(`《`, nv.Name, `》取消报更时`, book.ErrSave, err)
+		_ = handler.SendWithImageFail(`《`, nv.Name, `》取消报更时`, book.ErrSave, err)
 		return
 	}
-	handler.Quote().AtLf().Text(`《`, nv.Name, `》取消报更成功喵！`).Send()
+	_ = handler.Quote().AtLf().Text(`《`, nv.Name, `》取消报更成功喵！`).Send()
 }
 
 // 查询报更
 func query(handler *msg.Handler) {
 	o, err := handler.Object() // 发送对象
 	if err != nil {
-		handler.SendWithImageFail(err)
+		_ = handler.SendWithImageFail(err)
 		return
 	}
 	configPath.RLock()
 	c, err := configPath.LoadWithContext[book.Books](handler, fio.Empty) // 报更配置
 	configPath.RUnlock()
 	if err != nil {
-		handler.SendWithImageFail(book.ErrLoad, err)
+		_ = handler.SendWithImageFail(book.ErrLoad, err)
 		return
 	}
 	if len(c) == 0 {
-		handler.SendWithImageFail(book.ErrNotConfig)
+		_ = handler.SendWithImageFail(book.ErrNotConfig)
 		return
 	}
 	const h = `【报更列表】`
@@ -388,7 +377,7 @@ func query(handler *msg.Handler) {
 		fmt.Fprintf(s, "\n%s", b)
 	}
 	fmt.Fprintf(s, "\n检测速率：%d 本/小时", check.QueryRate())
-	handler.Quote().AtLf().Text(s).Send()
+	_ = handler.Quote().AtLf().Text(s).Send()
 }
 
 // 获取小说
@@ -410,11 +399,11 @@ func getNovel(handler *msg.Handler) (*novel.Novel, error) {
 			err,
 		)
 	}
-	p, err := getPlatform(pkey)
+	p, err := GetPlatform(pkey)
 	if err != nil {
 		return nil, err
 	}
-	if _, err := strconv.Atoi(bkey); err == nil {
+	if p.VerifyBookID(bkey) {
 		return p.Init(handler, bkey)
 	}
 	// 获取小说时，参数字符串无法转换为书号，尝试作为搜索关键词
@@ -425,8 +414,8 @@ func getNovel(handler *msg.Handler) (*novel.Novel, error) {
 	return p.Init(handler, bookID)
 }
 
-// 平台匹配器
-func getPlatform(keyword string) (platform.Platform, error) {
+// GetPlatform 平台匹配器
+func GetPlatform(keyword string) (platform.Platform, error) {
 	switch errFunc := func() error {
 		return platform.NotSupported(keyword)
 	}; {
@@ -470,7 +459,7 @@ func track() {
 		process.GlobalInitMutex.Lock()
 		defer process.GlobalInitMutex.Unlock()
 	}()
-	if stat.Tracker = msg.New(zero.GetBot(usr.Self().Int())); !stat.Tracker.Check(kitten.Caller) {
+	if stat.Tracker = msg.New(zero.GetBot(usr.Self().Int[int64]())); !stat.Tracker.Check(kitten.Caller) {
 		log.Panic(`获取 Bot 实例失败喵！`, stat.Tracker)
 	}
 	// 报更
@@ -485,6 +474,13 @@ func track() {
 }
 
 // 判断是否为同一本书
-func equal(nv *novel.Novel, b book.Book) bool {
-	return nv.Platform == b.Platform && nv.ID == b.BookID
+func equal(nv *novel.Novel) func(b book.Book) bool {
+	return equalNovel(nv.Platform, nv.ID)
+}
+
+// 判断是否为同一本书
+func equalNovel(platform, bookID string) func(b book.Book) bool {
+	return func(b book.Book) bool {
+		return platform == b.Platform && bookID == b.BookID
+	}
 }

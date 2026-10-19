@@ -11,5 +11,5 @@ type Chapter struct {
 	NextURL string    // NextURL 下章链接
 	WordNum uint64    // WordNum 章节字数
 	IsVIP   bool      // IsVIP 是否付费章节
-	NeedPay bool      // NeedPay 是否需要付费
+	Cost    int       // Cost 章节费用
 }

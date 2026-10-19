@@ -9,21 +9,23 @@ import (
 )
 
 const (
-	Layout      = `2006.1.2 15:04:05`     // Layout 日期时间格式
-	LayoutHeart = `2006.1.2	❤	15:04:05`   // LayoutHeart 带❤的日期时间格式
-	HoursPerDay = 24                      // HoursPerDay 每天小时数
-	Day         = HoursPerDay * time.Hour // Day 天
-	Week        = 7 * Day                 // Week 周
-	Year        = (365*4 + 1) * Day / 4   // Year 年
-	Month       = Year / 12               // Month 月
+	Layout       = `2006.1.2 15:04:05`     // Layout 日期时间格式
+	LayoutHeart  = `2006.1.2	❤	15:04:05`   // LayoutHeart 带❤的日期时间格式
+	LocationName = `Asia/Shanghai`         // LocationName 时区名称
+	HoursPerDay  = 24                      // HoursPerDay 每天小时数
+	Day          = HoursPerDay * time.Hour // Day 天
+	DaysPerWeek  = 7                       // DaysPerWeek 每周天数
+	Week         = DaysPerWeek * Day       // Week 周
+	Year         = (365*4 + 1) * Day / 4   // Year 年
+	Month        = Year / 12               // Month 月
 )
 
-// Location 固定时区（上海）
+// Location 固定时区
 var Location *time.Location
 
 func init() {
 	var err error
-	Location, err = time.LoadLocation(`Asia/Shanghai`)
+	Location, err = time.LoadLocation(LocationName)
 	if err != nil {
 		panic(err)
 	}

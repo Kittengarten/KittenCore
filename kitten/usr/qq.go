@@ -18,6 +18,7 @@ import (
 	"github.com/Kittengarten/KittenCore/kitten/msg/seg"
 
 	"github.com/tidwall/gjson"
+	"golang.org/x/exp/constraints"
 
 	zero "github.com/wdvxdr1123/ZeroBot"
 	"github.com/wdvxdr1123/ZeroBot/message"
@@ -37,44 +38,38 @@ func Self() QQ {
 }
 
 // NewQQ QQ 的构造函数
-func NewQQ(v ...int64) QQ {
-	if len(v) > 0 {
-		return QQ(v[0])
-	}
-	return 0
+func NewQQ(v int64) QQ {
+	return QQ(v)
 }
 
 // NewQQGroup QQ 群的构造函数
-func NewQQGroup(v ...int64) QQ {
-	if len(v) > 0 {
-		return QQ(-v[0])
-	}
-	return 0
+func NewQQGroup(v int64) QQ {
+	return QQ(-v)
 }
 
 // ParseQQ 从字符串获取 QQ
 func ParseQQ(s string) QQ {
-	if q, err := strconv.Atoi(s); err == nil {
-		return QQ(q)
+	if q, err := strconv.ParseInt(s, 10, 64); err == nil {
+		return NewQQ(q)
 	}
 	return 0
 }
 
 // ParseQQGroup 从字符串获取 QQ 群
 func ParseQQGroup(s string) QQ {
-	if q, err := strconv.Atoi(s); err == nil {
-		return QQ(-q)
+	if q, err := strconv.ParseInt(s, 10, 64); err == nil {
+		return NewQQGroup(q)
 	}
 	return 0
 }
 
-// Int 获取 QQ 的 int64 类型表示
-func (u QQ) Int() int64 {
+// Int 获取 QQ 的整数表示
+func (u QQ) Int[T constraints.Integer]() T {
 	switch {
 	case u.IsQQ():
-		return int64(u)
+		return T(u)
 	case u.IsGroup():
-		return -int64(u)
+		return -T(u)
 	default:
 		return 0
 	}
@@ -89,7 +84,7 @@ func (u QQ) Format(state fmt.State, verb rune) {
 	case 's', 'v':
 		_, _ = fmt.Fprint(state, u.String())
 	case 'o':
-		_, _ = fmt.Fprint(state, u.Int())
+		_, _ = fmt.Fprint(state, int64(u))
 	default:
 		type raw QQ
 		_, _ = fmt.Fprintf(state, fmt.FormatString(state, verb), raw(u))
@@ -98,7 +93,7 @@ func (u QQ) Format(state fmt.State, verb rune) {
 
 // String 获取 QQ 的十进制 string 类型表示
 func (u QQ) String() string {
-	return strconv.FormatInt(u.Int(), 10)
+	return strconv.FormatInt(u.Int[int64](), 10)
 }
 
 // String 获取 QQ 的十进制 string 类型原始表示
@@ -113,7 +108,7 @@ func (u QQ) At() message.Segment {
 	if !u.IsQQ() {
 		return message.Segment{}
 	}
-	return message.At(u.Int())
+	return message.At(u.Int[int64]())
 }
 
 // IsTarget 判断是否是 notify 的目标
@@ -124,7 +119,7 @@ func (u QQ) IsTarget() func(ctx *zero.Ctx) bool {
 		}
 	}
 	return func(ctx *zero.Ctx) bool {
-		return u.Int() == ctx.Event.TargetID
+		return u.Int[int64]() == ctx.Event.TargetID
 	}
 }
 
@@ -237,7 +232,7 @@ func (u QQ) memberInfo(handler Context) qqInfo {
 	}
 	// 从本群成员列表中查找
 	i := slices.IndexFunc(list.List, func(i gjson.Result) bool {
-		return i.Get(`user_id`).Int() == u.Int()
+		return i.Get(`user_id`).Int() == u.Int[int64]()
 	})
 	if i == -1 {
 		// 本群成员列表中找不到，为陌生人
@@ -256,15 +251,15 @@ func (g QQ) MemberList(handler Context) groupList {
 		return groupList{}
 	}
 	// 从缓存获取该群成员列表
-	gmi, ok := groupMemberList.Load(g)
+	gmi, ok := groupMemberList.Get(g)
 	if !ok {
 		// 如果获取不到，同步更新
 		g.updateMemberList(handler)
-		gmi, _ = groupMemberList.Load(g)
+		gmi, _ = groupMemberList.Get(g)
 		return gmi
 	}
-	// 如果缓存已经过期，异步（后台）更新缓存的该群成员列表
 	if time.Since(gmi.Time) > expire {
+		// 如果缓存已经过期，异步（后台）更新缓存的该群成员列表
 		utils.Go(`更新群成员列表`, func() {
 			// 独立上下文，不继承上游
 			ctx, cancel :=
@@ -278,9 +273,9 @@ func (g QQ) MemberList(handler Context) groupList {
 
 // 更新特定群的成员列表
 func (g QQ) updateMemberList(handler Context) {
-	groupMemberList.Store(g,
+	groupMemberList.Add(g,
 		groupList{
-			List: handler.GetGroupMemberListNoCache(g.Int()).Array(),
+			List: handler.GetGroupMemberListNoCache(g.Int[int64]()).Array(),
 			Time: time.Now(),
 		},
 	)
@@ -326,15 +321,15 @@ func (u QQ) info(handler Context) qqInfo {
 		return qqInfo{}
 	}
 	// 从缓存获取该 QQ 的信息
-	si, ok := strangerInfo.Load(u)
+	si, ok := strangerInfo.Get(u)
 	if !ok {
 		// 如果获取不到，同步更新
 		u.UpdateInfo(handler)
-		si, _ = strangerInfo.Load(u)
+		si, _ = strangerInfo.Get(u)
 		return si
 	}
-	// 如果缓存已经过期，异步更新缓存的陌生人信息
 	if time.Since(si.Time) > expire {
+		// 如果缓存已经过期，异步（后台）更新缓存的陌生人信息
 		utils.Go(`更新陌生人信息`, func() {
 			// 独立上下文，不继承上游
 			ctx, cancel :=
@@ -348,9 +343,9 @@ func (u QQ) info(handler Context) qqInfo {
 
 // UpdateInfo 更新陌生人信息
 func (u QQ) UpdateInfo(handler Context) {
-	strangerInfo.Store(u,
+	strangerInfo.Add(u,
 		qqInfo{
-			Result: handler.GetStrangerInfo(u.Int(), true),
+			Result: handler.GetStrangerInfo(u.Int[int64](), true),
 			Time:   time.Now(),
 		},
 	)
@@ -362,37 +357,30 @@ func (u QQ) UpdateInfo(handler Context) {
 // Send 向 QQ（负数代表群聊）发送消息
 //
 //	发送完毕后不会重置 Handler，可能需要调用 handler.Reset() 手动重置
+//	仅用于内部实现，外部调用使用 handler.Send()
 func (u QQ) Send(handler Handler) message.ID {
 	if !handler.Check(kitten.Caller) {
 		// 没有 APICaller ，无法发送
 		log.Warn(handler)
 		return message.ID{}
 	}
-	// 是否需要回复
-	func() {
-		if handler.QuoteID().ID() == 0 {
+	quote(handler)
+	return handler.SendMono(u)
+}
+
+// 设置引用消息
+func quote(handler Handler) {
+	if handler.QuoteID().ID() == 0 {
+		return
+	}
+	for _, e := range handler.Get() {
+		switch e.Type {
+		case seg.Text, seg.Face, seg.Image, seg.At:
+			// 消息段兼容引用，不执行操作
+		default:
+			// 消息段不兼容引用，或未经验证，跳过引用程序
 			return
 		}
-		for _, e := range handler.Get() {
-			switch e.Type {
-			case seg.Text, seg.Face, seg.Image, seg.At:
-				// 消息段兼容回复，不执行操作
-			default:
-				// 消息段不兼容回复，或未经验证，跳过回复程序
-				return
-			}
-		}
-		handler.Set(message.ReplyWithMessage(handler.QuoteID(), handler.Get()...))
-	}()
-	return message.NewMessageIDFromInteger(func() int64 {
-		switch {
-		case u.IsQQ():
-			return handler.SendPrivateMessage(u.Int())
-		case u.IsGroup():
-			return handler.SendGroupMessage(u.Int())
-		default:
-			log.Debug(`无效的发送对象：`, u)
-			return 0
-		}
-	}())
+	}
+	_ = handler.Set(message.ReplyWithMessage(handler.QuoteID(), handler.Get()...))
 }

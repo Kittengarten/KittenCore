@@ -26,6 +26,7 @@ import (
 	"github.com/goccy/go-yaml"
 
 	zero "github.com/wdvxdr1123/ZeroBot"
+	"github.com/wdvxdr1123/ZeroBot/message"
 )
 
 const (
@@ -97,12 +98,12 @@ func init() {
 			defer Unlock()
 			c, cancel := context.WithTimeout(context.Background(), shttp.Timeout)
 			defer cancel()
-			lorryExe(msg.NewWithContext(c, ctx))
+			_ = lorryExe(msg.NewWithContext(c, ctx))
 		})
 }
 
 // 叠猫猫执行逻辑
-func stackExe(handler *msg.Handler) {
+func stackExe(handler *msg.Handler) (id message.ID) {
 	var (
 		args    = handler.Args()
 		loc, op string
@@ -110,26 +111,23 @@ func stackExe(handler *msg.Handler) {
 	n, err := fmt.Sscanln(args, &loc, &op)
 	if err != nil {
 		asyncSendEmoji(handler, `❔ 问号`)
-		handler.SendWithImageFailf(`%s%s%s %s|%s|%s|%s|%s|%s
+		return handler.SendWithImageFailf(`%s%s%s %s|%s|%s|%s|%s|%s
 参数错误（识别到 %d 个）：
 %v`,
 			p, cStack, cMeow, cIn, cView, cAnalysis, cRank, cOC, cDaily,
 			n,
 			err)
-		return
 	}
 	r, ok := parseLoc(loc)
 	if !ok {
 		// 当前活动未开放，返回
 		asyncSendEmoji(handler, `辣眼睛`)
-		handler.SendWithImageFail(`当前活动未开放喵！`)
-		return
+		return handler.SendWithImageFail(`当前活动未开放喵！`)
 	}
 	globalCtx = handler.Ctx
 	d, err := dataPath.LoadWithContext[data](handler, fio.Empty)
 	if err != nil {
-		sendWithImageFail(handler, r, `加载叠猫猫数据文件时发生错误喵！`, err)
-		return
+		return sendWithImageFail(handler, r, `加载叠猫猫数据文件时发生错误喵！`, err)
 	}
 	for i := range d {
 		// 更新叠猫猫数据中的地区标记位
@@ -142,29 +140,29 @@ func stackExe(handler *msg.Handler) {
 		self(handler, d)
 	case cView:
 		asyncSendEmoji(handler, `暗中观察`)
-		d.view(handler, zero.UserOrGrpAdmin(handler.Ctx), r)
+		id = d.view(handler, zero.UserOrGrpAdmin(handler.Ctx), r)
 		select {
 		case <-times.RandDelayRange(time.Second, 2*time.Second):
-			d.viewImage(handler, r)
+			id = d.viewImage(handler, r)
 			self(handler, d)
 		case <-handler.Done():
-			handler.SendWithImageFail(handler.Err())
+			_ = handler.SendWithImageFail(handler.Err())
 		}
 	case cAnalysis:
 		asyncSendEmoji(handler, `仔细分析`)
-		d.analysis(handler, r)
+		id = d.analysis(handler, r)
 		_ = selfAnalysis(handler, d)
 	case cRank:
 		asyncSendEmoji(handler, `🎉 庆祝`)
-		d.rank(handler, r)
+		id = d.rank(handler, r)
 		_ = selfRank(handler, d)
 	case cOC, cOCFox, cOCGPU, cOCCockroach:
 		asyncSendEmoji(handler, `奋斗`)
-		d.oc(handler, r)
+		id = d.oc(handler, r)
 		self(handler, d)
 	case cDaily, cDaily1:
 		asyncSendEmoji(handler, `💝 礼物`)
-		d.daily(handler, r)
+		id = d.daily(handler, r)
 		self(handler, d)
 	default:
 		asyncSendEmoji(handler, `吃糖`)
@@ -195,8 +193,7 @@ func stackExe(handler *msg.Handler) {
 			// 休息时长延长
 			restStr = lorryRestStr
 		}
-		var ()
-		sendText(handler, r, true, strings.NewReplacer(
+		return sendText(handler, r, true, strings.NewReplacer(
 			baseChanceStr, fmt.Sprintf(` %.2f%% `, 100*chanceFlat(m)),
 			currentHeightStr, strconv.Itoa(len(d.getStack())),
 			baseRestTimeStr, restStr,
@@ -204,6 +201,7 @@ func stackExe(handler *msg.Handler) {
 			maxRestTimeStr, times.ConvertTimeDuration(stackStatus.MaxRestTime).String(),
 		).Replace(strings.Join(helpText, "\n\n")))
 	}
+	return
 }
 
 // 加入叠猫猫，当且仅当叠猫猫失败时返回的是 *stackErr
@@ -229,7 +227,7 @@ func (d *data) in(handler *msg.Handler, r ...replacer) error {
 	d.clear(handler, false)
 	// 存储叠猫猫数据
 	if err = dataPath.SaveWithContext(handler, d); err != nil {
-		sendWithImageFail(handler, r[0], `存储叠猫猫数据时发生错误喵！`, err)
+		_ = sendWithImageFail(handler, r[0], `存储叠猫猫数据时发生错误喵！`, err)
 		return err
 	}
 	return e
@@ -254,25 +252,25 @@ func (d *data) pre(handler *msg.Handler, r ...replacer) (meow, error) {
 		re = m.Time.Sub(now)
 		w = m.Weight
 		b = equal.IsSameDate4AM(m.Daily, now)
-		return u.Int() == m.Int() && !m.Status && 0 < re
+		return u == m.QQ && !m.Status && 0 < re
 	}); i >= 0 {
 		err := needRest(re, w, i, b)
 		if usr.Self() == u {
 			stat.Weight = w
 			return meow{}, err
 		}
-		sendWithImageFail(handler, r[0], err)
+		_ = sendWithImageFail(handler, r[0], err)
 		return meow{}, err
 	}
 	if slices.ContainsFunc(*d, func(m meow) bool {
-		return u.Int() == m.Int() && m.Status
+		return u == m.QQ && m.Status
 	}) {
 		err := new(alreadyJoinedError)
 		if usr.Self() == u {
 			stat.Weight = w
 			return meow{}, err
 		}
-		sendWithImageFail(handler, r[0], err)
+		_ = sendWithImageFail(handler, r[0], err)
 		return meow{}, err
 	}
 	var (
@@ -310,7 +308,7 @@ func (d *data) doStack(handler *msg.Handler, m *meow, r ...replacer) error {
 		// 如果平地摔
 		err := stack(handler, m, l, 0, flat)
 		asyncSendEmoji(handler, `糗大了`)
-		sendWithJump(handler, r[0], err)
+		_ = sendWithJump(handler, r[0], err)
 		return err
 	}
 	if p := d.pressResult(handler, *m); p != 0 {
@@ -320,7 +318,7 @@ func (d *data) doStack(handler *msg.Handler, m *meow, r ...replacer) error {
 			e   = dr[:p]
 		)
 		asyncSendEmoji(handler, `晕`)
-		sendWithPressed(handler, r[0], err, &e)
+		_ = sendWithPressed(handler, r[0], err, &e)
 		return err
 	}
 	// 如果没有猫猫被压坏，叠猫猫初步成功
@@ -331,7 +329,7 @@ func (d *data) doStack(handler *msg.Handler, m *meow, r ...replacer) error {
 			e   = dr[l-f:]
 		)
 		asyncSendEmoji(handler, `😓 汗`)
-		sendWithZako(handler, r[0], err, &e)
+		_ = sendWithZako(handler, r[0], err, &e)
 		return err
 	}
 	// 如果没有摔坏猫猫，叠猫猫成功
@@ -392,7 +390,7 @@ func doClear(handler *msg.Handler, l, n int, w int, m *meow, s *strings.Builder)
 //	无此猫猫则返回空结构体及 -1
 func (d *data) getMeow(u usr.QQ) (meow, int) {
 	i := slices.IndexFunc(*d, func(m meow) bool {
-		return u.Int() == m.Int()
+		return u == m.QQ
 	})
 	if i == -1 {
 		return meow{}, i

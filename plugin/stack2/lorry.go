@@ -17,23 +17,22 @@ import (
 const lorryImage = `lorry`
 
 // 撞大运执行逻辑
-func lorryExe(handler *msg.Handler) {
+func lorryExe(handler *msg.Handler) (id message.ID) {
 	r, ok := parseLoc(handler.Args())
 	if !ok {
 		// 当前活动未开放，返回
 		asyncSendEmoji(handler, `辣眼睛`)
-		handler.SendWithImageFail(`当前活动未开放喵！`)
-		return
+		return handler.SendWithImageFail(`当前活动未开放喵！`)
 	}
 	globalCtx = handler.Ctx
 	d, err := dataPath.LoadWithContext[data](handler, fio.Empty)
 	if err != nil {
-		sendWithImageFail(handler, r, `加载叠猫猫数据文件时发生错误喵！`, err)
-		return
+		return sendWithImageFail(handler, r, `加载叠猫猫数据文件时发生错误喵！`, err)
 	}
 	stackStatus.refresh(handler, d, r)
-	_ = d.lorry(handler, r)
+	id = d.lorry(handler, r)
 	self(handler, d)
+	return
 }
 
 // 撞大运
@@ -113,7 +112,7 @@ func (d *data) doLorry(handler *msg.Handler, m *meow, r ...replacer) bool {
 			times.ConvertTimeDuration(m.Time.Sub(time.Unix(handler.Event().Time, 0))))
 		doClear(handler, l, 0, m.Weight, m, s)
 		s.WriteRune('🚚')
-		sendWithZako(handler, r[0], s)
+		_ = sendWithZako(handler, r[0], s)
 		return true
 	}
 	// 撞大运成功
@@ -132,7 +131,7 @@ func (d *data) doLorry(handler *msg.Handler, m *meow, r ...replacer) bool {
 	for range l {
 		s.WriteRune('😿')
 	}
-	sendWithImageLorry(handler, r[0], s, &dr)
+	_ = sendWithImageLorry(handler, r[0], s, &dr)
 	return true
 }
 

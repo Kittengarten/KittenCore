@@ -23,7 +23,7 @@ type quantity struct {
 }
 
 // 叠猫猫排行榜，不修改原数据
-func (d *data) rank(handler *msg.Handler, r ...replacer) {
+func (d *data) rank(handler *msg.Handler, r ...replacer) (id message.ID) {
 	if len(r) == 0 {
 		r = []replacer{l10n(cat)}
 	}
@@ -34,21 +34,19 @@ func (d *data) rank(handler *msg.Handler, r ...replacer) {
 		if i := cmp.Compare(m.Weight, n.Weight); i != 0 {
 			return i
 		}
-		return cmp.Compare(n.Int(), m.Int())
+		return cmp.Compare(n.QQ, m.QQ)
 	})
 	var (
 		c  = len(*d) // 猫猫总数
 		ra = slices.IndexFunc(*d, func(m meow) bool {
-			return handler.Event().UserID == m.Int()
+			return handler.Event().UserID == m.Int[int64]()
 		}) // 发起查询的猫猫排名
 	)
 	if c == 0 {
-		sendWithImageFail(handler, r[0], `还没有猫猫喵！`)
-		return
+		return sendWithImageFail(handler, r[0], `还没有猫猫喵！`)
 	}
 	if ra == -1 {
-		sendWithImageFail(handler, r[0], `你太久或者从来没有加入过喵！`)
-		return
+		return sendWithImageFail(handler, r[0], `你太久或者从来没有加入过喵！`)
 	}
 	var (
 		w = make([]int, c) // 保存累计重量的切片
@@ -85,7 +83,7 @@ func (d *data) rank(handler *msg.Handler, r ...replacer) {
 		wi += i * v
 	}
 	s := (*d)[c-10:] // 叠猫猫排行
-	_ = sendTextf(handler, r[0], true, `【叠猫猫排行】
+	id = sendTextf(handler, r[0], true, `【叠猫猫排行】
 你的当前体重为 %.1f kg
 在 %d 只猫猫中排行第 %d 名
 所有猫猫当前的总重量为 %.1f kg%s
@@ -120,9 +118,10 @@ func (d *data) rank(handler *msg.Handler, r ...replacer) {
 	)
 	select {
 	case <-times.RandDelayRange(time.Second, 2*time.Second):
-		d.rankImage(handler, q, r...)
+		return d.rankImage(handler, q, r...)
 	case <-handler.Done():
-		handler.SendWithImageFail(handler.Err())
+		_ = handler.SendWithImageFail(handler.Err())
+		return
 	}
 }
 

@@ -52,32 +52,6 @@ func (p Path) ImageToDataURL() (u string) {
 		logError(`图片为空喵！`, p, nil)
 		return ``
 	}
-	mime := func() string {
-		switch ext := strings.ToLower(filepath.Ext(string(p))); ext {
-		case `.png`, `.jpeg`, `.webp`, `.gif`, `.bmp`, `.tiff`, `.avif`, `.heic`, `.heif`:
-			return `image/` + ext[1:]
-		case `.jpg`, `.jfif`, `.pjpeg`, `.pjp`:
-			return `image/jpeg`
-		case `.tif`:
-			return `image/tiff`
-		case `.ico`:
-			return `image/x-icon`
-		case `.svg`:
-			return `image/svg+xml`
-		default:
-			data, err := io.ReadAll(io.LimitReader(f, 1<<9))
-			if err != nil {
-				logError(`读取图片失败了喵！`, p, err)
-				return ``
-			}
-			m := http.DetectContentType(data)
-			if strings.HasPrefix(m, `image/`) {
-				return m
-			}
-			logError(`文件类型未知喵！`+m, p, nil)
-			return ``
-		}
-	}()
 	var (
 		out     = new(bytes.Buffer)
 		encoder = base64.NewEncoder(base64.StdEncoding, out)
@@ -85,14 +59,15 @@ func (p Path) ImageToDataURL() (u string) {
 	out.Grow(4 * int(info.Size()))
 	defer func() {
 		if err := encoder.Close(); err != nil {
-			u = err.Error()
+			logError(`图片文件关闭失败了喵！`, p, err)
 		}
 	}()
-	switch mime {
+	switch mime := p.ImageMIME(); mime {
 	case ``:
 		return ``
 	case `image/jpeg`:
 		if info.Size() < 1<<19 {
+			// 小于 512 KiB 的 jpeg 图片转换为 png 编码
 			img, err := jpeg.Decode(f)
 			if err != nil {
 				logError(`jpeg 解码失败了喵！`, p, err)
@@ -102,15 +77,54 @@ func (p Path) ImageToDataURL() (u string) {
 				logError(`png 编码失败了喵！`, p, err)
 				return ``
 			}
-			return "data:image/png;base64," + out.String()
+			return `data:image/png;base64,` + out.String()
 		}
 		fallthrough
 	default:
+		// 达到 512 KiB 的 jpeg 图片与其他图片直接 base64 编码
 		_, err := io.Copy(encoder, f)
 		if err != nil {
 			logError(`base64 编码失败了喵！`, p, err)
 			return ``
 		}
-		return "data:" + mime + ";base64," + out.String()
+		return `data:` + mime + `;base64,` + out.String()
+	}
+}
+
+// ImageMIME 优先根据扩展名获取图片 MIME，扩展名无法识别时使用 http.DetectContentType
+func (p Path) ImageMIME() (m string) {
+	switch ext := strings.ToLower(filepath.Ext(string(p))); ext {
+	case `.png`, `.jpeg`, `.webp`, `.gif`, `.bmp`, `.tiff`, `.avif`, `.heic`, `.heif`:
+		return `image/` + ext[1:]
+	case `.jpg`, `.jfif`, `.pjpeg`, `.pjp`:
+		return `image/jpeg`
+	case `.tif`:
+		return `image/tiff`
+	case `.ico`:
+		return `image/x-icon`
+	case `.svg`:
+		return `image/svg+xml`
+	default:
+		f, err := p.Open(false)
+		if err != nil {
+			logError(`打开图片失败了喵！`, p, err)
+			return
+		}
+		defer func() {
+			if err := f.Close(); err != nil {
+				logError(`图片文件关闭失败了喵！`, p, err)
+			}
+		}()
+		data, err := io.ReadAll(io.LimitReader(f, 1<<9))
+		if err != nil {
+			logError(`读取图片失败了喵！`, p, err)
+			return
+		}
+		m = http.DetectContentType(data)
+		if strings.HasPrefix(m, `image/`) {
+			return
+		}
+		logError(`文件类型未知喵！`+m, p, nil)
+		return
 	}
 }

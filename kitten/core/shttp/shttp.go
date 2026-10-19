@@ -86,12 +86,12 @@ HTTP 错误：` + strconv.Itoa(e.StatusCode) + `
 
 // NewError *Error 的构造函数，创建一个 HTTP 错误
 func NewError(urlStr, method string, statusCode int, msg string) *Error {
-	return &Error{
+	return new(Error{
 		URL:        urlStr,
 		Method:     method,
 		StatusCode: statusCode,
 		Message:    msg,
-	}
+	})
 }
 
 // GETURL 从 fmt.Stringer 获取 HTTP GET 响应体
@@ -201,16 +201,6 @@ func POSTDataWithContext(ctx context.Context, urlStr, contentType string, body i
 	return io.ReadAll(res.Body)
 }
 
-func postWithContext(ctx context.Context, c *http.Client, url, contentType string, body io.Reader,
-) (*http.Response, error) {
-	req, err := http.NewRequestWithContext(ctx, http.MethodPost, url, body)
-	if err != nil {
-		return nil, err
-	}
-	req.Header.Set(CT, contentType)
-	return Retry(ctx, c, req)
-}
-
 const (
 	debug = `GODEBUG`
 	rsa   = `tlsrsakex`
@@ -255,7 +245,7 @@ func checkError(err error, res *http.Response, urlStr string) error {
 		return err
 	}
 	if res == nil {
-		return &Error{URL: urlStr, Message: `响应为空喵！`}
+		return new(Error{URL: urlStr, Message: `响应为空喵！`})
 	}
 	if http.StatusOK <= res.StatusCode && res.StatusCode < http.StatusMultipleChoices {
 		// 不能处理 3xx 重定向状态码
@@ -294,7 +284,7 @@ func (b *convBody) Close() error {
 
 // NewConvBody 新建转换后的响应体
 func NewConvBody(r io.Reader, closeFunc func() error) io.ReadCloser {
-	return &convBody{
+	return new(convBody{
 		Reader: r,
 		closeFunc: func() error {
 			if closeFunc != nil {
@@ -302,5 +292,5 @@ func NewConvBody(r io.Reader, closeFunc func() error) io.ReadCloser {
 			}
 			return nil
 		},
-	}
+	})
 }

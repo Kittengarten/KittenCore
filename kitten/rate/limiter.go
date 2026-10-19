@@ -52,8 +52,7 @@ func (o limiterType) Get() Limiter {
 
 // New 创建限速器，b 为限速器基准，interval 为限速器间隔，burst 为限速器容量
 func New(b limiterBy, interval time.Duration, burst int) Limiter {
-	m := ctxext.NewLimiterManager(interval, burst)
-	switch b {
+	switch m := ctxext.NewLimiterManager(interval, burst); b {
 	case ByUser:
 		return m.LimitByUser
 	case ByGroup:

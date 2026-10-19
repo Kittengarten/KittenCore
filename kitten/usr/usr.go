@@ -35,10 +35,8 @@ type (
 		Get() message.Message
 		// Set 设置待发送的消息
 		Set(message.Message) Handler
-		// SendGroupMessage 发送群消息
-		SendGroupMessage(groupID int64) int64
-		// SendPrivateMessage 发送私聊消息
-		SendPrivateMessage(userID int64) int64
+		// SendMono 发送消息给单个对象
+		SendMono(u QQ) message.ID
 		// QuoteID 引用消息 ID
 		QuoteID() message.ID
 	}

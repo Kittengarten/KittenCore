@@ -47,7 +47,7 @@ var (
 )
 
 func (c *MCConn) Open(ctx context.Context, addr, password string) error {
-	conn, err := (&net.Dialer{Timeout: shttp.Timeout}).
+	conn, err := new(net.Dialer{Timeout: shttp.Timeout}).
 		DialContext(ctx, `tcp`, addr)
 	if err != nil {
 		return err

@@ -8,10 +8,10 @@ import (
 	"time"
 
 	"github.com/Kittengarten/KittenCore/kitten/core/fio"
+	"github.com/Kittengarten/KittenCore/kitten/core/lru"
 	"github.com/Kittengarten/KittenCore/kitten/core/mode"
 	"github.com/Kittengarten/KittenCore/kitten/core/utils"
 
-	"github.com/RomiChan/syncx"
 	"github.com/tidwall/gjson"
 )
 
@@ -47,8 +47,8 @@ var (
 )
 
 var (
-	strangerInfo    syncx.Map[QQ, qqInfo]    // 各陌生人信息缓存
-	groupMemberList syncx.Map[QQ, groupList] // 各群的成员列表缓存
+	strangerInfo    = lru.New[QQ, qqInfo](10000)  // 各陌生人信息缓存
+	groupMemberList = lru.New[QQ, groupList](100) // 各群的成员列表缓存
 )
 
 func init() {
@@ -56,7 +56,6 @@ func init() {
 		return
 	}
 	if err := errors.Join(loadInfo(), loadMember()); err != nil {
-		// TODO: 检测到错误则重建，而不是 panic
 		log.Panic(err)
 	}
 }
@@ -64,10 +63,13 @@ func init() {
 func loadInfo() error {
 	data := new(map[QQ]qqInfoDisk)
 	if err := load(infoFile, data); err != nil {
-		return err
+		log.Println(err)
+		if err := infoFile.Delete(); err != nil {
+			return err
+		}
 	}
 	for k, v := range *data {
-		strangerInfo.Store(k, qqInfo{
+		strangerInfo.Add(k, qqInfo{
 			Result: gjson.Parse(v.Raw),
 			Time:   v.Time,
 		})
@@ -78,10 +80,13 @@ func loadInfo() error {
 func loadMember() error {
 	data := new(map[QQ]groupListDisk)
 	if err := load(memberFile, data); err != nil {
-		return err
+		log.Println(err)
+		if err := memberFile.Delete(); err != nil {
+			return err
+		}
 	}
 	for k, v := range *data {
-		groupMemberList.Store(k, groupList{
+		groupMemberList.Add(k, groupList{
 			List: utils.ConvertSlice(v.List, func(s string) gjson.Result {
 				return gjson.Parse(s)
 			}),

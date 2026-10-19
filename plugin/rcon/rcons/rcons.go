@@ -43,7 +43,7 @@ func Command(handler *msg.Handler, cp fio.PathRWMutex) message.ID {
 	}
 	defer func() {
 		if err := conn.Close(); err != nil {
-			handler.SendWithImageFail(`关闭 RCON 连接错误喵！`, err)
+		_ = handler.SendWithImageFail(`关闭 RCON 连接错误喵！`, err)
 		}
 	}()
 	if err = conn.Authenticate(); err != nil {

@@ -64,7 +64,7 @@ func NewChooser[T any, W constraints.Integer](choices ...Choice[T, W]) (*Chooser
 		return nil, errNoValidChoices
 	}
 
-	return &Chooser[T, W]{data: choices, totals: totals, max: runningTotal}, nil
+	return new(Chooser[T, W]{data: choices, totals: totals, max: runningTotal}), nil
 }
 
 // Possible errors returned by NewChooser, preventing the creation of a Chooser

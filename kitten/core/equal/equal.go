@@ -5,11 +5,18 @@ import (
 	"maps"
 	"slices"
 	"time"
+
+	"github.com/Kittengarten/KittenCore/kitten/core/times"
 )
 
 // IsSame 判断值是否相同
 func IsSame[T comparable](v ...T) bool {
-	return IsSameFunc(func(a, b T) bool { return a == b }, v...)
+	return IsSameFunc(Equal, v...)
+}
+
+// Equal 判断值是否相同
+func Equal[T comparable](v1, v2 T) bool {
+	return v1 == v2
 }
 
 // IsSameSlice 判断切片是否相同
@@ -72,7 +79,7 @@ func CmpWeek(t1, t2 time.Time) int {
 		0,
 		0,
 		-int((int(t1.Weekday())+6)%7),
-	)).Hours()/24) / 7
+	)).Hours()/times.HoursPerDay) / times.DaysPerWeek
 }
 
 // CmpMonth 比较月数差值 t2 - t1
@@ -99,11 +106,18 @@ func CmpYear(t1, t2 time.Time) int {
 }
 
 // IsSameFunc 用函数判断值是否相同
-func IsSameFunc[T any](f func(T, T) bool, v ...T) bool {
+func IsSameFunc[T any](eq func(T, T) bool, v ...T) bool {
 	for i := range len(v) - 1 {
-		if !f(v[0], v[i+1]) {
+		if !eq(v[0], v[i+1]) {
 			return false
 		}
 	}
 	return true
+}
+
+// EqualFunc 用函数判断值是否相同
+func EqualFunc[T any](eq func(T, T) bool, v1 T) func(v2 T) bool {
+	return func(v2 T) bool {
+		return eq(v1, v2)
+	}
 }

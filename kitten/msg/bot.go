@@ -1,26 +1,17 @@
 package msg
 
 import (
-	"cmp"
-	"context"
 	"errors"
 	"fmt"
-	"image"
-	"os"
 	"reflect"
 	"slices"
 	"strings"
 
 	"github.com/Kittengarten/KittenCore/internal/config"
 	"github.com/Kittengarten/KittenCore/kitten"
-	"github.com/Kittengarten/KittenCore/kitten/core/fio"
 	"github.com/Kittengarten/KittenCore/kitten/core/log"
 	"github.com/Kittengarten/KittenCore/kitten/core/qqemoji"
-	"github.com/Kittengarten/KittenCore/kitten/msg/mio"
 	"github.com/Kittengarten/KittenCore/kitten/usr"
-
-	"github.com/makiuchi-d/gozxing"
-	"github.com/makiuchi-d/gozxing/qrcode"
 
 	zero "github.com/wdvxdr1123/ZeroBot"
 	"github.com/wdvxdr1123/ZeroBot/message"
@@ -56,23 +47,23 @@ func (handler *Handler) SendEmojiLike(emoji ...string) error {
 }
 
 // Poke 戳一戳
-func (handler *Handler) Poke() {
+func (handler *Handler) Poke() zero.APIResponse {
 	if !handler.Check(kitten.Caller, kitten.Event) {
 		// 没有 APICaller 或 kitten.Event ，无法发送
-		return
+		return zero.APIResponse{}
 	}
 	if u, g := usr.NewQQ(handler.Event().UserID), usr.NewQQGroup(handler.Event().GroupID); u.IsQQ() {
 		if g.IsGroup() {
-			handler.CallAction(`group_poke`, zero.H{
-				`group_id`: g.Int(),
-				`user_id`:  u.Int(),
+			return handler.CallAction(`group_poke`, zero.H{
+				`group_id`: g.Int[int64](),
+				`user_id`:  u.Int[int64](),
 			})
-			return
 		}
-		handler.CallAction(`friend_poke`, zero.H{
-			`user_id`: u.Int(),
+		return handler.CallAction(`friend_poke`, zero.H{
+			`user_id`: u.Int[int64](),
 		})
 	}
+	return zero.APIResponse{}
 }
 
 // Object 获取发送对象
@@ -233,14 +224,14 @@ func atAll(handler *Handler, g ...usr.QQ) message.Segment {
 		if len(g) == 0 {
 			return message.Segment{}
 		}
-		handler.Ctx.Event = &zero.Event{GroupID: g[0].Int()}
+		handler.Ctx.Event = new(zero.Event{GroupID: g[0].Int[int64]()})
 	}
 	g = []usr.QQ{usr.NewQQGroup(handler.Event().GroupID)}
 	if !g[0].IsGroup() {
 		log.Skip(n).Error(`无效的群聊：`, g)
 		return message.Segment{}
 	}
-	r := handler.GetGroupAtAllRemain(g[0].Int())
+	r := handler.GetGroupAtAllRemain(g[0].Int[int64]())
 	if !r.Get(`can_at_all`).Bool() {
 		log.Skip(n).Info(`在该群聊不能 @ 全体成员：`, g)
 		return message.Segment{}
@@ -262,49 +253,16 @@ func State[T any](handler *Handler, name string) (t T) {
 	return
 }
 
-// ScanQRCode 扫描二维码
-func ScanQRCode(ctx context.Context, name string) (fmt.Stringer, error) {
-	var (
-		msg = Image(name)
-		n   = fio.NewPath(cmp.Or(os.TempDir(), `data/zbp`), `kitten`, `code.png`)
-	)
-	bytes, err := n.DownloadImage(ctx, mio.GetImageURL(msg))
-	if err != nil {
-		return nil, fmt.Errorf(`图片下载错误喵！%w`, err)
-	}
-	log.Info(`正在扫描二维码喵！字节数：`, bytes)
-	imgfile, err := os.Open(n.String())
-	if err != nil {
-		return nil, err
-	}
-	return scanQRCode(imgfile)
-}
+// ErrorAPIResponse 客户端响应错误
+var ErrorAPIResponse = errors.New(`客户端响应错误喵！`)
 
-// ScanQRCodeInQQ 扫描 QQ 消息中的二维码图片
-func (m *Handler) ScanQRCodeInQQ(file string) (fmt.Stringer, error) {
-	imgfile, err := os.Open(m.GetImage(file).Get(`file`).String())
-	if err != nil {
-		return nil, err
+// Handle 处理 zero.APIResponse 中的错误
+func Handle(res zero.APIResponse) error {
+	if res.RetCode == 0 {
+		return nil
 	}
-	return scanQRCode(imgfile)
-}
-
-// 扫描二维码
-func scanQRCode(imgfile *os.File) (s fmt.Stringer, err error) {
-	defer func() {
-		if e := imgfile.Close(); e != nil {
-			err = fmt.Errorf(`关闭二维码文件失败喵！%w`, e)
-		}
-	}()
-	img, _, err := image.Decode(imgfile)
-	if err != nil {
-		return nil, err
-	}
-	bmp, err := gozxing.NewBinaryBitmapFromImage(img)
-	if err != nil {
-		return nil, err
-	}
-	return qrcode.NewQRCodeReader().DecodeWithoutHints(bmp)
+	return fmt.Errorf(`%w返回值：%d，信息：%s，解释：%s`,
+		ErrorAPIResponse, res.RetCode, res.Message, res.Wording)
 }
 
 // 对象

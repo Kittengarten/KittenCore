@@ -16,7 +16,7 @@ import (
 )
 
 // 查看叠猫猫，不修改原数据
-func (d *data) view(handler *msg.Handler, all bool, r ...replacer) {
+func (d *data) view(handler *msg.Handler, all bool, r ...replacer) (id message.ID) {
 	if len(r) == 0 {
 		r = []replacer{l10n(cat)}
 	}
@@ -25,7 +25,7 @@ func (d *data) view(handler *msg.Handler, all bool, r ...replacer) {
 		l = len(s)       // 叠猫猫队列长度（避免闭包捕获被修改后的值）
 	)
 	utils.Go(`查看叠猫猫设置群昵称`, func() { setCard(handler, l) })
-	_ = sendTextf(handler, r[0], true, `【叠猫猫队列】
+	id = sendTextf(handler, r[0], true, `【叠猫猫队列】
 现在有 %d 只猫猫
 总重量为 %.1f kg
 ————%s`,
@@ -52,13 +52,14 @@ func (d *data) view(handler *msg.Handler, all bool, r ...replacer) {
 		case <-times.RandDelayRange(time.Second, 2*time.Second):
 			// 发送剩余部分的前 50 条
 			sr := s[max(0, len(s)-50):]
-			sendText(handler, r[0], false, &sr)
+			id = sendText(handler, r[0], false, &sr)
 			// 剩余部分的剩余部分
 			s = s[:len(s)-len(sr)]
 		case <-handler.Done():
-			handler.SendWithImageFail(handler.Err())
+			_ = handler.SendWithImageFail(handler.Err())
 		}
 	}
+	return
 }
 
 // 查看叠猫猫图片
@@ -89,7 +90,7 @@ func (d *data) viewImage(handler *msg.Handler, r ...replacer) message.ID {
 			}
 			return fmt.Sprintf(`%s（%d）%.1f %s %s`,
 				m.TitleCardOrNickName(h),
-				m.Int(),
+				m.QQ,
 				i2f(m.Weight),
 				r[0].Replace(`kg`),
 				r[0].Replace(m.getType(handler).String()),

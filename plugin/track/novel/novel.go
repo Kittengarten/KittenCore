@@ -100,13 +100,13 @@ func (nv *Novel) tags() string {
 	return s.String()
 }
 
-// 计算小说数据评分
-func (nv *Novel) score() string {
+// 计算小说数据位阶
+func (nv *Novel) tier() string {
 	n := max(20_000, float64(nv.TotalWordNum))
-	return fmt.Sprintf(`评分：%.2f / 10`,
+	return fmt.Sprintf(`位阶：%.2f / 10`,
 		10+max(0, min(4, math.Log10(float64(nv.DailyWordNum))))/2-
 			max(0, math.Log10(float64(time.Since(nv.Chapter.Update)/times.Year)))+
-			2*math.Log10(float64(nv.Collection)*float64(nv.HitNum)/math.Pow(n, 2)))
+			2*math.Log10(float64(nv.Collection)*float64(nv.HitNum)/n/n))
 }
 
 // 获取小说收藏
@@ -197,7 +197,7 @@ func (nv *Novel) String() string {
 		nv.URL,
 		nv.themes(),
 		nv.tags(),
-		nv.score(),
+		nv.tier(),
 		nv.collection(),
 		nv.wordNum(),
 		nv.hitNum(),

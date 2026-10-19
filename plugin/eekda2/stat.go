@@ -25,18 +25,19 @@ func getStat(ctx *zero.Ctx) {
 	)
 	defer cancel()
 	if err != nil {
-		handler.SendWithImageFail(err)
+		_ = handler.SendWithImageFail(err)
+		return
 	}
 	i := slices.IndexFunc(s, func(f food) bool {
-		return ctx.Event.UserID == f.Int()
+		return ctx.Event.UserID == f.Int[int64]()
 	})
 	if i == -1 {
-		handler.DoNotKnow()
+		_ = handler.DoNotKnow()
 		return
 	}
 	c, err := todayPath.LoadWithContext[config](handler, fio.Empty)
 	if err != nil {
-		handler.SendWithImageFail(err)
+		_ = handler.SendWithImageFail(err)
 	}
 	for _, t := range c {
 		if slices.Contains(t.Group, usr.NewQQGroup(ctx.Event.GroupID)) {
@@ -49,17 +50,17 @@ func getStat(ctx *zero.Ctx) {
 		})
 	}
 	if len(s[i].Stat) == 0 {
-		handler.DoNotKnow()
+		_ = handler.DoNotKnow()
 		return
 	}
-	handler.Quote().AtLf().Text(&s[i]).Send()
+	_ = handler.Quote().AtLf().Text(&s[i]).Send()
 }
 
 // 统计被吃次数
 func doStat(handler *msg.Handler, td today) {
 	s, err := statPath.LoadWithContext[stat](handler, fio.Empty)
 	if err != nil {
-		handler.SendWithImageFail(err)
+		_ = handler.SendWithImageFail(err)
 	}
 	var ok [mealsPerDay]bool
 	// 查询 QQ
@@ -92,7 +93,7 @@ func doStat(handler *msg.Handler, td today) {
 	s.sort()
 	// 写入文件
 	if err := statPath.SaveWithContext(handler, s); err != nil {
-		handler.SendWithImageFail(err)
+		_ = handler.SendWithImageFail(err)
 	}
 }
 

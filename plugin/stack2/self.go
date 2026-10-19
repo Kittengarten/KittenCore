@@ -35,13 +35,13 @@ func selfDaily(handler *msg.Handler, d data) bool {
 	if handler.Event().UserID == 0 {
 		return false
 	}
-	handler.Event().UserID = usr.Self().Int()
+	handler.Event().UserID = usr.Self().Int[int64]()
 	//nolint:gosec
 	if rand.Float64() >= d.evaluateDaily(handler) {
 		// 以评估的概率，触发喵喵使用 /叠猫猫 日常
 		return false
 	}
-	return selfDo(handler, cStack+cMeow+` `+cDaily, func() { d.daily(handler) })
+	return selfDo(handler, cStack+cMeow+` `+cDaily, func() { _ = d.daily(handler) })
 }
 
 // 评估日常任务，返回日常任务的权重作为概率
@@ -76,7 +76,7 @@ func selfLorry(handler *msg.Handler, d data) bool {
 	if handler.Event().UserID == 0 {
 		return false
 	}
-	handler.Event().UserID = usr.Self().Int()
+	handler.Event().UserID = usr.Self().Int[int64]()
 	//nolint:gosec
 	if rand.Float64() >= d.evaluateLorry(handler) {
 		// 以评估的概率，触发喵喵使用 /你要撞大运了
@@ -112,7 +112,7 @@ func selfEat(handler *msg.Handler, d data) bool {
 	if handler.Event().UserID == 0 {
 		return false
 	}
-	handler.Event().UserID = usr.Self().Int()
+	handler.Event().UserID = usr.Self().Int[int64]()
 	//nolint:gosec
 	if rand.Float64() >= d.evaluateEat(handler) {
 		// 以评估的概率，触发喵喵使用 /吃猫猫
@@ -157,7 +157,7 @@ func selfIn(handler *msg.Handler, d data) bool {
 	if handler.Event().UserID == 0 {
 		return false
 	}
-	handler.Event().UserID = usr.Self().Int()
+	handler.Event().UserID = usr.Self().Int[int64]()
 	//nolint:gosec
 	if rand.Float64() >= d.evaluateIn(handler) {
 		// 以评估的概率，触发喵喵使用 /叠猫猫 加入
@@ -171,13 +171,13 @@ func selfAnalysis(handler *msg.Handler, d data) bool {
 	if handler.Event().UserID == 0 {
 		return false
 	}
-	handler.Event().UserID = usr.Self().Int()
+	handler.Event().UserID = usr.Self().Int[int64]()
 	//nolint:gosec
 	if rand.Float64() >= d.evaluateIn(handler) {
 		// 以评估的概率，触发喵喵使用 /叠猫猫 分析
 		return false
 	}
-	return selfDo(handler, cStack+cMeow+` `+cAnalysis, func() { d.analysis(handler) })
+	return selfDo(handler, cStack+cMeow+` `+cAnalysis, func() { _ = d.analysis(handler) })
 }
 
 // 评估叠猫猫，返回叠入的权重作为概率
@@ -251,13 +251,13 @@ func selfOC(handler *msg.Handler, d data) bool {
 	if handler.Event().UserID == 0 {
 		return false
 	}
-	handler.Event().UserID = usr.Self().Int()
+	handler.Event().UserID = usr.Self().Int[int64]()
 	//nolint:gosec
 	if rand.Float64() >= d.evaluateOC(handler) {
 		// 以评估的概率，触发喵喵使用 /叠猫猫 锻炼
 		return false
 	}
-	return selfDo(handler, cStack+cMeow+` `+cOC, func() { d.oc(handler) })
+	return selfDo(handler, cStack+cMeow+` `+cOC, func() { _ = d.oc(handler) })
 }
 
 // 评估加速，返回加速的权重作为概率
@@ -296,13 +296,13 @@ func selfRank(handler *msg.Handler, d data) bool {
 	if handler.Event().UserID == 0 {
 		return false
 	}
-	handler.Event().UserID = usr.Self().Int()
+	handler.Event().UserID = usr.Self().Int[int64]()
 	//nolint:gosec
 	if rand.Float64() >= 0.1 {
 		// 以 0.1 的概率，触发喵喵使用 /叠猫猫 排行
 		return false
 	}
-	return selfDo(handler, cStack+cMeow+` `+cRank, func() { d.rank(handler) })
+	return selfDo(handler, cStack+cMeow+` `+cRank, func() { _ = d.rank(handler) })
 }
 
 // 自动过程
@@ -314,15 +314,16 @@ func selfDo(handler *msg.Handler, command string, f func()) bool {
 	select {
 	case <-times.RandDelayRange(minDelay, maxDelay):
 	case <-handler.Done():
-		handler.SendWithImageFail(handler.Err())
+		_ = handler.SendWithImageFail(handler.Err())
 		return true
 	}
 	handler.ID = handler.Text(p + command).Send()
+	handler.Event().MessageID = handler.ID
 	select {
 	case <-times.RandDelayRange(minDelay, maxDelay):
 		f()
 	case <-handler.Done():
-		handler.SendWithImageFail(handler.Err())
+		_ = handler.SendWithImageFail(handler.Err())
 	}
 	return true
 }

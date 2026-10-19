@@ -89,7 +89,7 @@ func initResource() error {
 		return nil
 	}
 	slog.Info(`没有找到资源文件，正在初始化喵！`, slog.Any(`目标`, botConfig.Path))
-	return os.CopyFS(botConfig.Path.String(), os.DirFS(dataInternal))
+	return os.CopyFS(botConfig.String(), os.DirFS(dataInternal))
 }
 
 // Get 获取主配置

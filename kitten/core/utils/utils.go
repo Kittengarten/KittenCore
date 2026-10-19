@@ -15,6 +15,8 @@ import (
 	"slices"
 	"sync/atomic"
 
+	"github.com/Kittengarten/KittenCore/kitten/core/equal"
+
 	"golang.org/x/exp/constraints"
 )
 
@@ -147,11 +149,9 @@ func RemoveDuplicates[E comparable](slice []E) []E {
 }
 
 // RemoveDuplicatesFunc 去除切片中的重复元素
-func RemoveDuplicatesFunc[E any](slice []E, f func(E, E) bool) (result []E) {
+func RemoveDuplicatesFunc[E any](slice []E, eq func(E, E) bool) (result []E) {
 	for _, e := range slice {
-		if !slices.ContainsFunc(result, func(er E) bool {
-			return f(er, e)
-		}) {
+		if !slices.ContainsFunc(result, equal.EqualFunc(eq, e)) {
 			result = append(result, e)
 		}
 	}
@@ -175,13 +175,11 @@ func RemoveDuplicateIter[E comparable](iter iter.Seq[E]) (result iter.Seq[E]) {
 }
 
 // RemoveDuplicateIterFunc 去除迭代器中的重复元素
-func RemoveDuplicateIterFunc[E any](iter iter.Seq[E], f func(E, E) bool) (result iter.Seq[E]) {
+func RemoveDuplicateIterFunc[E any](iter iter.Seq[E], eq func(E, E) bool) (result iter.Seq[E]) {
 	return func(yield func(E) bool) {
 		s := make([]E, 0)
 		for e := range iter {
-			if !slices.ContainsFunc(s, func(es E) bool {
-				return f(e, es)
-			}) {
+			if !slices.ContainsFunc(s, equal.EqualFunc(eq, e)) {
 				s = append(s, e)
 				continue
 			}
@@ -215,9 +213,9 @@ func BoolToIntStr(b bool) string {
 }
 
 // GetTypeName 获取任意类型变量的类型名
-func GetTypeName(value any) string {
+func GetTypeName(v any) string {
 	// 获取 reflect.Type
-	t := reflect.TypeOf(value)
+	t := reflect.TypeOf(v)
 	// 如果是指针类型，获取其指向的元素类型
 	if t.Kind() == reflect.Pointer {
 		t = t.Elem()
@@ -226,7 +224,7 @@ func GetTypeName(value any) string {
 	return t.Name()
 }
 
-// GoroutineSeq 协程序列号
+// GoroutineSeq 协程序号
 var GoroutineSeq atomic.Uint64
 
 // Go 运行一个 goroutine
@@ -234,7 +232,7 @@ func Go(name string, f func()) {
 	go func() {
 		var (
 			n = slog.String(`名称`, name)
-			s = slog.Uint64(`序列号`, GoroutineSeq.Add(1))
+			s = slog.Uint64(`序号`, GoroutineSeq.Add(1))
 		)
 		// 处理 panic，防止程序崩溃
 		defer HandlePanic(n, s)

@@ -27,12 +27,12 @@ const (
 
 var (
 	// 注册插件
-	engine = control.AutoRegister(&ctrl.Options[*zero.Ctx]{
+	engine = control.AutoRegister(new(ctrl.Options[*zero.Ctx]{
 		DisableOnDefault:  false,
 		Brief:             brief,
 		Help:              help,
 		PrivateDataFolder: replyServiceName,
-	}).ApplySingle(ctxext.GroupSingle)
+	})).ApplySingle(ctxext.GroupSingle)
 	// 配置文件路径
 	configPath = fio.NewPath(engine.DataFolder(), configFile).WithRWMutex()
 )

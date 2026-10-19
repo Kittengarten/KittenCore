@@ -55,12 +55,12 @@ func (e *needRestError) Error() string {
 
 // *needRest 的构造函数，需要休息
 func needRest(t time.Duration, w, i int, b bool) *needRestError {
-	return &needRestError{
+	return new(needRestError{
 		Duration: t,
 		w:        w,
 		i:        i,
 		bool:     b,
-	}
+	})
 }
 
 // Error 实现 error
@@ -123,11 +123,11 @@ func (e *stackError) Error() string {
 //	}
 func stack(handler *msg.Handler, m *meow, l, n int, r result) *stackError {
 	utils.Go(`叠猫猫失败设置群昵称`, func() { setCard(handler, l-n) })
-	return &stackError{
+	return new(stackError{
 		Handler: handler,
 		meow:    m,
 		l:       l,
 		n:       n,
 		r:       r,
-	}
+	})
 }

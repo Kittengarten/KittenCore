@@ -16,23 +16,22 @@ import (
 )
 
 // 吃猫猫执行逻辑
-func eatExe(handler *msg.Handler) {
+func eatExe(handler *msg.Handler) (id message.ID) {
 	r, ok := parseLoc(handler.Args())
 	if !ok {
 		// 当前活动未开放，返回
 		asyncSendEmoji(handler, `辣眼睛`)
-		handler.SendWithImageFail(`当前活动未开放喵！`)
-		return
+		return handler.SendWithImageFail(`当前活动未开放喵！`)
 	}
 	globalCtx = handler.Ctx
 	d, err := dataPath.LoadWithContext[data](handler, fio.Empty)
 	if err != nil {
-		sendWithImageFail(handler, r, `加载叠猫猫数据文件时发生错误喵！`, err)
-		return
+		return sendWithImageFail(handler, r, `加载叠猫猫数据文件时发生错误喵！`, err)
 	}
 	stackStatus.refresh(handler, d, r)
-	_ = d.eat(handler, r)
+	id = d.eat(handler, r)
 	self(handler, d)
+	return
 }
 
 // 吃猫猫
@@ -98,19 +97,19 @@ func (d *data) doEat(handler *msg.Handler, m *meow, r ...replacer) bool {
 	if l == 0 {
 		// 没有猫猫
 		asyncSendEmoji(handler, `哦`)
-		sendWithImageFail(handler, r[0], `猫堆中没有猫猫可以吃——`)
+		_ = sendWithImageFail(handler, r[0], `猫堆中没有猫猫可以吃——`)
 		return false
 	}
 	if t := (*d)[l-1].getTypeID(handler); t >= 小老虎 {
 		// 老虎以上无法被吃
 		asyncSendEmoji(handler, `😁 呲牙`)
-		sendWithImageFail(handler, r[0], `不可以吃`, &t, `——`)
+		_ = sendWithImageFail(handler, r[0], `不可以吃`, &t, `——`)
 		return false
 	}
 	if t := (*d)[0].getTypeID(handler); t >= 猫猫巴士 {
 		// 底座是猫猫巴士以上无法被吃
 		asyncSendEmoji(handler, `✨ 闪光`)
-		sendWithImageFail(handler, r[0], `不可以吃`, &t, `载的猫猫——`)
+		_ = sendWithImageFail(handler, r[0], `不可以吃`, &t, `载的猫猫——`)
 		return false
 	}
 	var (
@@ -144,7 +143,7 @@ func (d *data) doEat(handler *msg.Handler, m *meow, r ...replacer) bool {
 			times.ConvertTimeDuration(m.Time.Sub(time.Unix(handler.Event().Time, 0))))
 		doClear(handler, l, c, m.Weight, m, s)
 		s.WriteRune('🐅')
-		sendWithZako(handler, r[0], s)
+		_ = sendWithZako(handler, r[0], s)
 		return true
 	}
 	// 吃猫猫成功
@@ -157,7 +156,7 @@ func (d *data) doEat(handler *msg.Handler, m *meow, r ...replacer) bool {
 		s.WriteRune('😿')
 	}
 	e := dr[l-c:]
-	sendText(handler, r[0], true, s, &e)
+	_ = sendText(handler, r[0], true, s, &e)
 	return true
 }
 
@@ -168,5 +167,11 @@ func (m meow) checkEat(handler *msg.Handler, n meow) bool {
 		return false
 	}
 	//nolint:gosec
-	return rand.Float64() < m.chanceFall(n)
+	return rand.Float64() < m.chanceEat(n)
+}
+
+// 获取 m 吃掉 n 的概率
+func (m meow) chanceEat(n meow) float64 {
+	// m 吃掉 n 的概率与 m 导致 n 摔下去的概率相同
+	return m.chanceFall(n)
 }

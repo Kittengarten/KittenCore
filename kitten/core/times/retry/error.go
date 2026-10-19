@@ -25,5 +25,5 @@ func NewError(err error, retryable bool) error {
 	if err == nil {
 		return nil
 	}
-	return &retryableErr{error: err, retryable: retryable}
+	return new(retryableErr{error: err, retryable: retryable})
 }

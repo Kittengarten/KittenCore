@@ -21,7 +21,7 @@ log: # 日志
   crash: log/crash.log # 崩溃日志路径
   max_mb: 10 # 文件大小限制
   max_reserve: 0 # 最大保留日志文件数量，设置为 0 可以无限保留。
-  expire: 0 # 日志文件的过期天数，大于该天数前的日志文件会被清理。设置为 0 可以禁用（日志不会过期）。
+  expire_days: 0 # 日志文件的过期天数，大于该天数前的日志文件会被清理。设置为 0 可以禁用（日志不会过期）。
 web_ui: # WebUI 配置
   enable: false # 是否启用 WebUI
   host: 127.0.0.1 # WebUI 主机

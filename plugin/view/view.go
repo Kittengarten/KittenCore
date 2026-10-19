@@ -32,7 +32,7 @@ const (
 )
 
 // 注册插件
-var engine = control.AutoRegister(&ctrl.Options[*zero.Ctx]{
+var engine = control.AutoRegister(new(ctrl.Options[*zero.Ctx]{
 	DisableOnDefault: false,
 	Brief:            brief,
 	Help: func() string {
@@ -44,7 +44,7 @@ var engine = control.AutoRegister(&ctrl.Options[*zero.Ctx]{
 		fmt.Fprint(s, `戳一戳`, config.DefaultName(), ` // 可得到响应`)
 		return s.String()
 	}(),
-}).ApplySingle(ctxext.NewGroupSingle(`等一下喵！`))
+})).ApplySingle(ctxext.NewGroupSingle(`等一下喵！`))
 
 var (
 	// 日志文件
@@ -106,13 +106,9 @@ func init() {
 
 	// 通过链接、图片等让 Bot 扫描二维码，为防止滥用，仅管理员可用
 	zero.OnCommandGroup([]string{`扫码`, `扫描`}, zero.AdminPermission).
-		SetBlock(true).
-		Handle(func(ctx *zero.Ctx) {
-			c, cancel := context.WithTimeout(context.Background(), core.Timeout)
-			defer cancel()
-			img.Scan(msg.NewWithContext(c, ctx),
-				zero.SuperUserPermission,
-				zero.MustProvidePicture,
-			)
-		})
+		SetBlock(true).Handle(func(ctx *zero.Ctx) {
+		c, cancel := context.WithTimeout(context.Background(), core.Timeout)
+		defer cancel()
+		img.Scan(msg.NewWithContext(c, ctx))
+	})
 }

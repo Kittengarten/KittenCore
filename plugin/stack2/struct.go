@@ -228,7 +228,7 @@ func (m meow) String() string {
 	return fmt.Sprintf(
 		`%s	❤	%d	❤	%.1f kg	%s`,
 		cmp.Or(m.TitleCardOrNickName(h), m.Name),
-		m.Int(),
+		m.QQ,
 		i2f(m.Weight),
 		m.getType(h),
 	)

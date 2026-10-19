@@ -19,7 +19,7 @@ const (
 // Runbot 启动机器人
 func RunBot() {
 	config := config.Get()
-	zero.RunAndBlock(&zero.Config{
+	zero.RunAndBlock(new(zero.Config{
 		NickName:        config.NickName,
 		CommandPrefix:   config.CommandPrefix,
 		SuperUsers:      config.SuperUsers,
@@ -27,7 +27,7 @@ func RunBot() {
 		Driver: []zero.Driver{
 			newDriver(config.Protocol),
 		},
-	}, process.GlobalInitMutex.Unlock)
+	}), process.GlobalInitMutex.Unlock)
 }
 
 // 获取驱动

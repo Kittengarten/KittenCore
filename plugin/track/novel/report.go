@@ -66,6 +66,7 @@ func TryCommentUpdate(
 			repeat.New(0, time.Second, 2*time.Second),
 			users,
 			func(i int, u usr.QQ) error {
+				// 引用的消息 ID 不同，不能使用群发
 				_ = handler.SetContext(ctx).(*msg.Handler).Quote(ids[i]).Text(s).Send(u)
 				return nil
 			},

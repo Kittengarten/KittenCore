@@ -114,11 +114,11 @@ func (p Path) Rand(pre, fn string) (message.Segment, error) {
 }
 
 // GetImagePath 获取图片路径
-func GetImagePath(e message.Segment) fio.Path {
-	return fio.Path(e.Data[`file`])
+func GetImagePath(img message.Segment) fio.Path {
+	return fio.Path(img.Data[`file`])
 }
 
 // GetImageURL 获取图片 URL
-func GetImageURL(e message.Segment) string {
-	return html.UnescapeString(e.Data[`url`])
+func GetImageURL(img message.Segment) string {
+	return html.UnescapeString(img.Data[`url`])
 }

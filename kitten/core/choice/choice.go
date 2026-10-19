@@ -4,8 +4,9 @@ import (
 	"errors"
 	"math/rand/v2"
 
-	"github.com/Kittengarten/KittenCore/internal/wr"
 	"github.com/Kittengarten/KittenCore/kitten/core/utils"
+	"github.com/Kittengarten/KittenCore/kitten/core/wr"
+
 	"golang.org/x/exp/constraints"
 )
 

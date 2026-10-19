@@ -72,6 +72,7 @@ var l10nStr = [...]map[location]string{
 	{cat: `喵～`, fox: `嘤～`, gpu: `～`, cockroach: `～`, modem: `～`},
 	{cat: `总重量为`, fox: `总修为有`, gpu: `总算力为`, cockroach: `总长度为`, modem: `总带宽为`},
 	{cat: `小猫咪`, fox: `小狐狸`, gpu: `低功耗显卡`, cockroach: `小蟑螂`, modem: `古董猫`},
+	{cat: `的小猫咪`, fox: `的小狐狸`, gpu: `的刀卡`, cockroach: `的小蟑螂`, modem: `的古董猫`},
 	{cat: `的小猫`, fox: `的小狐`, gpu: `的刀卡`, cockroach: `的小蠊`, modem: `的古董猫`},
 	{cat: `摔成绒布球`, gpu: `沦为亮机卡`, cockroach: `被拖鞋打扁`, modem: `上转转回收`},
 	{cat: `猫咪`, fox: `狐狸`, gpu: `显卡`, cockroach: `蟑螂`, modem: `猫`},

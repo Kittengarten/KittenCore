@@ -43,11 +43,11 @@ const (
 )
 
 // 注册插件
-var engine = control.AutoRegister(&ctrl.Options[*zero.Ctx]{
+var engine = control.AutoRegister(new(ctrl.Options[*zero.Ctx]{
 	Brief:             xx + cEEKDA,
 	Help:              help,
 	PrivateDataFolder: replyServiceName,
-}).ApplySingle(ctxext.DefaultSingle)
+})).ApplySingle(ctxext.DefaultSingle)
 
 var (
 	// 今日文件路径
@@ -77,19 +77,19 @@ func todayMeal(ctx *zero.Ctx) {
 	)
 	defer cancel()
 	if err != nil {
-		handler.SendWithImageFail(err)
+		_ = handler.SendWithImageFail(err)
 	}
 	name := str.Mid(``, cEEKDA, str.Clean(handler.Event().RawMessage, false))
 	name, needRegister := strings.CutPrefix(name, cRegister)
 	name, needUnegister := strings.CutPrefix(name, cUnregister)
 	if name == `` {
 		// 角色名为空
-		handler.SendWithImageFail(`角色名为空喵！`)
+		_ = handler.SendWithImageFail(`角色名为空喵！`)
 		return
 	}
 	if needRegister && needUnegister {
 		// 指令冲突
-		handler.SendWithImageFail(`指令冲突喵！`)
+		_ = handler.SendWithImageFail(`指令冲突喵！`)
 		return
 	}
 	ci := slices.IndexFunc(c, func(t today) bool {
@@ -101,13 +101,13 @@ func todayMeal(ctx *zero.Ctx) {
 		// 该角色不存在
 		if !needRegister {
 			// 不执行注册指令
-			handler.SendWithImageFail(name, `未在任何群注册喵！`)
+			_ = handler.SendWithImageFail(name, `未在任何群注册喵！`)
 			return
 		}
 		// 执行注册指令
 		if !zero.AdminPermission(handler.Ctx) {
 			// 没有权限
-			handler.SendWithImageFail(isNotAdmin)
+			_ = handler.SendWithImageFail(isNotAdmin)
 			return
 		}
 		// 注册
@@ -117,10 +117,10 @@ func todayMeal(ctx *zero.Ctx) {
 		})
 		// 写入文件
 		if err := todayPath.SaveWithContext(co, c); err != nil {
-			handler.SendWithImageFail(err)
+			_ = handler.SendWithImageFail(err)
 			return
 		}
-		handler.Quote().AtLf().Text(name, registerSuccess).Send()
+		_ = handler.Quote().AtLf().Text(name, registerSuccess).Send()
 		return
 	}
 	// 该角色存在
@@ -128,35 +128,35 @@ func todayMeal(ctx *zero.Ctx) {
 		// 该角色未在本群注册
 		if !needRegister {
 			// 不执行注册指令
-			handler.SendWithImageFail(name, `未在本群注册喵！`)
+			_ = handler.SendWithImageFail(name, `未在本群注册喵！`)
 			return
 		}
 		// 执行注册指令
 		if !zero.AdminPermission(handler.Ctx) {
 			// 没有权限
-			handler.SendWithImageFail(isNotAdmin)
+			_ = handler.SendWithImageFail(isNotAdmin)
 			return
 		}
 		// 注册
 		c[ci].Group = append(c[ci].Group, g)
 		// 写入文件
 		if err := todayPath.SaveWithContext(co, c); err != nil {
-			handler.SendWithImageFail(err)
+			_ = handler.SendWithImageFail(err)
 			return
 		}
-		handler.Quote().AtLf().Text(name, registerSuccess).Send()
+		_ = handler.Quote().AtLf().Text(name, registerSuccess).Send()
 		return
 	}
 	// 该角色已在本群注册
 	switch {
 	case needRegister:
 		// 执行注册指令
-		handler.SendWithImageFail(name, `已在本群注册，无需重复注册喵！`)
+		_ = handler.SendWithImageFail(name, `已在本群注册，无需重复注册喵！`)
 	case needUnegister:
 		// 执行注销指令
 		if !zero.AdminPermission(handler.Ctx) {
 			// 没有权限
-			handler.SendWithImageFail(isNotAdmin)
+			_ = handler.SendWithImageFail(isNotAdmin)
 			return
 		}
 		// 注销
@@ -171,16 +171,16 @@ func todayMeal(ctx *zero.Ctx) {
 		}
 		// 写入文件
 		if err := todayPath.SaveWithContext(co, c); err != nil {
-			handler.SendWithImageFail(err)
+			_ = handler.SendWithImageFail(err)
 			return
 		}
-		handler.Quote().AtLf().Text(name, unregisterSuccess).Send()
+		_ = handler.Quote().AtLf().Text(name, unregisterSuccess).Send()
 	default:
 		// 执行通常指令，写入上下文
 		c[ci].Handler = handler
 		if equal.IsSameDate4AM(c[ci].Time, time.Unix(handler.Event().Time, 0)) {
 			// 今天已经生成了，直接播报
-			handler.Quote().AtLf().Text(&c[ci]).Send()
+			_ = handler.Quote().AtLf().Text(&c[ci]).Send()
 			return
 		}
 		// 今天没有生成，执行生成
@@ -204,7 +204,7 @@ func todayMeal(ctx *zero.Ctx) {
 		// 在其中取足够人的索引
 		nums, err := utils.GenerateRandomNumber(0, len(list), mealsPerDay)
 		if err != nil {
-			handler.SendWithImageFail(`没有足够的食物喵！`, err)
+			_ = handler.SendWithImageFail(`没有足够的食物喵！`, err)
 			return
 		}
 		// 传入足够人的 QQ
@@ -217,11 +217,11 @@ func todayMeal(ctx *zero.Ctx) {
 		c[ci].Time = time.Unix(handler.Event().Time, 0)
 		// 写入文件
 		if err := todayPath.SaveWithContext(co, c); err != nil {
-			handler.SendWithImageFail(err)
+			_ = handler.SendWithImageFail(err)
 			return
 		}
 		// 播报今天吃什么
-		handler.Quote().AtLf().Text(&c[ci]).Send()
+		_ = handler.Quote().AtLf().Text(&c[ci]).Send()
 		// 统计
 		doStat(handler, c[ci])
 	}

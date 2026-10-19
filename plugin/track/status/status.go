@@ -39,7 +39,7 @@ const (
 
 // ErrStatus *statusErr 的构造函数，状态错误
 func ErrStatus(url string, stat Status) *Error {
-	return &Error{url: url, Status: stat}
+	return new(Error{url: url, Status: stat})
 }
 
 // Error 实现 error

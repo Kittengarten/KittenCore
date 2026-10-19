@@ -27,7 +27,7 @@ func Poke(handler *msg.Handler) message.ID {
 		select {
 		case <-times.RandDelayRange(time.Second, 2*time.Second):
 			handler.Poke()
-			handler.CallAction(
+			_ = handler.CallAction(
 				`send_like`,
 				zero.H{
 					`user_id`: handler.Event().UserID,
@@ -35,7 +35,7 @@ func Poke(handler *msg.Handler) message.ID {
 				},
 			)
 		case <-handler.Done():
-			handler.SendWithImageFail(handler.Err())
+			_ = handler.SendWithImageFail(handler.Err())
 		}
 	case limiter.AcquireN(3):
 		// 5 分钟共 9 块命令牌 一次消耗 3 块命令牌

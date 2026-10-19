@@ -59,12 +59,12 @@ var (
 	help = config.CommandPrefix() + strings.Join(
 		[]string{cRepeat, cThreshold, cChance}, ` `)
 	// 注册插件
-	engine = control.AutoRegister(&ctrl.Options[*zero.Ctx]{
+	engine = control.AutoRegister(new(ctrl.Options[*zero.Ctx]{
 		DisableOnDefault:  false,
 		Brief:             brief,
 		Help:              help,
 		PrivateDataFolder: replyServiceName,
-	})
+	}))
 )
 
 var (
@@ -129,7 +129,7 @@ func repeatSet(ctx *zero.Ctx) {
 	defer cancel()
 	n, err := fmt.Sscanln(args, &threshold, &chance)
 	if err != nil {
-		handler.SendWithImageFailf(`%s %s
+		_ = handler.SendWithImageFailf(`%s %s
 参数错误（识别到 %d 个）：
 %v`,
 			cThreshold, cChance,
@@ -138,12 +138,12 @@ func repeatSet(ctx *zero.Ctx) {
 		return
 	}
 	if chance < minThreshold || chance > maxThreshold {
-		handler.SendWithImageFailf(`[概率] 错误：必须是 [%d, %d] 的正整数喵！`,
+		_ = handler.SendWithImageFailf(`[概率] 错误：必须是 [%d, %d] 的正整数喵！`,
 			minThreshold, maxThreshold)
 		return
 	}
 	if chance < 0 || chance > 1 {
-		handler.SendWithImageFail(`[概率] 错误：必须位于 [0, 1] 喵！`)
+		_ = handler.SendWithImageFail(`[概率] 错误：必须位于 [0, 1] 喵！`)
 		return
 	}
 	cfgPath.Lock()
@@ -152,20 +152,20 @@ func repeatSet(ctx *zero.Ctx) {
 		Threshold: threshold,
 		Chance:    chance,
 	}); err != nil {
-		handler.SendWithImageFail(`保存复读姬配置文件错误喵！`, err)
+		_ = handler.SendWithImageFail(`保存复读姬配置文件错误喵！`, err)
 		return
 	}
 	o, err := handler.Object()
 	if err != nil {
-		handler.SendWithImageFail(err)
+		_ = handler.SendWithImageFail(err)
 		return
 	}
 	name, err := o.Name(c)
 	if err != nil {
-		handler.SendWithImageFail(err)
+		_ = handler.SendWithImageFail(err)
 		return
 	}
-	handler.Quote().AtLf().
+	_ = handler.Quote().AtLf().
 		Textf(`%s将会开始以 %.2f%% 概率复读重复 %d 次的消息喵！`,
 			name, 100*chance, threshold,
 		).Send()
@@ -213,7 +213,7 @@ func repeat(ctx *zero.Ctx) {
 		}
 	}
 	// 发送消息
-	handler.Set(c.Message).(*msg.Handler).Send()
+	_ = handler.Set(c.Message).(*msg.Handler).Send()
 	// 清空复读计数，避免再次复读
 	c.t = 0
 }

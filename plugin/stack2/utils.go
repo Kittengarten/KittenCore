@@ -19,14 +19,13 @@ import (
 )
 
 // 缓存刷新
-func (b *status) refresh(handler *msg.Handler, d data, r ...replacer) {
+func (b *status) refresh(handler *msg.Handler, d data, r ...replacer) message.ID {
 	if len(r) == 0 {
 		r = []replacer{l10n(cat)}
 	}
 	stackStatus, err = bufferPath.LoadWithContext[status](handler, fio.Blank)
 	if err != nil {
-		sendWithImageFail(handler, r[0], `读取叠猫猫缓存时发生错误喵！`, err)
-		return
+		return sendWithImageFail(handler, r[0], `读取叠猫猫缓存时发生错误喵！`, err)
 	}
 	// 计算猫池中位数重量
 	d.median(handler)
@@ -34,8 +33,9 @@ func (b *status) refresh(handler *msg.Handler, d data, r ...replacer) {
 	stackStatus.MaxRestTime = stackStatus.MaxRestTime>>1 + // 与旧数据求平均值，相当于 0.5 倍比例控制，避免结果震荡
 		times.Day*time.Duration(stackConfig.MinRestHours*stackStatus.MedianWeight)>>1
 	if err := bufferPath.SaveWithContext(handler, stackStatus); err != nil {
-		sendWithImageFail(handler, r[0], `叠猫猫缓存时发生错误喵！`, err)
+		return sendWithImageFail(handler, r[0], `叠猫猫缓存时发生错误喵！`, err)
 	}
+	return message.ID{}
 }
 
 // 获取平地摔或特效的概率
@@ -53,7 +53,7 @@ func (m meow) checkFall(n meow) bool {
 	return rand.Float64() >= m.chanceFall(n)
 }
 
-// 获取 m 摔坏 n 的概率
+// 获取 m 导致 n 摔下去的概率
 func (m meow) chanceFall(n meow) float64 {
 	return math.Pow(float64(m.Weight)/float64(m.Weight+n.Weight),
 		math.Ln2/(math.Log(math.E+1.0)-1))
@@ -146,6 +146,11 @@ func sendWithNoPressedf(handler *msg.Handler, r replacer, format string, text ..
 func sendWithJump(handler *msg.Handler, r replacer, text ...any) message.ID {
 	return handler.Quote().AtLf().Image(fio.NewPath(imagePath, `跳.gif`)).
 		Text(rangeAssertion(r, text...)...).Send()
+}
+
+// 发送枯燥图片
+func sendBoring(handler *msg.Handler) message.ID {
+	return handler.Image(fio.NewPath(imagePath, `老实叠猫猫，很枯燥吧.png`)).Send()
 }
 
 // 异步发送表情回复

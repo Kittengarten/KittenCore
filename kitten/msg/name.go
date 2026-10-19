@@ -1,7 +1,6 @@
 package msg
 
 import (
-	"cmp"
 	"fmt"
 	"time"
 
@@ -23,53 +22,53 @@ func (handler *Handler) ReplaceCard(n string) error {
 	if err := o.SetName(handler, n); err != nil {
 		return err
 	}
-	handler.SetCard(-1)
-	return nil
+	return Handle(handler.SetCard(-1))
 }
 
 // SetCardThisGroup 在本群设置自己的群昵称，h 为猫堆高度
-func (handler *Handler) SetCardThisGroup(h ...int) {
+func (handler *Handler) SetCardThisGroup(h ...int) zero.APIResponse {
 	if len(h) == 0 {
 		// 默认高度为 -1
 		h = []int{-1}
 	}
-	if handler.Event().DetailType == Group {
-		handler.SetThisGroupCard(usr.Self().Int(), handler.card(h[0]))
+	if handler.Event().DetailType != Group {
+		return zero.APIResponse{}
 	}
+	return handler.SetThisGroupCard(usr.Self(), handler.card(h[0]))
 }
 
 // SetCard 设置自己的群昵称
 //
 //	h 为猫堆高度
 //	g 为发送对象，若无则使用当前发送对象
-func (handler *Handler) SetCard(h int, g ...usr.QQ) {
+func (handler *Handler) SetCard(h int, g ...usr.QQ) (res zero.APIResponse) {
 	if len(g) == 0 {
 		// 当前群
-		handler.SetCardThisGroup(h)
-		return
+		return handler.SetCardThisGroup(h)
 	}
 	for _, v := range g {
 		if !v.IsGroup() {
 			continue
 		}
-		handler.SetGroupCard(v.Int(), usr.Self().Int(), handler.card(h))
+		res = handler.SetGroupCard(v, usr.Self(), handler.card(h))
 	}
+	return
 }
 
 // SetGroupCard 设置群名片（群备注）
 // https://github.com/botuniverse/onebot-11/blob/master/api/public.md#set_group_card-%E8%AE%BE%E7%BD%AE%E7%BE%A4%E5%90%8D%E7%89%87%E7%BE%A4%E5%A4%87%E6%B3%A8
-func (handler *Handler) SetGroupCard(groupID, userID int64, card string) {
-	handler.CallAction(`set_group_card`, zero.H{
-		`group_id`: groupID,
-		`user_id`:  userID,
+func (handler *Handler) SetGroupCard(g, u usr.QQ, card string) zero.APIResponse {
+	return handler.CallAction(`set_group_card`, zero.H{
+		`group_id`: g.Int[int64](),
+		`user_id`:  u.Int[int64](),
 		`card`:     card,
 	})
 }
 
 // SetThisGroupCard 设置本群名片（群备注）
 // https://github.com/botuniverse/onebot-11/blob/master/api/public.md#set_group_card-%E8%AE%BE%E7%BD%AE%E7%BE%A4%E5%90%8D%E7%89%87%E7%BE%A4%E5%A4%87%E6%B3%A8
-func (handler *Handler) SetThisGroupCard(userID int64, card string) {
-	handler.SetGroupCard(handler.Event().GroupID, userID, card)
+func (handler *Handler) SetThisGroupCard(u usr.QQ, card string) zero.APIResponse {
+	return handler.SetGroupCard(usr.NewQQGroup(handler.Event().GroupID), u, card)
 }
 
 // 根据发送对象生成群昵称
@@ -95,17 +94,13 @@ func card[T constraints.Integer](name string, age T, h int) string {
 		max(int(age), equal.FullYears(time.Date(2017, time.April, 45,
 			0, 0, 0, 0, time.Local), time.Now())),
 		func() string {
-			switch cmp.Compare(0, h) {
-			case -1:
+			if h > 0 {
 				return fmt.Sprintf(`猫堆高度：%d`, h)
-			case 0:
-				return `猫堆已清空`
-			case 1:
-				return `内置冷却，禁止调戏`
-			default:
-				// 死码，为了防止编译器报 missing return 而保留
-				return ``
 			}
+			if h == 0 {
+				return `猫堆已清空`
+			}
+			return `内置冷却，禁止调戏`
 		}(),
 	)
 }

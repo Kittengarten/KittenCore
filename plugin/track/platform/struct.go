@@ -15,6 +15,8 @@ type Platform interface {
 	fmt.Stringer
 	// Layout 时间格式
 	Layout() string
+	// VerifyBookID 验证书号
+	VerifyBookID(string) bool
 	// FindBookID 搜索书号
 	FindBookID(context.Context, search.Keyword) (string, error)
 	// ChapterIDSource 小说更新章号源

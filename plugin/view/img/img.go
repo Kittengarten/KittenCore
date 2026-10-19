@@ -33,18 +33,18 @@ func SendImage(handler *msg.Handler, su bool) message.ID {
 }
 
 // Scan 扫码
-func Scan(handler *msg.Handler, su, mpp func(ctx *zero.Ctx) bool) message.ID {
+func Scan(handler *msg.Handler) message.ID {
 	// 如果没有提供图片，从链接解析
 	img := handler.Args()
 	if img == `` || strings.HasPrefix(img, `[`) ||
-		!su(handler.Ctx) && strings.HasPrefix(img, `file://`) {
+		!zero.SuperUserPermission(handler.Ctx) && strings.HasPrefix(img, `file://`) {
 		// 需要一张图片
-		if mpp(handler.Ctx) {
+		if zero.MustProvidePicture(handler.Ctx) {
 			return scanQRCode(handler)
 		}
 		return handler.SendWithImageFail(`没有收到图片，命令已过期喵！`)
 	}
-	s, err := msg.ScanQRCode(handler, img)
+	s, err := msg.ScanQRCode(handler, msg.Image(img))
 	if err != nil {
 		return handler.SendWithImageFail(`扫描失败喵！`, err)
 	}
@@ -58,7 +58,7 @@ func scanQRCode(handler *msg.Handler) message.ID {
 		if e.Type != seg.Image || mio.GetImagePath(e) == `` {
 			continue
 		}
-		s, err := handler.ScanQRCodeInQQ(mio.GetImagePath(e).String())
+		s, err := handler.ScanQRCode(mio.GetImagePath(e).String())
 		if err != nil {
 			r = append(r, err.Error())
 			continue
