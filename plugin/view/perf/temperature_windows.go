@@ -2,6 +2,7 @@ package perf
 
 import (
 	"bufio"
+	"cmp"
 	"strings"
 	"time"
 
@@ -39,5 +40,5 @@ func CPUTemperature(l fio.Path) (t string) {
 			return strings.TrimSpace(strings.Split(line, `,`)[index+offset])
 		}
 	}
-	return ErrNoData.Error()
+	return cmp.Or(fileScanner.Err(), ErrNoData).Error()
 }

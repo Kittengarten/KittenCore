@@ -104,3 +104,10 @@ func card[T constraints.Integer](name string, age T, h int) string {
 		}(),
 	)
 }
+
+// GroupInfo 获取群信息
+func (handler *Handler) GroupInfo() string {
+	info := handler.GetThisGroupInfo(false)
+	return fmt.Sprintf(`群“%s”（%d），%d/%d`,
+		info.Name, info.ID, info.MemberCount, info.MaxMemberCount)
+}

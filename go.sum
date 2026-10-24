@@ -24,6 +24,8 @@ github.com/FloatTech/zbputils v1.7.2-0.20260510095247-3e9f8cf88d2d h1:V4ZS5ER8Tk
 github.com/FloatTech/zbputils v1.7.2-0.20260510095247-3e9f8cf88d2d/go.mod h1:DavniRwuFvJcHCkK6kt4Y257TPg63k/jvXRmdIKQFo4=
 github.com/Kittengarten/KittenAnno v1.0.2-0.20250629151602-8df874f49d06 h1:WPRU8JaN044yMrH02eMrdDAOlcBdbIkSbNlEv2irM1Q=
 github.com/Kittengarten/KittenAnno v1.0.2-0.20250629151602-8df874f49d06/go.mod h1:B4+zFCTtieFnmbo9GOSJT51tUZ9a+YkykmTT8KkMzBc=
+github.com/Lofanmi/chinese-calendar-golang v0.0.0-20250312143717-353343ff62ba h1:2UjZxoRKV8i9gc08YuqwxEWIxzf+palaX3fNKf2TFi8=
+github.com/Lofanmi/chinese-calendar-golang v0.0.0-20250312143717-353343ff62ba/go.mod h1:nG6VxnU5//MJzjwFAYQzFcrVdm+3RGD8NwO9riziV8E=
 github.com/Mrs4s/MiraiGo v0.0.0-20211120033824-43b23f4e6fcb/go.mod h1:imVKbfKqqeit+C/eaWGb4MKQ3z3gN6pRpBU5RMtp5so=
 github.com/PuerkitoBio/goquery v1.5.1/go.mod h1:GsLWisAFVj4WgDibEWF4pvYnkVQBpKBKeU+7zCJoLcc=
 github.com/RomiChan/syncx v0.0.0-20240418144900-b7402ffdebc7 h1:S/ferNiehVjNaBMNNBxUjLtVmP/YWD6Yh79RfPv4ehU=

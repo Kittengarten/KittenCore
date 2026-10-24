@@ -21,7 +21,10 @@ func InnerText(top *html.Node, expr string) string {
 }
 
 // ExtractText 从 HTML 文档中提取纯文本
-func ExtractText(doc *html.Node) string {
+//
+//	dp 段落使用 2 次换行
+//	img 提取图片
+func ExtractText(doc *html.Node, dp, img bool) string {
 	if doc == nil {
 		return ``
 	}
@@ -39,12 +42,39 @@ func ExtractText(doc *html.Node) string {
 		}
 		if n.Type == html.ElementNode {
 			switch n.Data {
-			case `br`, `li`:
+			case `br`, `li`, `h1`, `h2`, `h3`, `h4`, `h5`, `h6`:
 				// 写入换行符
 				s.WriteByte('\n')
 			case `p`:
-				// 写入段落标记（考虑到小说排版需求，仅使用一次换行）
+				// 写入段落标记
 				s.WriteByte('\n')
+				if dp {
+					s.WriteByte('\n')
+				}
+			case `img`:
+				if !img {
+					break
+				}
+				// 处理图片
+				var src, alt string
+				// 优先使用实际图片地址，其次尝试懒加载属性
+				for _, attr := range n.Attr {
+					switch attr.Key {
+					case `src`:
+						src = attr.Val
+					case `data-src`, `data-original`, `data-lazy-src`:
+						if src == `` {
+							src = attr.Val
+						}
+					case `alt`:
+						alt = attr.Val
+					}
+				}
+				s.WriteString(`![`)
+				s.WriteString(alt)
+				s.WriteString(`](`)
+				s.WriteString(src)
+				s.WriteByte(')')
 			}
 		}
 		return true // 继续遍历节点

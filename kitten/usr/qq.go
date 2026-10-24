@@ -1,9 +1,11 @@
 package usr
 
 import (
+	"cmp"
 	"context"
 	"errors"
 	"fmt"
+	"os"
 	"slices"
 	"strconv"
 	"strings"
@@ -12,6 +14,7 @@ import (
 
 	"github.com/Kittengarten/KittenCore/internal/config"
 	"github.com/Kittengarten/KittenCore/kitten"
+	"github.com/Kittengarten/KittenCore/kitten/core/fio"
 	"github.com/Kittengarten/KittenCore/kitten/core/log"
 	"github.com/Kittengarten/KittenCore/kitten/core/str"
 	"github.com/Kittengarten/KittenCore/kitten/core/utils"
@@ -26,9 +29,6 @@ import (
 
 // QQ 是一个表示 QQ 的 int64
 type QQ int64
-
-// ErrBirthMissing 生日信息缺失喵！
-var ErrBirthMissing = errors.New(`生日信息缺失喵！`)
 
 var sid = NewQQ(config.ID())
 
@@ -122,6 +122,9 @@ func (u QQ) IsTarget() func(ctx *zero.Ctx) bool {
 		return u.Int[int64]() == ctx.Event.TargetID
 	}
 }
+
+// ErrBirthMissing 生日信息缺失喵！
+var ErrBirthMissing = errors.New(`生日信息缺失喵！`)
 
 // Birthday 获取生日
 func (u QQ) Birthday(handler Context) (time.Time, error) {
@@ -276,7 +279,7 @@ func (g QQ) updateMemberList(handler Context) {
 	groupMemberList.Add(g,
 		groupList{
 			List: handler.GetGroupMemberListNoCache(g.Int[int64]()).Array(),
-			Time: time.Now(),
+			Time: time.Unix(handler.Event().Time, 0),
 		},
 	)
 	if err := saveMember(); err != nil {
@@ -346,7 +349,7 @@ func (u QQ) UpdateInfo(handler Context) {
 	strangerInfo.Add(u,
 		qqInfo{
 			Result: handler.GetStrangerInfo(u.Int[int64](), true),
-			Time:   time.Now(),
+			Time:   time.Unix(handler.Event().Time, 0),
 		},
 	)
 	if err := saveInfo(); err != nil {
@@ -383,4 +386,28 @@ func quote(handler Handler) {
 		}
 	}
 	_ = handler.Set(message.ReplyWithMessage(handler.QuoteID(), handler.Get()...))
+}
+
+// Avatar 获取 JPEG 头像
+func (u QQ) AvatarJPG(ctx context.Context) (fio.Path, error) {
+	avatarURL, err := u.AvatarJPGURL()
+	if err != nil {
+		return ``, err
+	}
+	p := fio.NewPath(
+		cmp.Or(os.TempDir(), `data/zbp`),
+		`qq`, u.String()+`.jpg`)
+	_, err = p.DownloadImage(ctx, avatarURL)
+	return p, err
+}
+
+// ErrNotQQ 不是 QQ 号
+var ErrNotQQ = errors.New(`不是 QQ 号喵！`)
+
+// AvatarURL 获取 JPEG 头像链接
+func (u QQ) AvatarJPGURL() (string, error) {
+	if !u.IsQQ() {
+		return ``, fmt.Errorf(`%d %w`, u, ErrNotQQ)
+	}
+	return fmt.Sprintf(`https://q.qlogo.cn/headimg_dl?dst_uin=%d&spec=640&img_type=jpg`, u), nil
 }

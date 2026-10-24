@@ -15,7 +15,6 @@ import (
 	"github.com/Kittengarten/KittenCore/kitten/core/equal"
 	"github.com/Kittengarten/KittenCore/kitten/core/fio"
 	"github.com/Kittengarten/KittenCore/kitten/core/log"
-	"github.com/Kittengarten/KittenCore/kitten/core/shttp"
 	"github.com/Kittengarten/KittenCore/kitten/core/stat"
 	"github.com/Kittengarten/KittenCore/kitten/core/times"
 	"github.com/Kittengarten/KittenCore/kitten/core/utils"
@@ -75,7 +74,7 @@ func init() {
 		Handle(func(ctx *zero.Ctx) {
 			Lock()
 			defer Unlock()
-			c, cancel := context.WithTimeout(context.Background(), shttp.Timeout)
+			c, cancel := context.WithTimeout(context.Background(), time.Minute)
 			defer cancel()
 			switch handler := msg.NewWithContext(c, ctx); handler.Command() {
 			case cStack, cStackT0, cStackT1:
@@ -96,7 +95,7 @@ func init() {
 			}
 			Lock()
 			defer Unlock()
-			c, cancel := context.WithTimeout(context.Background(), shttp.Timeout)
+			c, cancel := context.WithTimeout(context.Background(), time.Minute)
 			defer cancel()
 			_ = lorryExe(msg.NewWithContext(c, ctx))
 		})

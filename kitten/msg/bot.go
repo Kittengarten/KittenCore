@@ -285,3 +285,10 @@ func (handler *Handler) Age(self obj) int64 {
 	}
 	return usr.NewQQ(handler.Event().UserID).Age(handler)
 }
+
+// TODO: 群签到
+// set_group_sign
+// 参数：group_id
+
+// TODO：上传文件
+// TODO：下载文件

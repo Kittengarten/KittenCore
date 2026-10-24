@@ -47,7 +47,7 @@ func SendQingHua(handler *msg.Handler) message.ID {
 
 // SendKFC 发送疯狂星期四
 func SendKFC(handler *msg.Handler) message.ID {
-	if time.Now().Weekday() != time.Thursday {
+	if time.Unix(handler.Event().Time, 0).Weekday() != time.Thursday {
 		// 如果不是星期四，则不发送
 		return handler.SendWithImageFail(`今天不是星期四喵！`)
 	}

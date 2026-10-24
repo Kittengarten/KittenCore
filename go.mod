@@ -17,6 +17,7 @@ require (
 	github.com/FloatTech/zbpctrl v1.7.1
 	github.com/FloatTech/zbputils v1.7.2-0.20260510095247-3e9f8cf88d2d
 	github.com/Kittengarten/KittenAnno v1.0.2-0.20250629151602-8df874f49d06
+	github.com/Lofanmi/chinese-calendar-golang v0.0.0-20250312143717-353343ff62ba
 	github.com/antchfx/htmlquery v1.3.7
 	github.com/brahma-adshonor/gohook v1.1.10-0.20231106100708-5342d81802c3
 	github.com/dustin/go-humanize v1.1.0

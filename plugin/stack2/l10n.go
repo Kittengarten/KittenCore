@@ -147,11 +147,11 @@ func l10n(loc location) replacer {
 
 // 叠蟑螂活动日期判断，在愚人节的前三天或后七天范围内返回 true
 func checkCockroachDate() bool {
-	switch time.Now().Month() {
+	switch now := time.Now(); now.Month() {
 	case time.March:
-		return 28 < time.Now().Day()
+		return 28 < now.Day()
 	case time.April:
-		return 9 > time.Now().Day()
+		return 9 > now.Day()
 	default:
 		return false
 	}

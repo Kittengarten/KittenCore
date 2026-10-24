@@ -109,3 +109,23 @@ func DailyDeadline(hour, min, sec, nsec int) time.Duration {
 	// 计算剩余时间
 	return target.Sub(now)
 }
+
+var standardDayNames = [...]string{"日", "一", "二", "三", "四", "五", "六"}
+
+var youbiDayNames = [...]string{"日", "月", "水", "火", "木", "金", "土"}
+
+// ParseWeekday 将 time.Weelday 转换为中文
+func ParseWeekday(d time.Weekday, youbi, abbr bool) string {
+	if youbi {
+		s := youbiDayNames[int(d)]
+		if abbr {
+			return `(` + s + `)`
+		}
+		return s + `曜日`
+	}
+	s := standardDayNames[int(d)]
+	if abbr {
+		return `周` + s
+	}
+	return `星期` + s
+}
