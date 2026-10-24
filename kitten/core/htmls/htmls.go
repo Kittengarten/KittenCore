@@ -2,6 +2,7 @@
 package htmls
 
 import (
+	"cmp"
 	"strings"
 
 	"github.com/antchfx/htmlquery"
@@ -57,15 +58,13 @@ func ExtractText(doc *html.Node, dp, img bool) string {
 				}
 				// 处理图片
 				var src, alt string
-				// 优先使用实际图片地址，其次尝试懒加载属性
+				// 优先使用懒加载属性，其次尝试图片地址，避免获取到占位图
 				for _, attr := range n.Attr {
 					switch attr.Key {
 					case `src`:
-						src = attr.Val
+						src = cmp.Or(src, attr.Val)
 					case `data-src`, `data-original`, `data-lazy-src`:
-						if src == `` {
-							src = attr.Val
-						}
+						src = attr.Val
 					case `alt`:
 						alt = attr.Val
 					}
