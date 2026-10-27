@@ -56,7 +56,7 @@ func (d *data) oc(handler *msg.Handler, r ...replacer) message.ID {
 	return sendTextf(handler, r[0], true, `锻炼成功喵！
 你剩余的休息时间变为 %s喵！
 你的体重减少至 %.1f kg 喵！`,
-		times.ConvertTimeDuration(after.Time.Sub(time.Unix(handler.Event().Time, 0))),
+		times.ConvertTimeDuration(after.Time.Sub(handler.Time())),
 		i2f(after.Weight),
 	)
 }

@@ -241,13 +241,13 @@ func (d *data) pre(handler *msg.Handler, r ...replacer) (meow, error) {
 		r = []replacer{l10n(cat)}
 	}
 	var (
-		u  = usr.NewQQ(handler.Event().UserID) // 叠入猫猫的 QQ
-		w  int                                 // 叠入猫猫的体重
-		re time.Duration                       // 剩余的休息时间
-		b  bool                                // 日常任务是否完成
+		u   = usr.NewQQ(handler.Event().UserID) // 叠入猫猫的 QQ
+		w   int                                 // 叠入猫猫的体重
+		re  time.Duration                       // 剩余的休息时间
+		b   bool                                // 日常任务是否完成
+		now = handler.Time()                    // 当前时间
 	)
 	if i := slices.IndexFunc(*d, func(m meow) bool {
-		now := time.Unix(handler.Event().Time, 0)
 		re = m.Time.Sub(now)
 		w = m.Weight
 		b = equal.IsSameDate4AM(m.Daily, now)
@@ -282,7 +282,7 @@ func (d *data) pre(handler *msg.Handler, r ...replacer) (meow, error) {
 			QQ:     u,
 			Name:   name,
 			Weight: max(1, len(name)),
-			Time:   time.Unix(handler.Event().Time, 0),
+			Time:   now,
 		}
 		return m, nil
 	}
@@ -562,8 +562,8 @@ func exit(handler *msg.Handler, m *meow, r result, h int) {
 	}
 	// 被老虎吃掉，体重不变
 	// 进入休息
-	m.Time = time.Unix(handler.Event().Time, 0).
-		Add(min(stackStatus.MaxRestTime, max(
+	m.Time = handler.Time().Add(
+		min(stackStatus.MaxRestTime, max(
 			time.Hour*time.Duration(stackConfig.MinRestHours),
 			time.Duration(rest),
 		)))
@@ -618,16 +618,17 @@ func (d *data) clear(handler *msg.Handler, ignore bool) {
 			// 如果在叠猫猫中，不处理
 			continue
 		}
+		now := handler.Time()
 		if (*d)[i].getTypeID(handler) == 绒布球 && // 如果是绒布球，且不在休息
-			(*d)[i].Time.Before(time.Unix(handler.Event().Time, 0)) ||
+			(*d)[i].Time.Before(now) ||
 			(ignore || 奶猫 == (*d)[i].getTypeID(handler)) && // 如果忽略不活跃玩家或是奶猫，且已经超期
-				(*d)[i].Time.Add(stackStatus.MaxRestTime).Before(time.Unix(handler.Event().Time, 0)) {
+				(*d)[i].Time.Add(stackStatus.MaxRestTime).Before(now) {
 			del++ // 执行清理
 			continue
 		}
-		if (*d)[i].Time.Sub(time.Unix(handler.Event().Time, 0)) > stackStatus.MaxRestTime {
+		if (*d)[i].Time.Sub(now) > stackStatus.MaxRestTime {
 			// 如果猫猫剩余的休息时间大于当前上限，缩短至上限
-			(*d)[i].Time = time.Unix(handler.Event().Time, 0).Add(stackStatus.MaxRestTime)
+			(*d)[i].Time = now.Add(stackStatus.MaxRestTime)
 		}
 	}
 	*d = (*d)[:len(*d)-del] // 清除掉经过移动后失效的猫猫

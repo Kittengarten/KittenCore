@@ -59,7 +59,7 @@ func (d *data) evaluateDaily(handler *msg.Handler) float64 {
 		// 剩余休息时间过短，不能进行日常任务，什么也不做
 		return 0
 	}
-	if equal.IsSameDate4AM(m.Daily, time.Unix(handler.Event().Time, 0)) {
+	if equal.IsSameDate4AM(m.Daily, handler.Time()) {
 		// 已经完成日常任务，不能进行日常任务，直接返回
 		return 0
 	}

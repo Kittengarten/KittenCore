@@ -38,7 +38,8 @@ func (d *data) daily(handler *msg.Handler, r ...replacer) message.ID {
 		// 剩余休息时间过短，不能进行日常任务，直接返回
 		return sendWithImageFail(handler, r[0], `剩余休息时间过短，不能进行日常任务喵！`)
 	}
-	if equal.IsSameDate4AM((*d)[nre.i].Daily, time.Unix(handler.Event().Time, 0)) {
+	now := handler.Time()
+	if equal.IsSameDate4AM((*d)[nre.i].Daily, now) {
 		// 已经完成日常任务，不能进行日常任务，直接返回
 		return sendWithImageFail(handler, r[0], `已经完成日常任务，不能重复进行喵！`)
 	}
@@ -49,7 +50,7 @@ func (d *data) daily(handler *msg.Handler, r ...replacer) message.ID {
 		-max(mrh, min(nre.Duration-mrh,
 			time.Duration(new(big.Int).Mul(big.NewInt(int64(nre.Duration)),
 				big.NewInt(min(ratio, int64(len(d.getStack()))))).Int64()/ratio))))
-	(*d)[nre.i].Daily = time.Unix(handler.Event().Time, 0)
+	(*d)[nre.i].Daily = now
 	// 完成日常任务后的猫猫
 	after := (*d)[nre.i]
 	// 清理过期玩家
@@ -60,6 +61,6 @@ func (d *data) daily(handler *msg.Handler, r ...replacer) message.ID {
 	}
 	return sendTextf(handler, r[0], true, `执行日常任务成功喵！
 你剩余的休息时间变为 %s喵！`,
-		times.ConvertTimeDuration(after.Time.Sub(time.Unix(handler.Event().Time, 0))),
+		times.ConvertTimeDuration(after.Time.Sub(now)),
 	)
 }

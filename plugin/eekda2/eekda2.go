@@ -178,7 +178,8 @@ func todayMeal(ctx *zero.Ctx) {
 	default:
 		// 执行通常指令，写入上下文
 		c[ci].Handler = handler
-		if equal.IsSameDate4AM(c[ci].Time, time.Unix(handler.Event().Time, 0)) {
+		now := handler.Time()
+		if equal.IsSameDate4AM(c[ci].Time, now) {
 			// 今天已经生成了，直接播报
 			_ = handler.Quote().AtLf().Text(&c[ci]).Send()
 			return
@@ -199,7 +200,7 @@ func todayMeal(ctx *zero.Ctx) {
 		// 只保留昨天一天的群员
 		list = slices.DeleteFunc(list, func(v gjson.Result) bool {
 			return !equal.IsSameDate4AM(time.Unix(v.Get(`last_sent_time`).Int(), 0),
-				time.Unix(handler.Event().Time, 0).AddDate(0, 0, -1))
+				now.AddDate(0, 0, -1))
 		})
 		// 在其中取足够人的索引
 		nums, err := utils.GenerateRandomNumber(0, len(list), mealsPerDay)
@@ -214,7 +215,7 @@ func todayMeal(ctx *zero.Ctx) {
 			i++
 		}
 		// 写入时间
-		c[ci].Time = time.Unix(handler.Event().Time, 0)
+		c[ci].Time = now
 		// 写入文件
 		if err := todayPath.SaveWithContext(co, c); err != nil {
 			_ = handler.SendWithImageFail(err)

@@ -5,7 +5,6 @@ import (
 	"math/rand/v2"
 	"slices"
 	"strings"
-	"time"
 
 	"github.com/Kittengarten/KittenCore/kitten/core/fio"
 	"github.com/Kittengarten/KittenCore/kitten/core/times"
@@ -136,11 +135,12 @@ func (d *data) doEat(handler *msg.Handler, m *meow, r ...replacer) bool {
 	exit(handler, m, eat, w)
 	s := new(strings.Builder)
 	s.Grow(1 << 8)
+	now := handler.Time()
 	if w == 0 {
 		// 吃猫猫失败
 		asyncSendEmoji(handler, `调皮`)
 		fmt.Fprintf(s, `吃猫猫失败，杂鱼～杂鱼❤需要休息 %s。`,
-			times.ConvertTimeDuration(m.Time.Sub(time.Unix(handler.Event().Time, 0))))
+			times.ConvertTimeDuration(m.Time.Sub(now)))
 		doClear(handler, l, c, m.Weight, m, s)
 		s.WriteRune('🐅')
 		_ = sendWithZako(handler, r[0], s)
@@ -149,7 +149,7 @@ func (d *data) doEat(handler *msg.Handler, m *meow, r ...replacer) bool {
 	// 吃猫猫成功
 	asyncSendEmoji(handler, `😰 紧张`)
 	fmt.Fprintf(s, `吃猫猫成功，你吃掉了 %d 只猫猫！需要休息 %s。`,
-		c, times.ConvertTimeDuration(m.Time.Sub(time.Unix(handler.Event().Time, 0))))
+		c, times.ConvertTimeDuration(m.Time.Sub(now)))
 	doClear(handler, l, c, m.Weight-w, m, s)
 	s.WriteRune('🐯')
 	for range c {

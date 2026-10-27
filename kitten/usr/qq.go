@@ -279,7 +279,7 @@ func (g QQ) updateMemberList(handler Context) {
 	groupMemberList.Add(g,
 		groupList{
 			List: handler.GetGroupMemberListNoCache(g.Int[int64]()).Array(),
-			Time: time.Unix(handler.Event().Time, 0),
+			Time: handler.Time(),
 		},
 	)
 	if err := saveMember(); err != nil {
@@ -349,7 +349,7 @@ func (u QQ) UpdateInfo(handler Context) {
 	strangerInfo.Add(u,
 		qqInfo{
 			Result: handler.GetStrangerInfo(u.Int[int64](), true),
-			Time:   time.Unix(handler.Event().Time, 0),
+			Time:   handler.Time(),
 		},
 	)
 	if err := saveInfo(); err != nil {

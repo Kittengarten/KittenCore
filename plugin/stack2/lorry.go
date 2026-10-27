@@ -5,7 +5,6 @@ import (
 	"math/rand/v2"
 	"slices"
 	"strings"
-	"time"
 
 	"github.com/Kittengarten/KittenCore/kitten/core/fio"
 	"github.com/Kittengarten/KittenCore/kitten/core/times"
@@ -103,13 +102,14 @@ func (d *data) doLorry(handler *msg.Handler, m *meow, r ...replacer) bool {
 	}
 	s := new(strings.Builder)
 	s.Grow(1 << 8)
+	now := handler.Time()
 	if !d.checkLorry(*m) {
 		// 撞大运失败
 		// 猫车进入休息
 		exit(handler, m, lorry, 0)
 		asyncSendEmoji(handler, `调皮`)
 		fmt.Fprintf(s, `撞大运失败，杂鱼～杂鱼❤需要休息 %s。`,
-			times.ConvertTimeDuration(m.Time.Sub(time.Unix(handler.Event().Time, 0))))
+			times.ConvertTimeDuration(m.Time.Sub(now)))
 		doClear(handler, l, 0, m.Weight, m, s)
 		s.WriteRune('🚚')
 		_ = sendWithZako(handler, r[0], s)
@@ -125,7 +125,7 @@ func (d *data) doLorry(handler *msg.Handler, m *meow, r ...replacer) bool {
 	exit(handler, m, lorry, l)
 	asyncSendEmoji(handler, `😰 紧张`)
 	fmt.Fprintf(s, `撞大运成功，你撞飞了 %d 只猫猫！需要休息 %s。`,
-		l, times.ConvertTimeDuration(m.Time.Sub(time.Unix(handler.Event().Time, 0))))
+		l, times.ConvertTimeDuration(m.Time.Sub(now)))
 	doClear(handler, l, l, p, m, s)
 	s.WriteRune('🚛')
 	for range l {

@@ -117,20 +117,22 @@ func level(cpu float64, mem float64, ts string) int {
 
 // ViewString 返回查看字符串
 //
+//	t 为温度，w 为 叠猫猫体重，check 为是否检查
+//
 // TODO: GetStatus() GetPacketStatus() 的使用
-func ViewString(ctx context.Context, name, t, w string) string {
+func ViewString(ctx context.Context, name, t, w string, check bool) string {
 	info := viewString(ctx, t) + w + `
 
 ` + text.GetWTA(name)
 	return info + func() string {
-		if text.Export == nil {
+		if text.Export == nil || !check {
 			return ``
 		}
 		return text.Export.Check(ctx, name, info)
 	}()
 }
 
-// 查看字符串
+// 查看字符串，t 为温度
 func viewString(ctx context.Context, t string) string {
 	if !server {
 		// 设置超时

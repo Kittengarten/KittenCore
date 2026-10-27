@@ -102,11 +102,9 @@ func (handler *Handler) SendSplit(u ...usr.QQ) message.ID {
 			}
 			var lines []string
 			for line := range strings.Lines(msg.Data[`text`]) {
-				l := strings.TrimSpace(line)
-				if l == `` {
-					continue
+				if l := strings.TrimSpace(line); l != `` {
+					lines = append(lines, l)
 				}
-				lines = append(lines, l)
 			}
 			if len(lines) > limit {
 				// 纯文本消息条数过多，退化至普通发送
@@ -625,4 +623,9 @@ func (handler *Handler) GetImage(file string) gjson.Result {
 	return handler.CallAction(`get_image`, zero.H{
 		`file`: file,
 	}).Data
+}
+
+// Time 通过 Event() 获取事件时间
+func (handler *Handler) Time() time.Time {
+	return time.Unix(handler.Event().Time, 0)
 }

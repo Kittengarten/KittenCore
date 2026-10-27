@@ -78,7 +78,7 @@ func (e *stackError) Error() string {
 		_, _ = fmt.Fprintf(e, `你平地摔了喵！
 需要休息 %s。
 你的体重由 %.1f kg 变为 %.1f kg。`,
-			times.ConvertTimeDuration(e.Time.Sub(time.Unix(e.Event().Time, 0))),
+			times.ConvertTimeDuration(e.meow.Time.Sub(time.Unix(e.Event().Time, 0))),
 			i2f(w), i2f(e.Weight))
 	case press:
 		// 压坏了别的猫猫
@@ -87,7 +87,7 @@ func (e *stackError) Error() string {
 需要休息一段时间。
 你的休息时长为 %s。`,
 			e.n,
-			times.ConvertTimeDuration(e.Time.Sub(time.Unix(e.Event().Time, 0))))
+			times.ConvertTimeDuration(e.meow.Time.Sub(time.Unix(e.Event().Time, 0))))
 		doClear(e.Handler, e.l, e.n, w, e.meow, &e.Builder)
 		for range e.n {
 			_, _ = e.WriteRune('🙀')
@@ -99,7 +99,7 @@ func (e *stackError) Error() string {
 需要休息一段时间。
 你的休息时长为 %s。`,
 			e.n,
-			times.ConvertTimeDuration(e.Time.Sub(time.Unix(e.Event().Time, 0))))
+			times.ConvertTimeDuration(e.meow.Time.Sub(time.Unix(e.Event().Time, 0))))
 		doClear(e.Handler, e.l, e.n, w, e.meow, &e.Builder)
 		for range e.n {
 			_, _ = e.WriteRune('😿')

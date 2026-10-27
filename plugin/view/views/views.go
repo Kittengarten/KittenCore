@@ -25,7 +25,7 @@ func View(handler *msg.Handler, service string, logFilePath fio.Path) message.ID
 	switch name, who := func() (name, who string) {
 		o, err := handler.Object()
 		if err != nil {
-		_ = handler.Quote().AtLf().Text(err).Send()
+			_ = handler.Quote().AtLf().Text(err).Send()
 			return
 		}
 		name = str.Clean(handler.Args(), false)
@@ -34,7 +34,7 @@ func View(handler *msg.Handler, service string, logFilePath fio.Path) message.ID
 			if name == n {
 				who = zero.BotConfig.NickName[0]
 				if err = o.SetName(handler, name); err != nil {
-				_ = handler.Quote().AtLf().Text(err).Send()
+					_ = handler.Quote().AtLf().Text(err).Send()
 					return
 				}
 			}
@@ -46,7 +46,7 @@ func View(handler *msg.Handler, service string, logFilePath fio.Path) message.ID
 		ct := perf.CPUTemperature(logFilePath)
 		return handler.Quote().AtLf().
 			Image(fio.NewPath(service, strconv.Itoa(perf.Level(handler, ct))+`.png`)).
-			Text(perf.ViewString(handler, name, ct, text.Weight())).Send()
+			Text(perf.ViewString(handler, name, ct, text.Weight(), true)).Send()
 	case `鸡汤`:
 		return text.SendJiTang(handler)
 	case `情话`:

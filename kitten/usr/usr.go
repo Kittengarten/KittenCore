@@ -2,6 +2,7 @@ package usr
 
 import (
 	"context"
+	"time"
 
 	"github.com/Kittengarten/KittenCore/kitten"
 	"github.com/tidwall/gjson"
@@ -28,6 +29,8 @@ type (
 		Check(...kitten.Item) bool
 		// Event 返回当前 ZeroBot 上下文的事件
 		Event() *zero.Event
+		// Time 通过 Event() 获取事件时间
+		Time() time.Time
 	}
 	// Sender 待发送的消息
 	Sender interface {
