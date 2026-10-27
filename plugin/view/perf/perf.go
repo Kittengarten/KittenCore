@@ -124,12 +124,10 @@ func ViewString(ctx context.Context, name, t, w string, check bool) string {
 	info := viewString(ctx, t) + w + `
 
 ` + text.GetWTA(name)
-	return info + func() string {
-		if text.Export == nil || !check {
-			return ``
-		}
-		return text.Export.Check(ctx, name, info)
-	}()
+	if text.Export == nil || !check {
+		return info
+	}
+	return info + text.Export.Check(ctx, name, info)
 }
 
 // 查看字符串，t 为温度
@@ -141,10 +139,14 @@ func viewString(ctx context.Context, t string) string {
 		defer shttp.SetTimeout(shttp.Timeout)
 		res, err := shttp.GETData(urlStr + view)
 		if err != nil {
-			return err.Error()
+			log.Error(err)
+			return localInfo(ctx, t)
 		}
 		return string(res)
 	}
+	return localInfo(ctx, t)
+}
+func localInfo(ctx context.Context, t string) string {
 	mem := getMem(ctx)
 	return fmt.Sprintf(`系统：  	%s
 CPU：   	%.2f%%	（%s）
